@@ -54,9 +54,17 @@ document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress
 document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
 document.getElementById("clear-btn").addEventListener("click",()=>handleKeyPress("CLEAR"));
 document.getElementById("debug-btn").addEventListener("click",()=>{
-debugOffset=Math.floor(Math.random()*10000);
+// 重くなる原因だった日付ワープ（debugOffset）を廃止し、即座にランダムな駅を選ぶ
+const modeStations = stations.filter(s => s.yomi.length === currentMode);
+todayStation = modeStations[Math.floor(Math.random() * modeStations.length)];
+
+// 盤面とセーブデータをリセット
+savedState[currentMode] = { guesses: [], isWin: false, isOver: false };
 document.getElementById("result-modal").style.display="none";
-selectTodayStation(); restoreBoard();
+restoreBoard();
+
+// 変化後の答えをアラートで表示
+alert(`【デバッグモード】\n新しい答えは「${todayStation.yomi} (${todayStation.kanji})」です！`);
 });
 document.getElementById("stats-reset-btn").addEventListener("click",()=>{
 if(confirm("現在の文字数の成績（勝率や分布）をリセットしますか？")){
