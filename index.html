@@ -118,7 +118,7 @@ Inspired by Wordle<br>
 <script src="app.js"></script>
 <script>
 const urlParams=new URLSearchParams(window.location.search);
-if(urlParams.get('mode')==='admin'&&window.location.hostname.includes('pages.dev')){
+if(urlParams.get('mode')==='admin'&&window.location.hostname.startsWith('development.')){
 const adminScript=document.createElement('script');
 adminScript.src='admin.js';
 document.body.appendChild(adminScript);
