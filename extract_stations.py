@@ -49,9 +49,9 @@ def extract_and_count_stations():
                 wiki_url = "https:" + href if href.startswith("//") else "https://ja.wikipedia.org" + href
 
                 # 【処理1】表示名（漢字等）の決定
-                # 「湖遊館新駅駅」の末尾の駅だけを消して「湖遊館新駅」にする
+                # 駅名や(都道府県)などのカッコ書きを含め、そのまま表示名として採用する
                 kanji_raw = a_tag.get_text()
-                display_name = re.sub(r"(駅|停留場|信号場)$", "", kanji_raw)
+                display_name = kanji_raw.strip()
 
                 # 【処理2】読み（ひらがな）の抽出
                 text = li.get_text()
