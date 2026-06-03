@@ -414,3 +414,17 @@ navigator.clipboard.writeText(text).then(()=>showMessage("クリップボード�
 }
 }
 window.addEventListener("DOMContentLoaded",initGame);
+
+const urlParams = new URLSearchParams(window.location.search);
+if(urlParams.get('mode') === 'admin') {
+document.getElementById('admin-panel').style.display = 'block';
+document.getElementById('debug-ans-text').textContent = targetWord;
+}
+document.getElementById('admin-set-btn').addEventListener('click', () => {
+const newAns = document.getElementById('admin-custom-ans').value.trim();
+if(newAns !== '') {
+targetWord = newAns;
+document.getElementById('debug-ans-text').textContent = targetWord;
+alert('答えを「' + targetWord + '」に変更しました！');
+}
+});
