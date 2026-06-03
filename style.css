@@ -1,0 +1,83 @@
+:root {
+--correct-color: #6aaa64;
+--present-color: #c9b458;
+--diacritic-color: #9c27b0;
+--absent-color: #787c7e;
+--bg-color: #ffffff;
+--text-color: #1a1a1b;
+}
+body {
+font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+background-color: var(--bg-color); color: var(--text-color);
+display: flex; flex-direction: column; align-items: center;
+margin: 0; padding: 10px; height: 100vh; box-sizing: border-box;
+}
+header {
+width: 100%; max-width: 500px; display: flex; flex-direction: column; align-items: center; border-bottom: 1px solid #d3d6da; padding-bottom: 10px; margin-bottom: 10px;
+}
+h1 { margin: 0 0 10px 0; font-size: 24px; }
+.mode-selector { display: flex; gap: 10px; }
+.btn {
+background-color: #e3e3e1; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; color: var(--text-color); font-size: 14px;
+}
+.mode-btn.active { background-color: var(--correct-color); color: white; }
+.ad-space {
+width: 100%; max-width: 320px; height: 50px; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; font-size: 12px; color: #999; margin: 10px 0; border: 1px dashed #ccc;
+}
+main {
+display: flex; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; max-width: 500px;
+}
+#game-board {
+display: grid; grid-template-rows: repeat(6, 1fr); gap: 5px; margin-bottom: 20px;
+}
+.board-row {
+display: grid; grid-template-columns: repeat(var(--row-length, 4), 1fr); gap: 5px;
+}
+.tile {
+width: 12vw; height: 12vw; max-width: 60px; max-height: 60px;
+border: 2px solid #d3d6da; display: flex; justify-content: center; align-items: center;
+font-size: 24px; font-weight: bold; text-transform: uppercase; box-sizing: border-box;
+}
+.tile.correct { background-color: var(--correct-color); color: white; border-color: var(--correct-color); }
+.tile.present { background-color: var(--present-color); color: white; border-color: var(--present-color); }
+.tile.diacritic { background-color: var(--diacritic-color); color: white; border-color: var(--diacritic-color); }
+.tile.absent { background-color: var(--absent-color); color: white; border-color: var(--absent-color); }
+#keyboard {
+width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.keyboard-title {
+width: 100%; text-align: left; font-size: 12px; color: #666; margin-top: 5px; border-bottom: 1px solid #eee; padding-bottom: 2px;
+}
+.keyboard-section {
+display: flex; gap: 4px; justify-content: center; width: 100%; margin-bottom: 5px;
+}
+.key-col {
+display: flex; flex-direction: column; gap: 4px;
+}
+.key {
+background-color: #d3d6da; border: none; border-radius: 4px;
+font-weight: bold; font-size: 14px; cursor: pointer;
+display: flex; justify-content: center; align-items: center;
+width: 8vw; max-width: 35px; height: 35px; padding: 0; margin: 0;
+}
+.key.dummy { visibility: hidden; pointer-events: none; }
+.key.correct { background-color: var(--correct-color); color: white; }
+.key.present { background-color: var(--present-color); color: white; }
+.key.diacritic { background-color: var(--diacritic-color); color: white; }
+.key.absent { background-color: var(--absent-color); color: white; }
+#message-box {
+position: absolute; top: 20%; background-color: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 4px; font-weight: bold; z-index: 100;
+}
+#info-board { margin-bottom: 10px; font-weight: bold; color: #333; }
+#correct-popup {
+position: absolute; top: 30%; background-color: var(--correct-color); color: white; padding: 20px 40px; border-radius: 8px; font-size: 24px; font-weight: bold; z-index: 150; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+.hidden { display: none !important; }
+.modal-content {
+position: relative;
+background-color: white; padding: 20px 15px; border-radius: 8px; text-align: center; width: 95%; max-width: 350px;
+}
+.wiki-link {
+display: inline-block; padding: 5px 15px; background-color: #eee; border-radius: 20px; text-decoration: none; color: #333; font-size: 12px;
+}
+.wiki-link:hover { background-color: #ddd; }

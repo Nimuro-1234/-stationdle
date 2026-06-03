@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>駅ドル - 日替わり駅名当てパズル</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<div style="display:flex; justify-content:space-between; width:100%; max-width:375px; margin:0 auto 5px;">
+<div style="display:flex; gap:5px;">
+<button id="help-btn" class="btn" style="width:32px; height:32px; font-size:16px; font-weight:bold; padding:0; display:flex; justify-content:center; align-items:center;">？</button>
+<button id="stats-btn" class="btn" style="width:32px; height:32px; font-size:16px; font-weight:bold; padding:0; display:flex; justify-content:center; align-items:center;">📊</button>
+</div>
+<div style="display:flex; gap:5px;">
+<button id="debug-btn" class="btn">デバッグ</button>
+<button id="stats-reset-btn" class="btn" style="background-color:#ffe6e6; color:#c62828;">成績リセット</button>
+</div>
+</div>
+<div id="ad-top" class="ad-space">【ここに上部広告が表示されます】</div>
+<h1 style="display: flex; justify-content: center; align-items: center;">
+<svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+<rect width="40" height="40" rx="8" fill="#ffffff" stroke="#6aaa64" stroke-width="4"/>
+<text x="20" y="29" font-family="sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle">駅</text>
+</svg>
+駅ドル
+</h1>
+<div class="mode-selector">
+<button id="mode-4" class="btn mode-btn active">4文字</button>
+<button id="mode-5" class="btn mode-btn">5文字</button>
+<button id="mode-6" class="btn mode-btn">6文字</button>
+</div>
+</header>
+<main style="display:flex; flex-direction:column; align-items:center; flex-grow:1; width:100%; max-width:500px;">
+<div id="game-board" style="position:relative; margin-bottom:10px;"></div>
+<div class="control-buttons" style="display:flex; justify-content:center; gap:8px; margin:10px auto 15px; width:95%; max-width:400px; box-sizing:border-box;">
+<button id="clear-btn" class="btn" style="flex:1; background-color:#fff; color:#e53935; font-size:14px; padding:8px 0; border:2px solid #e53935; font-weight:bold; border-radius:6px; min-width:0;">✖ 全削除</button>
+<button id="back-btn" class="btn" style="flex:1; background-color:#fff; color:#e53935; font-size:14px; padding:8px 0; border:2px solid #e53935; font-weight:bold; border-radius:6px; min-width:0;">⌫ 1字消す</button>
+<button id="enter-btn" class="btn" style="flex:2; background-color:#fff; color:#03a9f4; font-size:18px; padding:8px 0; border:2px solid #03a9f4; font-weight:bold; border-radius:6px; min-width:0;">回答</button>
+</div>
+<div id="keyboard"></div>
+</main>
+<div id="ad-bottom" class="ad-space">【ここに下部広告が表示されます】</div>
+<div id="message-box" class="hidden" style="position:fixed; top:45%; left:50%; transform:translate(-50%, -50%); background-color:rgba(0,0,0,0.85); color:#fff; padding:15px 30px; border-radius:12px; font-weight:bold; font-size:18px; z-index:9999; text-align:center; white-space:nowrap; box-shadow:0 8px 16px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.2);"></div>
+<div id="help-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200;">
+<div class="modal-content" style="text-align:left; font-size:14px; max-width:350px; overflow-y:auto; max-height:90vh;">
+<span id="close-help-btn" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px; color:#aaa;">&times;</span>
+<h2 style="text-align:center; margin-top:0;">遊び方</h2>
+<p>隠された<strong>駅名の読みがな</strong>を当ててください。</p>
+<ul style="padding-left:20px; line-height:1.6; margin-bottom:15px;">
+<li>各文字数モードごとに、<strong>1日1問</strong>出題されます。</li>
+<li>入力できるのは、<strong>実在する日本の鉄道駅</strong>のみです。</li>
+<li>「ー（長音）」はひらがな1文字として扱います。</li>
+<li>数字やアルファベットは、その文字の読みとして扱います。<br>（例：JR総持寺 ➔ じぇいあーるそうじじ / 空港第2ビル ➔ くうこうだいにびる）</li>
+<li><strong>記号（・）などは含めずに入力してください。</strong><br>（例：栂・美木多 ➔ とがみきた）</li>
+</ul>
+<hr style="border:none; border-top:1px solid #eee; margin:15px 0;">
+<p style="font-weight:bold; font-size:15px; margin-bottom:5px;">タイルの色の意味</p>
+<p style="margin-top:0; font-size:13px; font-weight:bold;">正解が「<span style="color:#6aaa64; font-size:16px;">しながわ</span>」の場合：</p>
+<div style="display:flex; gap:5px; margin-bottom:5px;">
+<div class="tile correct" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">し</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">ん</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">ば</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">し</div>
+</div>
+<p style="margin-top:0; margin-bottom:15px; font-size:13px;"><strong>し</strong> は駅名に含まれており、位置も合っています。</p>
+<div style="display:flex; gap:5px; margin-bottom:5px;">
+<div class="tile present" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">な</div>
+<div class="tile present" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">が</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">つ</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">た</div>
+</div>
+<p style="margin-top:0; margin-bottom:15px; font-size:13px;"><strong>な・が</strong> は駅名に含まれますが、位置が違います。</p>
+<div style="display:flex; gap:5px; margin-bottom:5px;">
+<div class="tile diacritic" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">か</div>
+<div class="tile present" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">わ</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">さ</div>
+<div class="tile absent" style="width:40px; height:40px; line-height:40px; font-size:18px; border:none; min-width:40px;">き</div>
+</div>
+<p style="margin-top:0; margin-bottom:15px; font-size:13px;"><strong>か</strong> は含まれませんが、<strong>濁点違い（が）</strong>が含まれます。</p>
+<hr style="border:none; border-top:1px solid #eee; margin:15px 0;">
+<div style="font-size:11px; color:#888; line-height:1.5;">
+※当ゲームはWikipedia「日本の鉄道駅一覧」のデータを基準としています。<br>
+※駅データは1週間おきに自動更新されます。
+</div>
+<div style="text-align:center; margin-top:20px; font-size:12px; font-weight:bold; color:#aaa; line-height:1.8;">
+Inspired by Wordle<br>
+<a href="https://forms.gle/Lx7FSbLxLa4B6o5n7" target="_blank" style="color:#03a9f4; text-decoration:none;">問い合わせフォーム</a>
+</div>
+</div>
+</div>
+<div id="result-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200;">
+<div class="modal-content" style="text-align:left; font-size:14px; max-width:350px;">
+<span id="close-modal-btn" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px; color:#aaa;">&times;</span>
+<h2 id="modal-title" style="text-align:center; margin-top:0;"></h2>
+<p id="modal-desc" style="text-align:center; font-size:18px; font-weight:bold; margin-bottom:5px;"></p>
+<div id="wiki-link-container" style="text-align:center; margin-bottom:15px;"></div>
+<div id="modal-grid" style="text-align:center; letter-spacing:2px; line-height:1.2; margin:15px 0; font-size:18px;"></div>
+<div id="stats-container" style="display:flex; justify-content:space-around; margin:15px 0; font-size:12px; text-align:center;">
+<div class="stat-box"><span id="stat-played" style="font-size:20px; font-weight:bold;">0</span><br>プレイ</div>
+<div class="stat-box"><span id="stat-winrate" style="font-size:20px; font-weight:bold;">0</span>%<br>勝率</div>
+<div class="stat-box"><span id="stat-streak" style="font-size:20px; font-weight:bold;">0</span><br>連続正解</div>
+<div class="stat-box"><span id="stat-maxstreak" style="font-size:20px; font-weight:bold;">0</span><br>最大連続</div>
+</div>
+<hr style="border:none; border-top:1px solid #eee; margin:15px 0;">
+<div id="guess-distribution" style="text-align:left; font-size:12px; margin-bottom:15px;"></div>
+<div class="modal-buttons" style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+<button id="share-btn" class="btn share-btn" style="background-color:#000000; color:white; border:none;">Xでシェア</button>
+<button id="line-btn" class="btn line-btn" style="background-color:#06C755; color:white; border:none;">LINE</button>
+<button id="fb-btn" class="btn fb-btn" style="background-color:#1877F2; color:white; border:none;">Facebook</button>
+<button id="copy-btn" class="btn">コピー</button>
+</div>
+<div class="coffee-link" style="text-align:center;">
+<a href="https://buymeacoffee.com/nimuro_stationdle" target="_blank" style="color:#ff813f; font-weight:bold; text-decoration:none; font-size:14px;">☕ コーヒーをおごる (Buy Me a Coffee)</a>
+</div>
+</div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
