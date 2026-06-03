@@ -53,19 +53,6 @@ if(stations.length===0)return;
 document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
 document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
 document.getElementById("clear-btn").addEventListener("click",()=>handleKeyPress("CLEAR"));
-document.getElementById("debug-btn").addEventListener("click",()=>{
-// 重くなる原因だった日付ワープ（debugOffset）を廃止し、即座にランダムな駅を選ぶ
-const modeStations = stations.filter(s => s.yomi.length === currentMode);
-todayStation = modeStations[Math.floor(Math.random() * modeStations.length)];
-
-// 盤面とセーブデータをリセット
-savedState[currentMode] = { guesses: [], isWin: false, isOver: false };
-document.getElementById("result-modal").style.display="none";
-restoreBoard();
-
-// 変化後の答えをアラートで表示
-alert(`【デバッグモード】\n新しい答えは「${todayStation.yomi} (${todayStation.kanji})」です！`);
-});
 document.getElementById("stats-reset-btn").addEventListener("click",()=>{
 if(confirm("現在の文字数の成績（勝率や分布）をリセットしますか？")){
 userStats[currentMode]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
@@ -351,12 +338,12 @@ return true;
 });
 if(guess!==todayStation.yomi && !isRestore){
 let count=availableStations.length;
-let htmlMsg=`<div style="display:flex; justify-content:center; align-items:center;">
-<div style="width:110px; height:110px; border-radius:50%; background-color:rgba(255,255,255,0.95); border:4px solid #6aaa64; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-<div style="font-size:12px; font-weight:bold; color:#666; margin-bottom:-2px;">残り候補</div>
-<div style="color:#e53935; font-size:32px; font-weight:900; margin:0; line-height:1.2;">${count}</div>
-<div style="font-size:12px; font-weight:bold; color:#666; margin-top:-2px;">駅</div>
+let htmlMsg=`<div style="display:flex; flex-direction:column; align-items:center; font-size:16px; font-weight:bold; color:#333; text-shadow:1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">
+<div style="margin-bottom:5px; letter-spacing:2px;">残り候補</div>
+<div style="width:75px; height:75px; border-radius:50%; background-color:#fff; border:4px solid #6aaa64; display:flex; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+<span style="color:#e53935; font-size:36px; font-weight:900; text-shadow:none;">${count}</span>
 </div>
+<div style="margin-top:5px; letter-spacing:2px;">駅</div>
 </div>`;
 showMessage(htmlMsg,"transparent","none","none");
 }
@@ -422,17 +409,3 @@ navigator.clipboard.writeText(text).then(()=>showMessage("クリップボード�
 }
 }
 window.addEventListener("DOMContentLoaded",initGame);
-
-const urlParams = new URLSearchParams(window.location.search);
-if(urlParams.get('mode') === 'admin' && window.location.hostname.includes('pages.dev')) {
-document.getElementById('admin-panel').style.display = 'block';
-document.getElementById('debug-ans-text').textContent = targetWord;
-}
-document.getElementById('admin-set-btn').addEventListener('click', () => {
-const newAns = document.getElementById('admin-custom-ans').value.trim();
-if(newAns !== '') {
-targetWord = newAns;
-document.getElementById('debug-ans-text').textContent = targetWord;
-alert('答えを「' + targetWord + '」に変更しました！');
-}
-});
