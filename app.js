@@ -364,10 +364,10 @@ let st=userStats[currentMode];
 if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
 document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
 document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
-let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(todayStation.kanji+"駅")));
+let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(todayStation.kanji)));
 let yahooUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fadc%253D1%2526discsort%253D1%2526kwd%253D${encodedStation}%2526lc%253D1%2526ppc%253D2%2526rc%253D1%2526si%253D6`;
 let yahooImp='<img border="0" width="1" height="1" src="https://www10.a8.net/0.gif?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2" alt="" style="display:none;">';
-let rakutenKeyword=encodeURIComponent(encodeURIComponent(todayStation.kanji+"駅"));
+let rakutenKeyword=encodeURIComponent(encodeURIComponent(todayStation.kanji));
 let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
 let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 document.getElementById("wiki-link-container").innerHTML=`
