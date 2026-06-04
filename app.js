@@ -332,6 +332,13 @@ function handleKeyPress(char){
     if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }
   }
 }
+//タイルに入力中文字を表示する
+function updateTiles(){
+  for(let j=0;j<rowLength;j++){
+    const tile=document.getElementById(`row-${guessesSubmitted}-tile-${j}`);
+    tile.textContent=currentGuess[j]||"";
+  }
+}
 
 // ==========================================
 // 文字の色判定処理
