@@ -91,3 +91,13 @@ body.theme-sakura .key{background-color:#ffcdd2;color:#5d4037;}
 body.theme-ocean .key{background-color:#b2ebf2;color:#004d40;}
 body.theme-dark header{border-bottom-color:#333;}
 body.theme-dark .modal-content{background-color:#222;color:#fff;}
+body.theme-green{--bg-color:#e8f5e9;--text-color:#1b5e20;}
+body.theme-orange{--bg-color:#fff3e0;--text-color:#e65100;}
+body.theme-red{--bg-color:#ffebee;--text-color:#b71c1c;}
+body.theme-blue{--bg-color:#e3f2fd;--text-color:#0d47a1;}
+body.theme-purple{--bg-color:#f3e5f5;--text-color:#4a148c;}
+body.theme-green .key{background-color:#c8e6c9;color:#1b5e20;}
+body.theme-orange .key{background-color:#ffe0b2;color:#e65100;}
+body.theme-red .key{background-color:#ffcdd2;color:#b71c1c;}
+body.theme-blue .key{background-color:#bbdefb;color:#0d47a1;}
+body.theme-purple .key{background-color:#e1bee7;color:#4a148c;}
