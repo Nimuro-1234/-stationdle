@@ -376,8 +376,12 @@ document.getElementById("wiki-link-container").innerHTML=`
 <div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px;">
 <div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">＼ 正解の駅へ聖地巡礼に行こう！ ／</div>
 <div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
-<a href="${affiliateUrl}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:40%;">🏨 Yahoo!</a>
-<a href="${rakutenUrl}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#bf0000; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:40%;">🟢 楽天トラベル</a>
+<a href="${affiliateUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:45%;">
+<img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
+</a>
+<a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#bf0000; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:45%;">
+🟢 楽天トラベル
+</a>
 </div>
 </div>
 ${rakutenImp}
