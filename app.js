@@ -48,7 +48,7 @@ try{
 loadStats();
 const res=await fetch('stations.json');
 const raw=await res.json();
-stations=raw.map(s=>({...s,yomi:toHiragana(s.yomi)}));
+stations=raw.filter(s=>!(s.companies&&s.companies.length===1&&s.companies[0]==="日本貨物鉄道")).map(s=>({...s,yomi:toHiragana(s.yomi)}));
 if(stations.length===0)return;
 document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
 document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
