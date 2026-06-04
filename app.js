@@ -369,8 +369,8 @@ if(!allGuessed.includes(currentGuess)){
 allGuessed.push(currentGuess);
 localStorage.setItem("ekiAllGuesses",JSON.stringify(allGuessed));
 }
-// 【図鑑用】実在する駅を入力したので、図鑑に「青色：遭遇（ステータス1）」として記録
-updateZukan(currentGuess, 1);
+// 【図鑑用】実在する駅を入力したので、図鑑に「入力（ステータス2）」として記録
+updateZukan(currentGuess, 2);
 }
 // 文字判定ロジックを使って、各マスの色を取得
 const resultColors=evaluateGuess(currentGuess,todayStation.yomi);
@@ -399,9 +399,10 @@ if(currentGuess===todayStation.yomi){
 let actualGuesses=guessesSubmitted+1;
 guessesSubmitted=maxGuesses;
 if(!isRestore){
-// 【図鑑用】見事正解したので、図鑑に「金色：的中（ステータス2）」として上書き記録
-updateZukan(todayStation.yomi, 2);
+// 【図鑑用】見事正解したので、図鑑に「的中（ステータス3）」として上書き記録
+updateZukan(todayStation.yomi, 3);
 st.isOver=true; st.isWin=true; saveStats(true,actualGuesses); localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState));
+//正解時メッセージの処理
 let winHtml=`<div style="font-size:24px; font-weight:bold; color:#fff; letter-spacing:2px;">正解！🎉</div>`;
 showMessage(winHtml,"#ff9800","none","0 4px 10px rgba(0,0,0,0.3)");
 setTimeout(()=>{ showResultModal(true,false); },2000);
@@ -413,7 +414,7 @@ if(!isRestore) currentGuess="";
 // 回答回数が上限に達してしまい、ゲームオーバーになった場合の処理
 if(guessesSubmitted===maxGuesses){
 if(!isRestore){
-// 【図鑑用】ゲームオーバーで答えを見たので、正解の駅を図鑑に「青色：遭遇（ステータス1）」として記録
+// 【図鑑用】ゲームオーバーで答えを見たので、正解の駅を図鑑に「目撃（ステータス1）」として記録
 updateZukan(todayStation.yomi, 1);
 st.isOver=true; st.isWin=false; saveStats(false,0); localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState));
 setTimeout(()=>showResultModal(false,false),1000);
