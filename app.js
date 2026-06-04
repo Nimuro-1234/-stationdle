@@ -467,7 +467,7 @@ let mLen=longestSt.yomi.length;
 const modeArea=document.querySelector(".mode-btn").parentNode;
 if(modeArea&&!document.getElementById("mode-"+mLen)){
 const bMax=document.createElement("button");
-bMax.id="mode-"+mLen;bMax.className="mode-btn btn";bMax.innerText=mLen;
+bMax.id="mode-"+mLen;bMax.className="mode-btn btn";bMax.innerText=mLen+"文字";
 bMax.style.backgroundColor="#e91e63";bMax.style.color="#fff";bMax.style.border="none";
 bMax.addEventListener("click",()=>{
 document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
@@ -478,7 +478,7 @@ const gb=document.getElementById("game-board");
 gb.style.setProperty("--row-length",mLen);
 const afs=document.createElement("style");
 afs.id="af-style";
-afs.innerHTML=".event-aprilfool #game-board{display:block!important;overflow-x:auto!important;padding-bottom:20px!important;}.event-aprilfool .row{display:grid!important;grid-template-columns:repeat("+mLen+",minmax(35px,50px))!important;gap:5px!important;margin-bottom:5px!important;width:max-content!important;margin:0 auto 5px auto!important;}";
+afs.innerHTML=".event-aprilfool #game-board{display:block!important;width:100%!important;max-width:100vw!important;overflow-x:auto!important;padding-bottom:20px!important;box-sizing:border-box!important;}.event-aprilfool .row{display:grid!important;grid-template-columns:repeat("+mLen+",minmax(35px,50px))!important;gap:5px!important;margin-bottom:15px!important;width:max-content!important;margin-left:auto!important;margin-right:auto!important;padding:0 10px!important;}";
 document.head.appendChild(afs);
 if(!userStats[mLen])userStats[mLen]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
 if(!savedState[mLen])savedState[mLen]={board:[],guesses:[],isOver:false,isWin:false,lastDate:""};
