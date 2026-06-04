@@ -381,7 +381,7 @@ document.getElementById("wiki-link-container").innerHTML=`
 <img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
 </a>
 <a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
-<img src="./R_Travel_v2.03.svg" alt="楽天トラベル" style="height:100%; border:none;">
+<img src="./R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
 </a>
 </div>
 </div>
