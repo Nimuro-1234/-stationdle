@@ -132,7 +132,9 @@ selectTodayStation(); restoreBoard(); checkSpecialEvent();
 }catch(e){ console.error("データエラー:",e); }
 }
 
-//4.パソコン（ブラウザ）へデータを保存・読み込み
+// ==========================================
+// パソコン（ブラウザ）へデータを保存・読み込み
+// ==========================================
 //保存されている過去の戦績データを読み込む
 function loadStats(){
 const saved=localStorage.getItem("ekiPuzzleStatsV2");
@@ -163,32 +165,33 @@ localStorage.setItem("ekiPuzzleArchiveV1",JSON.stringify(dailyArchive));
 }
 // ゲームの進行状況を日付ごとに保存・読み込みする処理です
 function loadGameState(dayIdx){
-const savedLog=localStorage.getItem("ekiPuzzleStateV1_Log");
-let logData=savedLog?JSON.parse(savedLog):{};
-let todayStr=new Date().toISOString().split('T')[0];
-// 累計ログイン日数などのカウント用データを読み込みます
-let meta=JSON.parse(localStorage.getItem("ekiZukanMeta")||'{"totalLogins":0,"lastLoginDate":""}');
-if(meta.lastLoginDate!==todayStr){
-meta.totalLogins++;
-meta.lastLoginDate=todayStr;
-localStorage.setItem("ekiZukanMeta",JSON.stringify(meta));
-}
-if(logData[dayIdx]){
-savedState=logData[dayIdx];
-return;
-}
-// その日初めてアクセスした瞬間に、時間のリストや過去問識別の目印を含めた初期データを記録します
-savedState={ 
-date:String(dayIdx), 
-isDaily:true,
-startTime:Date.now(),
-endTime:null,
-4:{guesses:[],guessTimes:[],isWin:false,isOver:false}, 
-5:{guesses:[],guessTimes:[],isWin:false,isOver:false}, 
-6:{guesses:[],guessTimes:[],isWin:false,isOver:false} 
-};
-logData[dayIdx]=savedState;
-localStorage.setItem("ekiPuzzleStateV1_Log",JSON.stringify(logData));
+  const savedLog=localStorage.getItem("ekiPuzzleStateV1_Log");
+  let logData=savedLog?JSON.parse(savedLog):{};
+  let todayStr=new Date().toISOString().split('T')[0];
+  let meta=JSON.parse(localStorage.getItem("ekiZukanMeta")||'{"totalLogins":0,"lastLoginDate":"","firstPlayDate":""}');
+  
+  // 初回プレイ日の記録がない場合は、今日をプレイ開始日として記録します
+  if(!meta.firstPlayDate) meta.firstPlayDate=todayStr;
+  
+  if(meta.lastLoginDate!==todayStr){
+    meta.totalLogins++;
+    meta.lastLoginDate=todayStr;
+    localStorage.setItem("ekiZukanMeta",JSON.stringify(meta));
+  }
+  if(logData[dayIdx]){
+    savedState=logData[dayIdx];
+    return;
+  }
+  // モードごとに独立したタイマー（startTime/endTime）と、ヒント使用履歴（usedHint）を仕込みます
+  savedState={ 
+    date:String(dayIdx), 
+    isDaily:true,
+    4:{guesses:[],guessTimes:[],startTime:null,endTime:null,usedHint:false,isWin:false,isOver:false}, 
+    5:{guesses:[],guessTimes:[],startTime:null,endTime:null,usedHint:false,isWin:false,isOver:false}, 
+    6:{guesses:[],guessTimes:[],startTime:null,endTime:null,usedHint:false,isWin:false,isOver:false} 
+  };
+  logData[dayIdx]=savedState;
+  localStorage.setItem("ekiPuzzleStateV1_Log",JSON.stringify(logData));
 }
 
 //5.今日の正解駅を決定する処理
@@ -301,30 +304,38 @@ st.guesses.forEach(g=>{ currentGuess=g; submitGuess(true); });
 currentGuess="";
 }
 
-//7.プレイヤーの入力を処理する
-//キーボードの文字や回答・削除ボタンが押されたときの振り分け
+// ==========================================
+// プレイヤーの入力を処理する
+// ==========================================
+// キーボードの文字や、特殊ボタン（回答・消去）が押されたときの振り分けを行います
 function handleKeyPress(char){
-if(savedState[currentMode].isOver||guessesSubmitted>=maxGuesses)return;
-if(char==="BACK"){　　　
-if(currentGuess.length>0){ currentGuess=currentGuess.slice(0,-1); updateTiles(); }　　//1字消すが押されたら、入力中文字列の一番後ろの文字を消す
-}else if(char==="CLEAR"){　　　
-currentGuess=""; updateTiles();　　//「全削除」が押されたら、今その行に入力している文字をすべて消す
-}else if(char==="ENTER"){
-if(currentGuess.length===rowLength) submitGuess(false);　　//「回答」が押されたら、文字数が足りているか確認して答え合わせに進む
-else showMessage(`${rowLength}文字入力してください`);
-}else{
-if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }　　// 普通の文字が押されたら、指定の文字数を超えない範囲で末尾に文字を追加する
-}
-}
-// プレイヤーが現在入力している途中の文字を、ゲーム盤のマス目にリアルタイムで映し出す処理
-function updateTiles(){
-for(let j=0;j<rowLength;j++){
-const tile=document.getElementById(`row-${guessesSubmitted}-tile-${j}`);
-tile.textContent=currentGuess[j]||"";
-}
+  let st=savedState[currentMode];
+  if(st.isOver||guessesSubmitted>=maxGuesses)return;
+  
+  // そのモードで「最初の1文字目」が入力された瞬間に、専用のタイマーをスタートします
+  if(!st.startTime && char!=="BACK" && char!=="CLEAR" && char!=="ENTER"){
+    st.startTime=Date.now();
+    const savedLog=localStorage.getItem("ekiPuzzleStateV1_Log");
+    let logData=savedLog?JSON.parse(savedLog):{};
+    logData[currentDayIndex]=savedState;
+    localStorage.setItem("ekiPuzzleStateV1_Log",JSON.stringify(logData));
+  }
+　//「1文字削除」「全削除」「回答」ボタンが押されたときの処理
+  if(char==="BACK"){
+    if(currentGuess.length>0){ currentGuess=currentGuess.slice(0,-1); updateTiles(); }
+  }else if(char==="CLEAR"){
+    currentGuess=""; updateTiles();
+  }else if(char==="ENTER"){
+    if(currentGuess.length===rowLength) submitGuess(false);
+    else showMessage(`${rowLength}文字入力してください`);
+  }else{
+    if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }
+  }
 }
 
-//8.文字の色判定処理
+// ==========================================
+// 文字の色判定処理
+// ==========================================
 //入力された駅名と正解の駅名を比較し、どのマスが「緑・黄・紫・黒」になるかを詳しく計算する
 function evaluateGuess(guess,target){
 let results=new Array(rowLength).fill("absent");
@@ -416,18 +427,19 @@ variants.push(base); variants.forEach(v=>updateKeyColor(v,"absent"));
 filterAvailableStations(currentGuess,resultColors,isRestore);
 // 見事、すべての文字が一致（正解）した場合の勝利処理
 if(currentGuess===todayStation.yomi){
-let actualGuesses=guessesSubmitted+1;
-guessesSubmitted=maxGuesses;
-if(!isRestore){
-// 【図鑑用】見事正解したので、図鑑に「的中（ステータス3）」として上書き記録
-updateZukan(todayStation.yomi, 3);
-st.isOver=true; st.isWin=true; saveStats(true,actualGuesses); localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState));
-//正解時メッセージの処理
-let winHtml=`<div style="font-size:24px; font-weight:bold; color:#fff; letter-spacing:2px;">正解！🎉</div>`;
-showMessage(winHtml,"#ff9800","none","0 4px 10px rgba(0,0,0,0.3)");
-setTimeout(()=>{ showResultModal(true,false); },2000);
-}
-return;
+  let actualGuesses=guessesSubmitted+1;
+  guessesSubmitted=maxGuesses;
+  if(!isRestore){ 
+    st.endTime=Date.now();
+    // 【図鑑用】見事正解したので、図鑑に「的中（ステータス3）」として上書き記録
+    updateZukan(todayStation.yomi, 3);
+    st.isOver=true; st.isWin=true; saveStats(true,actualGuesses); localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState));
+    //正解時メッセージの処理
+    let winHtml=`<div style="font-size:24px; font-weight:bold; color:#fff; letter-spacing:2px;">正解！🎉</div>`;
+    showMessage(winHtml,"#ff9800","none","0 4px 10px rgba(0,0,0,0.3)");
+    setTimeout(()=>{ showResultModal(true,false); },2000);
+    }
+  return;
 }
 guessesSubmitted++;
 if(!isRestore) currentGuess="";
