@@ -55,36 +55,46 @@ function getBaseChar(c){return baseMap[c]||c;}
 function toHiragana(str){ return str.replace(/[ァ-ン]/g,m=>String.fromCharCode(m.charCodeAt(0)-0x60)); }
 
 //3.ゲーム初期化処理
+//画面読み込み時に最初に実行され、データ準備やボタン登録などを行う
 async function initGame(){
 try{
+//全プレイヤーの戦績データをパソコンから読み込む
 loadStats();
+//すべての駅データが書かれた「station.json」ファイルをインターネット経由で読み込む
 const res=await fetch('stations.json');
 const raw=await res.json();
+//貨物専用駅を除外し、駅名の読みを全てひらがなに整えて保存
 stations=raw.filter(s=>!(s.companies&&s.companies.length===1&&s.companies[0]==="日本貨物鉄道")).map(s=>({...s,yomi:toHiragana(s.yomi)}));
 if(stations.length===0)return;
+//画面下部の「回答」「1字消す」「全削除」ボタンの動作
 document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
 document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
 document.getElementById("clear-btn").addEventListener("click",()=>handleKeyPress("CLEAR"));
+//メニューの三本線が押されたときにサイドメニューを出す
 document.getElementById("menu-btn").addEventListener("click",()=>{
 document.getElementById("side-menu-overlay").style.display="block";
 setTimeout(()=>document.getElementById("side-menu").style.right="0",10);
 });
+//メニューの外側や閉じるボタンが押されたらメニューを右側に隠す
 const closeSideMenu=()=>{
 document.getElementById("side-menu").style.right="-250px";
 setTimeout(()=>document.getElementById("side-menu-overlay").style.display="none",300);
 };
 document.getElementById("close-menu-btn").addEventListener("click",closeSideMenu);
 document.getElementById("side-menu-overlay").addEventListener("click",closeSideMenu);
+//「？」ボタンが押されたら遊び方の説明画面を開き、×ボタンで閉じる
 document.getElementById("help-btn").addEventListener("click",()=>{
 document.getElementById("help-modal").style.display="flex";
 });
 document.getElementById("close-help-btn").addEventListener("click",()=>{
 document.getElementById("help-modal").style.display="none";
 });
+//「グラフ」ボタンが押されたとき、ゲームが終わっていれば結果ウィンドウを表示
 document.getElementById("stats-btn").addEventListener("click",()=>{
 if(savedState[currentMode].isOver) showResultModal(savedState[currentMode].isWin, true);
 else showMessage("ゲームクリア後に見ることができます");
 });
+//「4文字」「5文字」「6文字」の切り替えボタンが押されたときの処理
 [4,5,6].forEach(num=>{
 document.getElementById(`mode-${num}`).addEventListener("click",()=>{
 document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
@@ -94,6 +104,7 @@ document.getElementById("game-board").style.setProperty("--row-length",num);
 selectTodayStation(); restoreBoard();
 });
 });
+//結果ウィンドウにある各種SNSへのシェアボタンやコピーボタンの動作
 document.getElementById("share-btn").addEventListener("click",()=>shareResult("twitter"));
 document.getElementById("line-btn").addEventListener("click",()=>shareResult("line"));
 document.getElementById("fb-btn").addEventListener("click",()=>shareResult("facebook"));
@@ -101,7 +112,8 @@ document.getElementById("copy-btn").addEventListener("click",()=>shareResult("co
 document.getElementById("close-modal-btn").addEventListener("click",()=>{
 document.getElementById("result-modal").style.display="none";
 });
-const themes=["","theme-dark","theme-sakura","theme-ocean","theme-green","theme-orange","theme-red","theme-blue","theme-purple"];
+//「パレット」ボタンが押されたときに画面全体のテーマカラーを順番に変更する
+const themes=["","theme-dark","theme-sakura","theme-ocean","theme-blue","theme-green","theme-orange","theme-red","theme-purple"];
 let themeIdx=0;
 const savedTheme=localStorage.getItem("ekiTheme");
 if(savedTheme){
