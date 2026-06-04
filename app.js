@@ -470,8 +470,9 @@ if(c)c.remove();
 if(!ev)return;
 document.body.classList.add("event-"+ev);
 if(ev==="aprilfool"){
-let longestSt=stations.reduce((a,b)=>a.yomi.length>b.yomi.length?a:b,stations[0]);
-let mLen=longestSt.yomi.length;
+let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);
+let longestPool=stations.filter(s=>s.yomi.length===mLen);
+let longestSt=longestPool[currentDayIndex%longestPool.length];
 const modeArea=document.querySelector(".mode-btn").parentNode;
 if(modeArea&&!document.getElementById("mode-"+mLen)){
 const bMax=document.createElement("button");
