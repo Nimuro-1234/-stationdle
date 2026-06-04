@@ -338,12 +338,12 @@ return true;
 });
 if(guess!==todayStation.yomi && !isRestore){
 let count=availableStations.length;
-let htmlMsg=`<div style="display:flex; flex-direction:column; align-items:center; font-size:16px; font-weight:bold; color:#333; text-shadow:1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">
-<div style="margin-bottom:5px; letter-spacing:2px;">残り候補</div>
-<div style="width:75px; height:75px; border-radius:50%; background-color:#fff; border:4px solid #6aaa64; display:flex; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-<span style="color:#e53935; font-size:36px; font-weight:900; text-shadow:none;">${count}</span>
+let htmlMsg=`<div style="display:flex; justify-content:center; align-items:center; font-weight:bold; color:#333;">
+<div style="width:110px; height:110px; border-radius:50%; background-color:#fff; border:4px solid #6aaa64; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+<div style="font-size:11px; letter-spacing:1px;">残り候補</div>
+<div style="color:#e53935; font-size:32px; font-weight:900; line-height:1.2;">${count}</div>
+<div style="font-size:11px; letter-spacing:1px;">駅</div>
 </div>
-<div style="margin-top:5px; letter-spacing:2px;">駅</div>
 </div>`;
 showMessage(htmlMsg,"transparent","none","none");
 }
@@ -364,7 +364,12 @@ let st=userStats[currentMode];
 if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
 document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
 document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
-document.getElementById("wiki-link-container").innerHTML=`<a href="${todayStation.url}" target="_blank" class="wiki-link">Wikipediaで見る</a>`;
+let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(todayStation.kanji+"駅")));
+let affiliateUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BWGDT&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fdiscsort%253D1%2526kwd%253D${encodedStation}%2526ppc%253D2%2526rc%253D1`;
+document.getElementById("wiki-link-container").innerHTML=`
+<a href="${todayStation.url}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
+<a href="${affiliateUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🗺️ この駅の近くに泊まる（聖地巡礼）</a>
+`;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
 document.getElementById("stat-winrate").textContent=winRate;
