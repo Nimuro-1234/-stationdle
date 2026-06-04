@@ -81,3 +81,13 @@ background-color: white; padding: 20px 15px; border-radius: 8px; text-align: cen
 display: inline-block; padding: 5px 15px; background-color: #eee; border-radius: 20px; text-decoration: none; color: #333; font-size: 12px;
 }
 .wiki-link:hover { background-color: #ddd; }
+
+body.theme-dark{--bg-color:#121212;--text-color:#ffffff;}
+body.theme-sakura{--bg-color:#fff0f5;--text-color:#5d4037;}
+body.theme-ocean{--bg-color:#e0f7fa;--text-color:#004d40;}
+body.theme-dark .tile{border-color:#555;}
+body.theme-dark .key{background-color:#444;color:#fff;}
+body.theme-sakura .key{background-color:#ffcdd2;color:#5d4037;}
+body.theme-ocean .key{background-color:#b2ebf2;color:#004d40;}
+body.theme-dark header{border-bottom-color:#333;}
+body.theme-dark .modal-content{background-color:#222;color:#fff;}
