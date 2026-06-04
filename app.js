@@ -27,7 +27,51 @@ let userStats={　　　　　　　
 //過去に解いた問題を記録しておく箱
 let dailyArchive={};
 
-//2.文字数判定
+// ==========================================
+//連続ログイン日数処理
+// ==========================================
+
+// 連続ログイン日数をチェックし、データを更新する関数
+function updateLoginStreak() {
+  let streakData = JSON.parse(localStorage.getItem("ekiLoginStreak") || '{"currentStreak":0,"maxStreak":0,"lastLoginDate":""}');
+  
+  // 今日の日付を「YYYY-MM-DD」の形式で取得します
+  const today = new Date();
+  const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
+  
+  // 今日すでにログインして処理が終わっていれば、何もせずに終了します
+  if (streakData.lastLoginDate === todayStr) {
+    return;
+  }
+  
+  // 比較のために「昨日」の日付を計算します
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.getFullYear() + "-" + String(yesterday.getMonth() + 1).padStart(2, '0') + "-" + String(yesterday.getDate()).padStart(2, '0');
+  
+  // 最後にログインした日が「昨日」であれば、連続ログイン日数を1日増やします
+  if (streakData.lastLoginDate === yesterdayStr) {
+    streakData.currentStreak++;
+  } else {
+    // 最後にログインした日が「一昨日以前」、または「初めてのプレイ」の場合は1日にリセットします
+    streakData.currentStreak = 1;
+  }
+  
+  // 現在の連続日数が過去の最高記録（最大連勝）を上回った場合、最高記録を塗り替えます
+  if (streakData.currentStreak > streakData.maxStreak) {
+    streakData.maxStreak = streakData.currentStreak;
+  }
+  
+  // 最終ログイン日を「今日」に書き換えて、ローカルファイルに保存します
+  streakData.lastLoginDate = todayStr;
+  localStorage.setItem("ekiLoginStreak", JSON.stringify(streakData));
+}
+
+
+// ==========================================
+// 文字数判定
+// ==========================================
+
 //キーボード表示色優先順位（緑＞黄＞紫＞灰）
 const colorPriority={"correct":4,"present":3,"diacritic":2,"absent":1};
 const colorToEmoji={"correct":"🟩","present":"🟨","diacritic":"🟪","absent":"⬛"};
@@ -58,7 +102,11 @@ function getBaseChar(c){return baseMap[c]||c;}
 //カタカナのフリガナをすべてひらがなに変換する
 function toHiragana(str){ return str.replace(/[ァ-ン]/g,m=>String.fromCharCode(m.charCodeAt(0)-0x60)); }
 
-//3.ゲーム初期化処理
+
+// ==========================================
+// ゲーム初期化処理
+// ==========================================
+
 //画面読み込み時に最初に実行され、データ準備やボタン登録などを行う
 async function initGame(){
 try{
