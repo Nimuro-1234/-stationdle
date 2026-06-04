@@ -12,6 +12,8 @@ adminPanel.innerHTML=`
 <button id="admin-rand-btn" style="margin-right:5px;">ランダム変更</button>
 <button id="admin-reset-btn" style="margin-right:5px;">入力値リセット</button>
 <button id="admin-stats-wipe-btn" style="background-color:#ffe6e6; color:#c62828; border:1px solid #c62828;">戦績全消去</button>
+<button id="admin-view-storage-btn" style="background-color:#e3f2fd; color:#1565c0; border:1px solid #1565c0; margin-left:5px;">保存データ閲覧</button>
+<div id="admin-storage-view" style="display:none; margin-top:10px; padding:10px; background:#fff; border:1px solid #ccc; max-height:300px; overflow-y:auto; font-size:12px; white-space:pre-wrap; word-wrap:break-word; text-align:left;"></div>
 <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ccc;">
 <select id="admin-event-select">
 <option value="">通常（演出オフ）</option>
@@ -113,4 +115,31 @@ location.reload();
 document.getElementById('admin-event-btn').addEventListener('click',()=>{
 const ev=document.getElementById('admin-event-select').value;
 if(window.triggerEventEffect) window.triggerEventEffect(ev);
+});
+
+//保存データ閲覧用
+document.getElementById('admin-view-storage-btn').addEventListener('click',()=>{
+const viewArea=document.getElementById('admin-storage-view');
+if(viewArea.style.display==='block'){
+viewArea.style.display='none';
+return;
+}
+let output='=== LocalStorage 保存データ ===\n\n';
+let found=false;
+for(let i=0;i<localStorage.length;i++){
+const key=localStorage.key(i);
+// 「eki」から始まる駅ドル関連のデータだけを抽出します
+if(key.startsWith('eki')){
+found=true;
+let val=localStorage.getItem(key);
+try{
+// JSONデータであれば、見やすく改行・インデントして整形します
+val=JSON.stringify(JSON.parse(val),null,2);
+}catch(e){}
+output+='【 '+key+' 】\n'+val+'\n\n';
+}
+}
+if(!found) output+='駅ドルの保存データがありません。';
+viewArea.textContent=output;
+viewArea.style.display='block';
 });
