@@ -98,6 +98,7 @@ themeIdx=themes.indexOf(savedTheme);
 if(themeIdx>-1&&savedTheme!=="")document.body.classList.add(savedTheme);
 }
 document.getElementById("theme-btn").addEventListener("click",()=>{
+document.body.className=document.body.className.replace(/event-\w+/g,"");
 if(themes[themeIdx]!=="")document.body.classList.remove(themes[themeIdx]);
 themeIdx=(themeIdx+1)%themes.length;
 if(themes[themeIdx]!=="")document.body.classList.add(themes[themeIdx]);
