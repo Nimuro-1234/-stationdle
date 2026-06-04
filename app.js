@@ -127,15 +127,18 @@ themeIdx=(themeIdx+1)%themes.length;
 if(themes[themeIdx]!=="")document.body.classList.add(themes[themeIdx]);
 localStorage.setItem("ekiTheme",themes[themeIdx]);
 });
+//最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
 selectTodayStation(); restoreBoard(); checkSpecialEvent();
 }catch(e){ console.error("データエラー:",e); }
 }
 
+//4.パソコン（ブラウザ）へデータを保存・読み込み
+//保存されている過去の戦績データを読み込む
 function loadStats(){
 const saved=localStorage.getItem("ekiPuzzleStatsV2");
 if(saved) userStats=JSON.parse(saved);
 }
-
+//今回のゲーム結果をこれまでのデータに加算して新しく保存する
 function saveStats(isWin,actualGuesses){
 let st=userStats[currentMode];
 if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
@@ -147,18 +150,18 @@ st.dist[actualGuesses]=(st.dist[actualGuesses]||0)+1;
 }else{ st.currentStreak=0; }
 localStorage.setItem("ekiPuzzleStatsV2",JSON.stringify(userStats));
 }
-
+//過去に遊んだアーカイブ情報を読み込む
 function loadArchive(){
 const saved=localStorage.getItem("ekiPuzzleArchiveV1");
 if(saved) dailyArchive=JSON.parse(saved);
 }
-
+//今日の問題をアーカイブへ保存する
 function saveToArchive(){
 if(!dailyArchive[currentDayIndex]) dailyArchive[currentDayIndex]={};
 dailyArchive[currentDayIndex][currentMode]={kanji:todayStation.kanji, yomi:todayStation.yomi};
 localStorage.setItem("ekiPuzzleArchiveV1",JSON.stringify(dailyArchive));
 }
-
+//ゲームがすでにプレイ途中か終了しているか、状態を読み込む（または初期化）
 function loadGameState(dayIdx){
 const saved=localStorage.getItem("ekiPuzzleStateV1");
 if(saved){
@@ -169,30 +172,21 @@ savedState={ date:String(dayIdx), 4:{guesses:[],isWin:false,isOver:false}, 5:{gu
 localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState));
 }
 
-function restoreBoard(){
-currentGuess=""; guessesSubmitted=0; gridHistory=[]; keyColors={};
-availableStations=stations.filter(s=>s.yomi.length===currentMode);
-drawBoard(); buildKeyboard();
-const box=document.getElementById("message-box");
-if(box) box.classList.add("hidden");
-const modal=document.getElementById("result-modal");
-if(modal) modal.style.display="none";
-let st=savedState[currentMode];
-st.guesses.forEach(g=>{ currentGuess=g; submitGuess(true); });
-currentGuess="";
-}
-
+//5.今日の正解駅を決定する処理
+//今日出題する駅を、日付をもとにした乱数シードにより1つ決定
 function selectTodayStation(){
 const modeStations=stations.filter(s=>s.yomi.length===currentMode);
 if(modeStations.length===0){
 alert(`エラー: ${currentMode}文字の駅データが見つかりません。`);
 todayStation={kanji:"えらー",yomi:"えらー"}; return;
 }
+//2024年1月1日を基準に、今日が何日目かを決定する
 const t=new Date();
 const tDate=new Date(t.getFullYear(),t.getMonth(),t.getDate());
 const baseDate=new Date(2024,0,1);
 currentDayIndex=Math.round((tDate-baseDate)/86400000)+debugOffset;
 loadGameState(currentDayIndex);
+//直近で出題された駅とできるだけ被らないようにしながら今日の正解駅を1つ決定
 let uniqueYomiCount=new Set(modeStations.map(s=>s.yomi)).size;
 let lookback=Math.min(1000,Math.floor(uniqueYomiCount*0.7));
 let history=[];
@@ -207,9 +201,12 @@ let candidate=pool[hash%pool.length];
 history.push(candidate.yomi);
 if(d===currentDayIndex)todayStation=candidate;
 }
+//デバッグ時、ブラウザのコンソールに答えを出力
 console.log(`※${currentMode}文字の答え:`,todayStation.kanji,todayStation.yomi);
 }
 
+//6.入力タイルとキーボード組み立て処理
+//入力タイル（四角いマス目）を画面に並べる処理
 function drawBoard(){
 const board=document.getElementById("game-board");
 document.querySelectorAll(".board-row").forEach(e=>e.remove());
@@ -226,7 +223,7 @@ row.appendChild(tile);
 board.appendChild(row);
 }
 }
-
+//全国すべての駅名で実際に使われている文字だけを取り出し、キーボードを作成
 function buildKeyboard(){
 let allChars=new Set();
 stations.forEach(s=>{ for(let c of s.yomi)allChars.add(c); });
@@ -261,7 +258,7 @@ dDiv.appendChild(col);
 });
 kb.appendChild(dDiv);
 }
-
+//キーボードのボタンを1個作成し、クリックされたらその文字が入力されるようにする
 function createKey(char){
 let btn=document.createElement("button");
 btn.textContent=char;
@@ -271,20 +268,36 @@ btn.addEventListener("click",()=>handleKeyPress(char));
 return btn;
 }
 
-function handleKeyPress(char){
-if(savedState[currentMode].isOver||guessesSubmitted>=maxGuesses)return;
-if(char==="BACK"){
-if(currentGuess.length>0){ currentGuess=currentGuess.slice(0,-1); updateTiles(); }
-}else if(char==="CLEAR"){
-currentGuess=""; updateTiles();
-}else if(char==="ENTER"){
-if(currentGuess.length===rowLength) submitGuess(false);
-else showMessage(`${rowLength}文字入力してください`);
-}else{
-if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }
-}
+//モード変更時、パネルをまっさらにして前回の状態を綺麗に復元する
+function restoreBoard(){
+currentGuess=""; guessesSubmitted=0; gridHistory=[]; keyColors={};
+availableStations=stations.filter(s=>s.yomi.length===currentMode);
+drawBoard(); buildKeyboard();
+const box=document.getElementById("message-box");
+if(box) box.classList.add("hidden");
+const modal=document.getElementById("result-modal");
+if(modal) modal.style.display="none";
+let st=savedState[currentMode];
+st.guesses.forEach(g=>{ currentGuess=g; submitGuess(true); });
+currentGuess="";
 }
 
+//7.プレイヤーの入力を処理する
+//キーボードの文字や回答・削除ボタンが押されたときの振り分け
+function handleKeyPress(char){
+if(savedState[currentMode].isOver||guessesSubmitted>=maxGuesses)return;
+if(char==="BACK"){　　　
+if(currentGuess.length>0){ currentGuess=currentGuess.slice(0,-1); updateTiles(); }　　//1字消すが押されたら、入力中文字列の一番後ろの文字を消す
+}else if(char==="CLEAR"){　　　
+currentGuess=""; updateTiles();　　//「全削除」が押されたら、今その行に入力している文字をすべて消す
+}else if(char==="ENTER"){
+if(currentGuess.length===rowLength) submitGuess(false);　　//「回答」が押されたら、文字数が足りているか確認して答え合わせに進む
+else showMessage(`${rowLength}文字入力してください`);
+}else{
+if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }　　// 普通の文字が押されたら、指定の文字数を超えない範囲で末尾に文字を追加する
+}
+}
+// プレイヤーが現在入力している途中の文字を、ゲーム盤のマス目にリアルタイムで映し出す処理
 function updateTiles(){
 for(let j=0;j<rowLength;j++){
 const tile=document.getElementById(`row-${guessesSubmitted}-tile-${j}`);
@@ -292,18 +305,23 @@ tile.textContent=currentGuess[j]||"";
 }
 }
 
+//8.文字の色判定処理
+//入力された駅名と正解の駅名を比較し、どのマスが「緑・黄・紫・黒」になるかを詳しく計算する
 function evaluateGuess(guess,target){
 let results=new Array(rowLength).fill("absent");
 let targetArr=target.split(""); let guessArr=guess.split(""); let targetCounts={};
 for(let c of targetArr)targetCounts[c]=(targetCounts[c]||0)+1;
+//【ステップ1】場所も文字もぴったり合っているマスを「correct（緑）」にする
 for(let i=0;i<rowLength;i++){
 if(guessArr[i]===targetArr[i]){ results[i]="correct"; targetCounts[guessArr[i]]--; }
 }
+//【ステップ2】場所は違うけれど、その文字が駅名の別の場所に含まれていれば「present（黄）」にする
 for(let i=0;i<rowLength;i++){
 if(results[i]==="correct")continue;
 let c=guessArr[i];
 if(targetCounts[c]>0){ results[i]="present"; targetCounts[c]--; }
 }
+// 【ステップ3】文字自体は違うが、濁点違い・小文字違い（例：「か」に対して「が」など）があれば「diacritic（紫）」にする
 let baseTargetCounts={};
 for(let char in targetCounts){
 if(targetCounts[char]>0){ let bc=getBaseChar(char); baseTargetCounts[bc]=(baseTargetCounts[bc]||0)+targetCounts[char]; }
@@ -313,22 +331,29 @@ if(results[i]!=="absent")continue;
 let bg=getBaseChar(guessArr[i]);
 if(baseTargetCounts[bg]>0){ results[i]="diacritic"; baseTargetCounts[bg]--; }
 }
+//すべての判定が終わったら、各マスの色のリストを返す
 return results;
 }
 
+//9.回答送信時のパネル判定とゲームの勝敗判定
+//プレイヤーが「回答」ボタンを押したときに、実際の答え合わせと画面への色付けを行う
 function submitGuess(isRestore=false){
+//入力された駅名が、その文字数の実在する駅名リストにあるかチェックする
 const isValid=stations.filter(s=>s.yomi.length===currentMode).some(s=>s.yomi===currentGuess);
 if(!isValid){ if(!isRestore)showMessage("実在しない駅名です"); return; }
 let st=savedState[currentMode];
 if(!isRestore){ st.guesses.push(currentGuess); localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState)); }
+//上で定義した文字判定ロジックを使って、各マスの色を取得する
 const resultColors=evaluateGuess(currentGuess,todayStation.yomi);
 gridHistory.push(resultColors);
+//ゲーム盤のマス目に色のアニメーションクラスをつけ、キーボードのボタンの色も連動して更新する
 for(let j=0;j<rowLength;j++){
 const tile=document.getElementById(`row-${guessesSubmitted}-tile-${j}`);
 tile.textContent=currentGuess[j];
 tile.classList.add(resultColors[j]);
 const char=currentGuess[j]; const color=resultColors[j];
 updateKeyColor(char,color);
+//もしその文字が全く含まれていなければ、その文字の濁点・半濁点・小文字も一括でキーボード上で灰色にする
 if(color==="absent"){
 let base=getBaseChar(char);
 let targetBaseChars=todayStation.yomi.split("").map(getBaseChar);
@@ -338,7 +363,9 @@ variants.push(base); variants.forEach(v=>updateKeyColor(v,"absent"));
 }
 }
 }
+//この入力によって、正解の可能性がある残りの駅が全国にいくつあるかを絞り込む
 filterAvailableStations(currentGuess,resultColors,isRestore);
+//すべての文字が一致（正解）した場合の勝利処理
 if(currentGuess===todayStation.yomi){
 let actualGuesses=guessesSubmitted+1;
 guessesSubmitted=maxGuesses;
@@ -352,6 +379,7 @@ return;
 }
 guessesSubmitted++;
 if(!isRestore) currentGuess="";
+//回答回数が上限に達してしまい、ゲームオーバーになった場合の処理
 if(guessesSubmitted===maxGuesses){
 if(!isRestore){
 st.isOver=true; st.isWin=false; saveStats(false,0); localStorage.setItem("ekiPuzzleStateV1",JSON.stringify(savedState));
@@ -359,7 +387,7 @@ setTimeout(()=>showResultModal(false,false),1000);
 }
 }
 }
-
+//キーボードのボタンの色を、より優先度の高い色（黒＜紫＜黄＜緑）へ上書き更新する処理
 function updateKeyColor(char,newColor){
 let currColor=keyColors[char];
 let currPri=currColor?colorPriority[currColor]:0;
@@ -370,7 +398,7 @@ let keyBtn=document.getElementById("key-"+char);
 if(keyBtn){ keyBtn.classList.remove("correct","present","diacritic","absent"); keyBtn.classList.add(newColor); }
 }
 }
-
+//今回のヒント（色の結果）を元に、全国の駅名リストをシミュレーションして残り候補駅数を計算・表示
 function filterAvailableStations(guess,actualColors,isRestore){
 availableStations=availableStations.filter(s=>{
 let simColors=evaluateGuess(guess,s.yomi);
@@ -390,6 +418,8 @@ showMessage(htmlMsg,"transparent","none","none");
 }
 }
 
+//10.メッセージ表示と結果ウィンドウ
+//画面の中央に「〇〇文字入力してください」などの案内ポップアップを一時的に出す
 function showMessage(text, bg="rgba(0,0,0,0.85)", border="1px solid rgba(255,255,255,0.2)", shadow="0 8px 16px rgba(0,0,0,0.3)"){
 const box=document.getElementById("message-box");
 box.innerHTML=text;
@@ -399,7 +429,7 @@ box.style.boxShadow=shadow;
 box.classList.remove("hidden");
 clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>box.classList.add("hidden"),2000);
 }
-
+//ゲーム終了時に、正解の駅名、Wikipediaへのリンク、旅行サイトへの広告、過去の戦績グラフをまとめて表示する大きな画面を作る
 function showResultModal(isWin,isRestore){
 let st=userStats[currentMode];
 if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
@@ -437,6 +467,7 @@ let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
 document.getElementById("stat-winrate").textContent=winRate;
 document.getElementById("stat-streak").textContent=st.currentStreak;
 document.getElementById("stat-maxstreak").textContent=st.maxStreak;
+//何手目で正解できたかの分布データを横向きの棒グラフ（HTMLとCSS）として組み立てて表示する
 let distHTML="<div style='font-weight:bold;margin:15px 0 5px;border-bottom:1px solid #ccc;padding-bottom:5px;'>回答回数の分布</div>";
 let maxDist=Math.max(...st.dist);
 const barColors=["#6aaa64","#42a5f5","#26c6da","#ffca28","#ffa726","#ff7043","#ec407a","#ab47bc"];
@@ -452,6 +483,7 @@ distHTML+=`<div style="display:flex;align-items:center;margin-bottom:4px;">
 </div>`;
 }
 document.getElementById("guess-distribution").innerHTML=distHTML;
+//タイルの色の結果を四角い絵文字（🟩🟨🟪⬛）の並びに変換し、結果画面の中央に配置する
 const grid=document.getElementById("modal-grid");
 let gridHTML=gridHistory.map((row,i)=>{
 let r=row.map(c=>colorToEmoji[c]).join("");
@@ -460,7 +492,7 @@ return (isWin&&i===gridHistory.length-1)?r+"💮":r;
 grid.innerHTML=gridHTML;
 document.getElementById("result-modal").style.display="flex";
 }
-
+//結果画面でシェアボタンが押されたとき、文字と絵文字のパズル結果を組み立てて各SNSの投稿画面を開く
 function shareResult(type){
 let lastColors=gridHistory.length>0?gridHistory[gridHistory.length-1]:[];
 let isWin=lastColors.length>0&&lastColors.every(c=>c==="correct");
@@ -482,20 +514,24 @@ let url=`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(curre
 navigator.clipboard.writeText(text).then(()=>showMessage("クリップボードにコピーしました"));
 }
 }
+// すべての画面準備が整った（DOM構築完了）タイミングで一番最初の初期化関数（initGame）を起動させます
 window.addEventListener("DOMContentLoaded",initGame);
 
-//行事日エフェクト（※anniversaryは書き換える）
+//11.行事日エフェクト（※anniversaryは書き換える）
+//ひな祭りやクリスマス、エイプリルフールなどの行事日に応じた特別な画面演出を実行する
 window.triggerEventEffect=(ev)=>{
 document.body.className=document.body.className.replace(/event-\w+/g,"");
 let c=document.getElementById("event-container");
 if(c)c.remove();
 if(!ev)return;
 document.body.classList.add("event-"+ev);
+//4月1日（エイプリルフール）限定の最長文字数モードの処理
 if(ev==="aprilfool"){
-let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);
-let longestPool=stations.filter(s=>s.yomi.length===mLen);
-let longestSt=longestPool[Math.floor(Math.random()*longestPool.length)];
-const modeArea=document.querySelector(".mode-btn").parentNode;
+let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);　　　//全ての駅の中から、一番長い読みがなの文字数（例:32文字）を計算して「mLen」に保存する
+let longestPool=stations.filter(s=>s.yomi.length===mLen);　　　　　　　//一番長い文字数にぴったり一致する駅（同率1位の駅）を全て集めてリスト「longestPool」を作る
+let longestSt=longestPool[Math.floor(Math.random()*longestPool.length)];  //集めた最長駅名のリストから、ページを開く（リロードする）たびにランダムで1つを今日の答え「longestSt」に選ぶ
+const modeArea=document.querySelector(".mode-btn").parentNode;　　　　 //画面上の文字数を選ぶボタン（4文字、5文字など）が並んでいる場所を探します
+//ボタンを並べる場所が見つかり、かつ、まだ最長文字数（32文字など）のボタンが作られていない場合だけ、中の処理に進む
 if(modeArea&&!document.getElementById("mode-"+mLen)){
 const bMax=document.createElement("button");
 bMax.id="mode-"+mLen;bMax.className="mode-btn btn";bMax.innerText=mLen+"文字";
@@ -511,6 +547,7 @@ const afs=document.createElement("style");
 afs.id="af-style";
 afs.innerHTML=".event-aprilfool #game-board{display:block!important;width:100%!important;max-width:100vw!important;overflow-x:auto!important;padding-bottom:20px!important;box-sizing:border-box!important;}.event-aprilfool .board-row{display:grid!important;grid-template-columns:repeat("+mLen+",60px)!important;gap:5px!important;margin-bottom:5px!important;width:max-content!important;margin-left:auto!important;margin-right:auto!important;padding:0 10px!important;}.event-aprilfool .tile{width:60px!important;height:60px!important;font-size:24px!important;}";
 document.head.appendChild(afs);
+//最長文字数モードでのプレイ実績（勝率などのデータ）を保存する場所がまだ無ければ、新しく用意します
 if(!userStats[mLen])userStats[mLen]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
 if(!savedState[mLen])savedState[mLen]={board:[],guesses:[],isOver:false,isWin:false,lastDate:""};
 todayStation=longestSt;
@@ -524,6 +561,7 @@ const old=document.getElementById("af-style");
 if(old)old.remove();
 });
 });
+//ページを開いた瞬間に、エイプリルフールモードが始まったことを知らせる案内ポップアップ画面（ダイアログ）を作成する
 const div=document.createElement("div");
 div.style.position="fixed";div.style.top="50%";div.style.left="50%";div.style.transform="translate(-50%,-50%)";
 div.style.background="#fff";div.style.border="4px solid #e91e63";div.style.padding="25px";div.style.zIndex="10000";
@@ -534,6 +572,7 @@ document.body.appendChild(div);
 document.getElementById("close-af-btn").addEventListener("click",()=>div.remove());
 }
 }
+//クリスマスには雪、ひな祭りには桜など、画面の上からパラパラと絵文字のパーティクルを降らせる共通演出処理
 if(["newyear","hinamatsuri","kodomo","tanabata","nye","anniversary","christmas","valentine","halloween","railway"].includes(ev)){
 c=document.createElement("div");c.id="event-container";document.body.appendChild(c);
 let char="❄️";
@@ -548,6 +587,7 @@ p.style.fontSize=(Math.random()*15+15)+"px";p.style.opacity=Math.random()*0.5+0.
 setTimeout(()=>{if(c)c.remove();},8000);
 }
 };
+//現在の日付を取得して、今日が何か特別な「行事日」に該当するかどうかを毎日チェックする
 const checkSpecialEvent=()=>{
 const d=new Date();const m=d.getMonth()+1;const day=d.getDate();
 let ev="";
