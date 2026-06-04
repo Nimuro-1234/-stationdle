@@ -149,14 +149,5 @@ Inspired by Wordle<br>
 <li style="border-bottom:1px solid #eee;"><a href="https://buymeacoffee.com/nimuro_stationdle" target="_blank" style="text-decoration:none; color:#ff813f;">☕ コーヒーをおごる</a></li>
 </ul>
 </div>
-<!-- 開発者用コード -->
-<script>
-const urlParams=new URLSearchParams(window.location.search);
-if(urlParams.get('mode')==='admin'&&window.location.hostname.startsWith('development.')){
-const adminScript=document.createElement('script');
-adminScript.src='admin.js';
-document.body.appendChild(adminScript);
-}
-</script>
 </body>
 </html>
