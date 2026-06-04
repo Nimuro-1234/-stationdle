@@ -118,4 +118,28 @@ if(window.triggerEventEffect) window.triggerEventEffect(ev);
 });
 
 //保存データ閲覧用
-
+document.getElementById('admin-view-storage-btn').addEventListener('click',()=>{
+const viewArea=document.getElementById('admin-storage-view');
+if(viewArea.style.display==='block'){
+viewArea.style.display='none';
+return;
+}
+let output='=== LocalStorage 保存データ ===\n\n';
+let found=false;
+for(let i=0;i<localStorage.length;i++){
+const key=localStorage.key(i);
+// 「eki」から始まる駅ドル関連のデータだけを抽出します
+if(key.startsWith('eki')){
+found=true;
+let val=localStorage.getItem(key);
+try{
+// JSONデータであれば、見やすく改行・インデントして整形します
+val=JSON.stringify(JSON.parse(val),null,2);
+}catch(e){}
+output+='【 '+key+' 】\n'+val+'\n\n';
+}
+}
+if(!found) output+='駅ドルの保存データがありません。';
+viewArea.textContent=output;
+viewArea.style.display='block';
+});
