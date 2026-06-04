@@ -83,3 +83,10 @@ resetPlay();
 alert('現在のプレイ状況（入力値）を完全にリセットしました。');
 location.reload();
 });
+document.getElementById('admin-stats-wipe-btn').addEventListener('click',()=>{
+if(confirm('【警告】4〜6文字すべての成績データ（勝率・分布など）を完全にリセットします。よろしいですか？')){
+localStorage.removeItem('ekiPuzzleStatsV2');
+alert('全成績データを初期化しました。');
+location.reload();
+}
+});
