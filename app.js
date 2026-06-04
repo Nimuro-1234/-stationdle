@@ -367,8 +367,8 @@ document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${toda
 let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(todayStation.kanji+"駅")));
 let affiliateUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BWGDT&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fdiscsort%253D1%2526kwd%253D${encodedStation}%2526ppc%253D2%2526rc%253D1`;
 document.getElementById("wiki-link-container").innerHTML=`
-<a href="${todayStation.url}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
-<a href="${affiliateUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🗺️ この駅の近くに泊まる（聖地巡礼）</a>
+<a href="${todayStation.url}" target="_blank" style="display:inline-block; margin:4px; padding:6px 10px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px;">Wikipediaで見る</a>
+<a href="${affiliateUrl}" target="_blank" style="display:inline-block; margin:4px; padding:6px 10px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px;">🗺️ この駅の近くに泊まる（聖地巡礼）</a>
 `;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
