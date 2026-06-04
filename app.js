@@ -456,9 +456,15 @@ window.triggerEventEffect=(ev)=>{
 document.body.className=document.body.className.replace(/event-\w+/g,"");
 let c=document.getElementById("event-container");
 if(c)c.remove();
+const titleEl=document.querySelector("h1");
+if(titleEl&&titleEl.dataset.origText)titleEl.innerText=titleEl.dataset.origText;
 if(!ev)return;
 document.body.classList.add("event-"+ev);
-if(["newyear","hinamatsuri","kodomo","tanabata","nye","anniversary","christmas"].includes(ev)){
+if(ev==="aprilfool"&&titleEl){
+if(!titleEl.dataset.origText)titleEl.dataset.origText=titleEl.innerText;
+titleEl.innerText="嘘ドル";
+}
+if(["newyear","hinamatsuri","kodomo","tanabata","nye","anniversary","christmas","valentine","halloween","railway"].includes(ev)){
 c=document.createElement("div");
 c.id="event-container";
 document.body.appendChild(c);
@@ -468,6 +474,9 @@ if(ev==="newyear")char="🎍";
 if(ev==="kodomo")char="🎏";
 if(ev==="tanabata")char="🎋";
 if(ev==="nye")char="🔔";
+if(ev==="valentine")char=Math.random()>0.5?"💖":"🍫";
+if(ev==="halloween")char=Math.random()>0.5?"🎃":"🦇";
+if(ev==="railway")char=Math.random()>0.5?"🚄":"🚃";
 for(let i=0;i<30;i++){
 let p=document.createElement("div");
 p.className="particle";
@@ -478,6 +487,7 @@ p.style.fontSize=(Math.random()*15+15)+"px";
 p.style.opacity=Math.random()*0.5+0.5;
 c.appendChild(p);
 }
+setTimeout(()=>{if(c)c.remove();},5000);
 }
 };
 const checkSpecialEvent=()=>{
