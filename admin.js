@@ -13,7 +13,14 @@ adminPanel.innerHTML=`
 <button id="admin-reset-btn" style="margin-right:5px;">入力値リセット</button>
 <button id="admin-stats-wipe-btn" style="background-color:#ffe6e6; color:#c62828; border:1px solid #c62828;">戦績全消去</button>
 <button id="admin-view-storage-btn" style="background-color:#e3f2fd; color:#1565c0; border:1px solid #1565c0; margin-left:5px;">保存データ閲覧</button>
-<div id="admin-storage-view" style="display:none; margin-top:10px; padding:10px; background:#fff; border:1px solid #ccc; max-height:300px; overflow-y:auto; font-size:12px; white-space:pre-wrap; word-wrap:break-word; text-align:left;"></div>
+<div id="admin-storage-view" style="display:none; margin-top:10px; padding:10px; background:#fff; border:1px solid #ccc; max-height:200px; overflow-y:auto; text-align:left; font-family:monospace; white-space:pre-wrap; color:black;"></div>
+<div style="margin-top:10px; padding:10px; background:#f5f5f5; border:1px solid #ddd; border-radius:4px; font-size:12px; color:black; text-align:left;">
+<b>【データ書き換えツール】</b><br>
+連続ログイン: <input type="number" id="adm-cur-streak" style="width:50px;"> 日 / 最高: <input type="number" id="adm-max-streak" style="width:50px;"> 日 <button id="adm-save-streak">保存</button><br>
+実績カウンター(深夜クリア回数): <input type="number" id="adm-count-midnight" style="width:50px;"> 回 <button id="adm-save-achieve">保存</button><br>
+クリア済インデックス(日付インデックス追加): <input type="number" id="adm-clear-day" style="width:60px;"> <button id="adm-add-clear">追加</button><br>
+ユーザー設定(音声): <select id="adm-set-sound"><option value="true">ON</option><option value="false">OFF</option></select> <button id="adm-save-set">保存</button>
+</div>
 <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ccc;">
 <select id="admin-event-select">
 <option value="">通常（演出オフ）</option>
