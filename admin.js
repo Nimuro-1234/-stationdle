@@ -19,6 +19,10 @@ adminPanel.innerHTML=`
 連続ログイン: <input type="number" id="adm-cur-streak" style="width:50px;"> 日 / 最高: <input type="number" id="adm-max-streak" style="width:50px;"> 日 <button id="adm-save-streak">保存</button><br>
 実績カウンター(深夜クリア回数): <input type="number" id="adm-count-midnight" style="width:50px;"> 回 <button id="adm-save-achieve">保存</button><br>
 クリア済インデックス(日付インデックス追加): <input type="number" id="adm-clear-day" style="width:60px;"> <button id="adm-add-clear">追加</button><br>
+通常連勝: <input type="number" id="adm-cur-streak" style="width:40px;"> 日 / 最高: <input type="number" id="adm-max-streak" style="width:40px;"> 日 <button id="adm-save-streak">保存</button><br>
+通算連勝: <input type="number" id="adm-total-streak" style="width:40px;"> 日 / 最高: <input type="number" id="adm-total-max" style="width:40px;"> 日 <button id="adm-save-total-streak">保存</button><br>
+実績[ノーヒント]: <input type="number" id="adm-count-nohint" style="width:50px;"> 回 <button id="adm-save-achieve-1">保存</button><br>
+実績[累計送信数]: <input type="number" id="adm-count-submit" style="width:50px;"> 回 <button id="adm-save-achieve-2">保存</button><br>
 ユーザー設定(音声): <select id="adm-set-sound"><option value="true">ON</option><option value="false">OFF</option></select> <button id="adm-save-set">保存</button>
 </div>
 <div style="margin-top:10px; padding-top:10px; border-top:1px solid #ccc;">
@@ -151,44 +155,67 @@ viewArea.textContent=output;
 viewArea.style.display='block';
 });
 
-//ローカルストレージ編集用
-setTimeout(()=>{
-let sData=JSON.parse(localStorage.getItem("ekiLoginStreak")||'{"currentStreak":0,"maxStreak":0}');
-let aData=JSON.parse(localStorage.getItem("ekiAchievements")||'{"counters":{"midnightClears":0}}');
-let cData=JSON.parse(localStorage.getItem("ekiClearedDays")||'[]');
-let setData=JSON.parse(localStorage.getItem("ekiSettings")||'{"sound":true}');
-document.getElementById("adm-cur-streak").value=sData.currentStreak||0;
-document.getElementById("adm-max-streak").value=sData.maxStreak||0;
-document.getElementById("adm-count-midnight").value=aData.counters?.midnightClears||0;
-document.getElementById("adm-set-sound").value=String(setData.sound!==false);
-document.getElementById("adm-save-streak").addEventListener("click",()=>{
-sData.currentStreak=parseInt(document.getElementById("adm-cur-streak").value,10)||0;
-sData.maxStreak=parseInt(document.getElementById("adm-max-streak").value,10)||0;
-localStorage.setItem("ekiLoginStreak",JSON.stringify(sData));
-alert("連続ログイン日数を変更しました。");
-location.reload();
-});
-document.getElementById("adm-save-achieve").addEventListener("click",()=>{
-if(!aData.counters)aData.counters={"midnightClears":0};
-aData.counters.midnightClears=parseInt(document.getElementById("adm-count-midnight").value,10)||0;
-localStorage.setItem("ekiAchievements",JSON.stringify(aData));
-alert("実績カウンターを変更しました。");
-location.reload();
-});
-document.getElementById("adm-add-clear").addEventListener("click",()=>{
-let newDay=parseInt(document.getElementById("adm-clear-day").value,10);
-if(!isNaN(newDay)&&!cData.includes(newDay)){
-cData.push(newDay);
-cData.sort((a,b)=>a-b);
-localStorage.setItem("ekiClearedDays",JSON.stringify(cData));
-alert("クリア済みインデックスに日スタンプを追加しました。");
-location.reload();
-}
-});
-document.getElementById("adm-save-set").addEventListener("click",()=>{
-setData.sound=(document.getElementById("adm-set-sound").value==="true");
-localStorage.setItem("ekiSettings",JSON.stringify(setData));
-alert("ユーザー設定を更新しました。");
-location.reload();
-});
-},500);
+// 管理者パネルが画面に描画された後に、入力欄に現在の数値を入れ、ボタンの動作を登録する
+setTimeout(() => {
+  // 保存されているデータを読み込む（実績データは最新の構造で読み込む）
+  let sData = JSON.parse(localStorage.getItem("ekiLoginStreak") || '{"currentStreak":0,"maxStreak":0}');
+  let aData = JSON.parse(localStorage.getItem("ekiAchievements") || '{"counters":{"noHintClears":0,"totalSubmitCount":0},"winStreak":{"currentStreak":0,"maxStreak":0}}');
+  let setData = JSON.parse(localStorage.getItem("ekiSettings") || '{"sound":true}');
+  
+  // 画面の入力欄に現在のデータを入れておく
+  document.getElementById("adm-cur-streak").value = sData.currentStreak || 0;
+  document.getElementById("adm-max-streak").value = sData.maxStreak || 0;
+  
+  // 新しく追加した通算連勝、ノーヒント回数、累計送信数のデータを入力欄に入れる
+  document.getElementById("adm-total-streak").value = (aData.winStreak && aData.winStreak.currentStreak) ? aData.winStreak.currentStreak : 0;
+  document.getElementById("adm-total-max").value = (aData.winStreak && aData.winStreak.maxStreak) ? aData.winStreak.maxStreak : 0;
+  document.getElementById("adm-count-nohint").value = (aData.counters && aData.counters.noHintClears) ? aData.counters.noHintClears : 0;
+  document.getElementById("adm-count-submit").value = (aData.counters && aData.counters.totalSubmitCount) ? aData.counters.totalSubmitCount : 0;
+  
+  document.getElementById("adm-set-sound").value = String(setData.sound !== false);
+  
+  // 通常の連続ログイン日数を保存する処理
+  document.getElementById("adm-save-streak").addEventListener("click", () => {
+    sData.currentStreak = parseInt(document.getElementById("adm-cur-streak").value, 10) || 0;
+    sData.maxStreak = parseInt(document.getElementById("adm-max-streak").value, 10) || 0;
+    localStorage.setItem("ekiLoginStreak", JSON.stringify(sData));
+    alert("通常連続ログイン日数を変更しました。");
+    location.reload();
+  });
+  
+  // 【新規追加】通算連勝データを保存する処理
+  document.getElementById("adm-save-total-streak").addEventListener("click", () => {
+    if (!aData.winStreak) aData.winStreak = { "currentStreak": 0, "maxStreak": 0, "lastClearedDate": "" };
+    aData.winStreak.currentStreak = parseInt(document.getElementById("adm-total-streak").value, 10) || 0;
+    aData.winStreak.maxStreak = parseInt(document.getElementById("adm-total-max").value, 10) || 0;
+    localStorage.setItem("ekiAchievements", JSON.stringify(aData));
+    alert("通算連勝データを変更しました。");
+    location.reload();
+  });
+  
+  // 【新規追加】ノーヒントクリア回数を保存する処理
+  document.getElementById("adm-save-achieve-1").addEventListener("click", () => {
+    if (!aData.counters) aData.counters = { "noHintClears": 0 };
+    aData.counters.noHintClears = parseInt(document.getElementById("adm-count-nohint").value, 10) || 0;
+    localStorage.setItem("ekiAchievements", JSON.stringify(aData));
+    alert("ノーヒントクリア回数を変更しました。");
+    location.reload();
+  });
+  
+  // 【新規累計回答送信数を保存する処理
+  document.getElementById("adm-save-achieve-2").addEventListener("click", () => {
+    if (!aData.counters) aData.counters = { "totalSubmitCount": 0 };
+    aData.counters.totalSubmitCount = parseInt(document.getElementById("adm-count-submit").value, 10) || 0;
+    localStorage.setItem("ekiAchievements", JSON.stringify(aData));
+    alert("累計回答送信数を変更しました。");
+    location.reload();
+  });
+  
+  // ユーザー設定（音声）を保存する処理
+  document.getElementById("adm-save-set").addEventListener("click", () => {
+    setData.sound = (document.getElementById("adm-set-sound").value === "true");
+    localStorage.setItem("ekiSettings", JSON.stringify(setData));
+    alert("ユーザー設定を更新しました。");
+    location.reload();
+  });
+}, 500);
