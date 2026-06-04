@@ -1,26 +1,33 @@
-let stations=[];
-let availableStations=[];
-let todayStation=null;
-let currentGuess="";
-let guessesSubmitted=0;
-let maxGuesses=8;
-let rowLength=4;
-let currentMode=4;
-let keyColors={};
-let gridHistory=[];
-let debugOffset=0;
-let msgTimeout=null;
-let currentDayIndex=0;
-let isAprilFoolMode=false;
-let savedState={};
-let userStats={
+//1.共通変数の定義
+let stations=[];　　　　　　　//すべての駅データの入れる箱
+let availableStations=[];　　//選択文字数に一致する駅を入れる箱
+let todayStation=null;　　　 //今日の正解駅
+let currentGuess="";　　　　 //プレイヤーが入力している途中の文字を記憶する箱
+let guessesSubmitted=0;　　　//プレイヤーの回答送信回数カウンター
+let maxGuesses=8;　　　　　　//上限回答数(文字数により変動)
+let rowLength=4;　　　　　　 //入力パネルの文字数
+let currentMode=4;　　　　　 //現在遊んでいるモードの文字数
+let keyColors={};　　　　　　//キーボードの各ボタンについている色を記憶する箱
+let gridHistory=[];         //プレイヤーが送信した過去の回答の色の結果を履歴として残す箱
+let debugOffset=0;　　　　　 //デバッグ時に日付を強制的にずらすための数値
+let msgTimeout=null;　　　　 //画面にポップアップを出した後、自動で消すためのタイマー
+let currentDayIndex=0;　　　 //基準日から数えて今日が何日目かを表す数字
+let isAprilFoolMode=false;　 //今がエイプリルフール限定モードを判定するためのフラグ
+let savedState={};　　　　　　//各文字のモードで今日のゲームの途中経過を保存する箱
+//各文字数モード毎の累計プレイ回数、勝率、連勝記録、最大連勝、何回目で当たったかを記録する箱
+let userStats={　　　　　　　
 4:{played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]},
 5:{played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]},
 6:{played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]}
 };
+//過去に解いた問題を記録しておく箱
 let dailyArchive={};
+
+//2.文字数判定
+//キーボード表示色優先順位（緑＞黄＞紫＞灰）
 const colorPriority={"correct":4,"present":3,"diacritic":2,"absent":1};
 const colorToEmoji={"correct":"🟩","present":"🟨","diacritic":"🟪","absent":"⬛"};
+//濁点（が）・半濁点（ぱ）・小文字（ゃ）を元の文字（か、は、やなど）に変換するための対応表
 const baseMap={
 "が":"か","ぎ":"き","ぐ":"く","げ":"け","ご":"こ",
 "ざ":"さ","じ":"し","ず":"す","ぜ":"せ","ぞ":"そ",
@@ -30,21 +37,24 @@ const baseMap={
 "ぁ":"あ","ぃ":"い","ぅ":"う","ぇ":"え","ぉ":"お",
 "っ":"つ","ゃ":"や","ゅ":"ゆ","ょ":"よ","ゎ":"わ"
 };
+//キーボード（清音）グループ
 const seionGroups=[
 ["あ","い","う","え","お"],["か","き","く","け","こ"],["さ","し","す","せ","そ"],
 ["た","ち","つ","て","と"],["な","に","ぬ","ね","の"],["は","ひ","ふ","へ","ほ"],
 ["ま","み","む","め","も"],["や","","ゆ","","よ"],["ら","り","る","れ","ろ"],["わ","ー","を","","ん"]
 ];
+//キーボード（濁音・半濁点・小文字）グループ
 const dakuonGroups=[
 ["が","ぎ","ぐ","げ","ご"],["ざ","じ","ず","ぜ","ぞ"],["だ","ぢ","づ","で","ど"],
 ["ば","び","ぶ","べ","ぼ"],["ぱ","ぴ","ぷ","ぺ","ぽ"],["ぁ","ぃ","ぅ","ぇ","ぉ"],
 ["ゃ","","ゅ","","ょ"],["っ","","ゎ","",""]
 ];
-
+//引数でもらった文字に濁点・半濁点・小文字がある場合、清音に戻して返す
 function getBaseChar(c){return baseMap[c]||c;}
-
+//カタカナのフリガナをすべてひらがなに変換する
 function toHiragana(str){ return str.replace(/[ァ-ン]/g,m=>String.fromCharCode(m.charCodeAt(0)-0x60)); }
 
+//3.ゲーム初期化処理
 async function initGame(){
 try{
 loadStats();
