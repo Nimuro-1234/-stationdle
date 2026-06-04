@@ -10,7 +10,6 @@ adminPanel.innerHTML=`
 <input type="text" id="admin-custom-ans" placeholder="新しい答え(ひらがな)" style="padding:4px;margin-right:5px;">
 <button id="admin-set-btn" style="margin-right:5px;">確定変更</button>
 <button id="admin-rand-btn" style="margin-right:5px;">ランダム変更</button>
-<button id="admin-reset-btn">入力値リセット</button>
 <button id="admin-reset-btn" style="margin-right:5px;">入力値リセット</button>
 <button id="admin-stats-wipe-btn" style="background-color:#ffe6e6; color:#c62828; border:1px solid #c62828;">戦績全消去</button>
 `;
