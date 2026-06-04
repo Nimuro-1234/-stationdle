@@ -529,7 +529,14 @@ document.body.classList.add("event-"+ev);
 if(ev==="aprilfool"){
 let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);　　　//全ての駅の中から、一番長い読みがなの文字数（例:32文字）を計算して「mLen」に保存する
 let longestPool=stations.filter(s=>s.yomi.length===mLen);　　　　　　　//一番長い文字数にぴったり一致する駅（同率1位の駅）を全て集めてリスト「longestPool」を作る
-let longestSt=longestPool[Math.floor(Math.random()*longestPool.length)];  //集めた最長駅名のリストから、ページを開く（リロードする）たびにランダムで1つを今日の答え「longestSt」に選ぶ
+let afSaved=localStorage.getItem("ekiAF_"+currentDayIndex);
+let longestSt;
+if(afSaved){
+longestSt=JSON.parse(afSaved);
+}else{
+longestSt=longestPool[Math.floor(Math.random()*longestPool.length)];
+localStorage.setItem("ekiAF_"+currentDayIndex,JSON.stringify(longestSt));
+}
 const modeArea=document.querySelector(".mode-btn").parentNode;　　　　 //画面上の文字数を選ぶボタン（4文字、5文字など）が並んでいる場所を探します
 //ボタンを並べる場所が見つかり、かつ、まだ最長文字数（32文字など）のボタンが作られていない場合だけ、中の処理に進む
 if(modeArea&&!document.getElementById("mode-"+mLen)){
