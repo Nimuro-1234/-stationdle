@@ -12,6 +12,23 @@ adminPanel.innerHTML=`
 <button id="admin-rand-btn" style="margin-right:5px;">ランダム変更</button>
 <button id="admin-reset-btn" style="margin-right:5px;">入力値リセット</button>
 <button id="admin-stats-wipe-btn" style="background-color:#ffe6e6; color:#c62828; border:1px solid #c62828;">戦績全消去</button>
+<div style="margin-top:10px; padding-top:10px; border-top:1px solid #ccc;">
+<select id="admin-event-select">
+<option value="">通常（演出オフ）</option>
+<option value="newyear">正月（🎍）</option>
+<option value="valentine">バレンタイン（色）</option>
+<option value="hinamatsuri">ひなまつり（🌸）</option>
+<option value="aprilfool">エイプリルフール（反転）</option>
+<option value="kodomo">こどもの日（🎏）</option>
+<option value="anniversary">周年記念（🌸）</option>
+<option value="tanabata">七夕（🎋）</option>
+<option value="railway">鉄道の日（色）</option>
+<option value="halloween">ハロウィン（色）</option>
+<option value="christmas">クリスマス（❄️＆色）</option>
+<option value="nye">大晦日（🔔）</option>
+</select>
+<button id="admin-event-btn">演出テスト</button>
+</div>
 `;
 document.querySelector('header').insertAdjacentElement('afterend',adminPanel);
 const getList=()=>window.stations||window.stationsList||window.allStations||(typeof stations!=='undefined'?stations:null);
@@ -90,4 +107,10 @@ localStorage.removeItem('ekiPuzzleStatsV2');
 alert('全成績データを初期化しました。');
 location.reload();
 }
+});
+
+//行事日エフェクト
+document.getElementById('admin-event-btn').addEventListener('click',()=>{
+const ev=document.getElementById('admin-event-select').value;
+if(window.triggerEventEffect) window.triggerEventEffect(ev);
 });
