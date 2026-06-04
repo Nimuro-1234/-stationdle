@@ -1,31 +1,36 @@
-name: Auto Update Stations
+name: Daily Station Extraction
+
 on:
   schedule:
-    - cron: '0 18 * * *' # 毎日UTC18時（日本時間の朝3時）に実行
-  workflow_dispatch:
+    # 日本時間(JST)の深夜3時は、協定世界時(UTC)の前日18時です
+    - cron: '0 18 * * *'
+  # 手動でもボタンから実行できるようにする設定
+  workflow_dispatch: 
+
 jobs:
-  update:
+  run-script:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # 自動Pushのための書き込み権限を明示
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.10'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
-      - name: Run script
-        env:
-          TZ: 'Asia/Tokyo' # Pythonに日本時間で曜日判定をさせる
+
+      - name: Run extraction script
         run: python extract_stations.py
-      - name: Commit and Push
+
+      - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add stations.json
-          git diff --cached --quiet || (git commit -m "Auto-update stations.json [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update stations.json" && git push)
