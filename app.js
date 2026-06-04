@@ -370,9 +370,16 @@ let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&
 let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 let affiliateUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BWGDT&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fdiscsort%253D1%2526kwd%253D${encodedStation}%2526ppc%253D2%2526rc%253D1`;
 document.getElementById("wiki-link-container").innerHTML=`
-<a href="${todayStation.url}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
-<a href="${affiliateUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🏨 Yahoo!トラベルで周辺の宿を探す</a>
-<a href="${rakutenUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#4caf50; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🟢 楽天トラベルで周辺の宿を探す</a>
+<div style="margin-bottom:12px;">
+<a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
+</div>
+<div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px;">
+<div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">＼ 正解の駅へ聖地巡礼に行こう！ ／</div>
+<div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
+<a href="${affiliateUrl}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:40%;">🏨 Yahoo!</a>
+<a href="${rakutenUrl}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#bf0000; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:40%;">🟢 楽天トラベル</a>
+</div>
+</div>
 ${rakutenImp}
 `;
 document.getElementById("stat-played").textContent=st.played;
