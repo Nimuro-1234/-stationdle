@@ -365,10 +365,15 @@ if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
 document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
 document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
 let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(todayStation.kanji+"駅")));
+let rakutenKeyword=encodeURIComponent(encodeURIComponent(todayStation.kanji+"駅"));
+let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
+let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 let affiliateUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BWGDT&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fdiscsort%253D1%2526kwd%253D${encodedStation}%2526ppc%253D2%2526rc%253D1`;
 document.getElementById("wiki-link-container").innerHTML=`
 <a href="${todayStation.url}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
-<a href="${affiliateUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🗺️ この駅の近くに泊まる（聖地巡礼）</a>
+<a href="${affiliateUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🏨 Yahoo!トラベルで周辺の宿を探す</a>
+<a href="${rakutenUrl}" target="_blank" style="display:inline-block; margin:5px; padding:8px 12px; background-color:#4caf50; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">🟢 楽天トラベルで周辺の宿を探す</a>
+${rakutenImp}
 `;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
