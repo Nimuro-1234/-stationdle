@@ -16,8 +16,8 @@ let isAprilFoolMode=false;　 //今がエイプリルフール限定モードを
 let savedState={};　　　　　　//各文字のモードで今日のゲームの途中経過を保存する箱
 let ekiSettings=JSON.parse(localStorage.getItem("ekiSettings")||'{"theme":"","sound":true,"fontSize":"normal"}');　　　//ユーザー設定を保存する箱
 let ekiLoginStreak=JSON.parse(localStorage.getItem("ekiLoginStreak")||'{"currentStreak":0,"maxStreak":0,"lastLoginDate":""}');　　//連続ログイン日数を保存する箱
-let ekiClearedDays=JSON.parse(localStorage.getItem("ekiClearedDays")||'[]');　　　//クリアした日を保存する箱
-let ekiAchievements=JSON.parse(localStorage.getItem("ekiAchievements")||'{"bestScores":{},"counters":{"legendStationClears":0,"noAbsentClears":0,"totalYomiLength":0,"noHintClears":0,"hintUsedClears":0,"totalSubmitCount":0},"winStreak":{"currentStreak":0,"maxStreak":0,"lastClearedDate":""},"hourlyClears":{},"unlockedSets":{"prefs":[],"companies":[],"lines":[],"clearedEvents":[],"clearedMonthDays":[],"clearedStationNames":[]}}');　　// 実績データの全体構造を定義
+let ekiClearedDays=JSON.parse(localStorage.getItem("ekiClearedDays")||'{"4":[],"5":[],"6":[]}');　　　//クリアした日を保存する箱
+let ekiAchievements=JSON.parse(localStorage.getItem("ekiAchievements")||'{"bestScores":{},"counters":{"legendStationClears":0,"noAbsentClears":0,"totalYomiLength":0,"noHintClears":0,"hintUsedClears":0,"totalSubmitCount":0},"winStreak":{"currentStreak":0,"maxStreak":0,"lastClearedDate":""},"hourlyClears":{},"unlockedSets":{"prefs":[],"companies":[],"lines":[],"colorCounts":{"4":{"correct":0,"present":0,"diacritic":0,"absent":0}},"clearedEvents":[],"clearedMonthDays":[],"clearedStationNames":[]}}');　　// 実績データの全体構造を定義
 //各文字数モード毎の累計プレイ回数、勝率、連勝記録、最大連勝、何回目で当たったかを記録する箱
 let userStats={　　　　　　　
 4:{played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]},
