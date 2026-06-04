@@ -53,12 +53,16 @@ if(stations.length===0)return;
 document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
 document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
 document.getElementById("clear-btn").addEventListener("click",()=>handleKeyPress("CLEAR"));
-document.getElementById("stats-reset-btn").addEventListener("click",()=>{
-if(confirm("現在の文字数の成績（勝率や分布）をリセットしますか？")){
-userStats[currentMode]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
-localStorage.setItem("ekiPuzzleStatsV2",JSON.stringify(userStats)); alert("リセットしました。");
-}
+document.getElementById("menu-btn").addEventListener("click",()=>{
+document.getElementById("side-menu-overlay").style.display="block";
+setTimeout(()=>document.getElementById("side-menu").style.right="0",10);
 });
+const closeSideMenu=()=>{
+document.getElementById("side-menu").style.right="-250px";
+setTimeout(()=>document.getElementById("side-menu-overlay").style.display="none",300);
+};
+document.getElementById("close-menu-btn").addEventListener("click",closeSideMenu);
+document.getElementById("side-menu-overlay").addEventListener("click",closeSideMenu);
 document.getElementById("help-btn").addEventListener("click",()=>{
 document.getElementById("help-modal").style.display="flex";
 });
