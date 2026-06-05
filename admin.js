@@ -12,8 +12,18 @@ adminPanel.innerHTML=`
 <button id="admin-rand-btn" style="margin-right:5px;">ランダム変更</button>
 <button id="admin-reset-btn" style="margin-right:5px;">入力値リセット</button>
 <button id="admin-stats-wipe-btn" style="background-color:#ffe6e6; color:#c62828; border:1px solid #c62828;">戦績全消去</button>
-<button id="admin-view-storage-btn" style="background-color:#e3f2fd; color:#1565c0; border:1px solid #1565c0; margin-left:5px;">保存データ閲覧</button>
-<div id="admin-storage-view" style="display:none; margin-top:10px; padding:10px; background:#fff; border:1px solid #ccc; max-height:200px; overflow-y:auto; text-align:left; font-family:monospace; white-space:pre-wrap; color:black;"></div>
+<div style="margin-top:10px; padding:10px; background:#fff3e0; border:1px solid #ff9800; border-radius:4px;">
+<b>【JSONデータ直接編集】</b><br>
+<select id="adm-edit-key" style="padding:4px;">
+<option value="ekiZukanData">図鑑 (ekiZukanData)</option>
+<option value="ekiAllGuesses">入力履歴 (ekiAllGuesses)</option>
+<option value="ekiAchievements">実績 (ekiAchievements)</option>
+<option value="ekiPuzzleStatsV2">成績 (ekiPuzzleStatsV2)</option>
+</select>
+<button id="adm-load-key" style="margin-left:5px;">読込</button>
+<button id="adm-save-key" style="background-color:#ffe6e6; color:#c62828; margin-left:5px;">上書き保存</button><br>
+<textarea id="adm-edit-val" style="width:100%; height:100px; font-family:monospace; margin-top:5px; font-size:12px;"></textarea>
+</div>
 <div style="margin-top:10px; padding:10px; background:#f5f5f5; border:1px solid #ddd; border-radius:4px; font-size:12px; color:black; text-align:left;">
 <b>【データ書き換えツール】</b><br>
 連続ログイン: <input type="number" id="adm-cur-streak" style="width:50px;"> 日 / 最高: <input type="number" id="adm-max-streak" style="width:50px;"> 日 <button id="adm-save-streak">保存</button><br>
