@@ -693,7 +693,18 @@ let r=row.map(c=>colorToEmoji[c]).join("");
 return r;
 }).join("<br>");
 grid.innerHTML=gridHTML;
-document.getElementById("result-modal").style.display="flex";
+  // ランダムモード中は、日々の勝率や戦績グラフなどの要素を非表示にしてスッキリさせる
+    if(isPlayingRandom){
+      document.getElementById("stats-container").style.display = "none";
+      document.getElementById("guess-distribution").style.display = "none";
+      document.getElementById("guess-distribution").previousElementSibling.style.display = "none"; // グラフの上の横線(hr)も消す
+    } else {
+      document.getElementById("stats-container").style.display = "flex";
+      document.getElementById("guess-distribution").style.display = "block";
+      document.getElementById("guess-distribution").previousElementSibling.style.display = "block";
+    }
+
+    document.getElementById("result-modal").style.display="flex"; // ←元からあるコード
 }
 //結果画面でシェアボタンが押されたとき、文字と絵文字のパズル結果を組み立てて各SNSの投稿画面を開く
 function shareResult(type){
