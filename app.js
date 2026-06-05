@@ -172,12 +172,16 @@ themeIdx=themes.indexOf(ekiSettings.theme);
 if(themeIdx>-1&&ekiSettings.theme!=="")document.body.classList.add(ekiSettings.theme);
 }
 document.getElementById("theme-btn").addEventListener("click",()=>{
-document.body.className=document.body.className.replace(/event-\w+/g,"");
-if(themes[themeIdx]!=="")document.body.classList.remove(themes[themeIdx]);
-themeIdx=(themeIdx+1)%themes.length;
-if(themes[themeIdx]!=="")document.body.classList.add(themes[themeIdx]);
-ekiSettings.theme=themes[themeIdx];
-localStorage.setItem("ekiSettings",JSON.stringify(ekiSettings));
+  // ボタンを押す前に、エイプリルフールモードだったかどうかを記憶しておきます
+  const isAF = document.body.classList.contains("event-aprilfool");
+  document.body.className=document.body.className.replace(/event-\w+/g,"");
+  if(themes[themeIdx]!=="")document.body.classList.remove(themes[themeIdx]);
+  themeIdx=(themeIdx+1)%themes.length;
+  if(themes[themeIdx]!=="")document.body.classList.add(themes[themeIdx]);
+  ekiSettings.theme=themes[themeIdx];
+  localStorage.setItem("ekiSettings",JSON.stringify(ekiSettings));
+  // もし元がエイプリルフールだったなら、クラスを消された直後に強制的に再付与します
+  if (isAF) document.body.classList.add("event-aprilfool");
 });
 //最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
 selectTodayStation(); restoreBoard(); checkSpecialEvent();
