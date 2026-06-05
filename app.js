@@ -724,6 +724,50 @@ let c=document.getElementById("event-container");
 if(c)c.remove();
 if(!ev)return;
 document.body.classList.add("event-"+ev);
+// サイト周年記念（site_anniversary）の特別な演出処理
+if(ev === "site_anniversary"){
+  // タイトルロゴ（h1タグ）を探す
+  const h1 = document.querySelector('h1');
+  if(h1){
+    // 親要素を基準にするためpositionを設定
+    h1.style.position = "relative";
+    // ヘッドマーク用の要素を新しく作る
+    const headmark = document.createElement("div");
+    headmark.id = "site-anni-headmark";
+    // h1タグの左上に少し重なるように絶対位置で配置する
+    headmark.style.position = "absolute";
+    headmark.style.top = "-15px";
+    headmark.style.left = "-10px";
+    headmark.style.zIndex = "10";
+    headmark.style.transform = "rotate(-10deg)";
+    // SVGを使って、著作権フリーのお祝いリボン型ヘッドマークを描画する
+    headmark.innerHTML = `<svg width="60" height="60" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="45" fill="#ffd700" stroke="#ff8c00" stroke-width="4"/>
+      <circle cx="50" cy="50" r="38" fill="#fff"/>
+      <text x="50" y="45" font-family="sans-serif" font-size="16" font-weight="bold" fill="#d32f2f" text-anchor="middle">祝</text>
+      <text x="50" y="65" font-family="sans-serif" font-size="14" font-weight="bold" fill="#d32f2f" text-anchor="middle">周年</text>
+      <path d="M 20 85 L 10 110 L 35 95 Z" fill="#ff8c00"/>
+      <path d="M 80 85 L 90 110 L 65 95 Z" fill="#ff8c00"/>
+    </svg>`;
+    h1.appendChild(headmark);
+  }
+
+  // プレイヤー全員に向けた感謝のメッセージ画面を作る
+  const siteAnniDiv = document.createElement("div");
+  // 画面のど真ん中に固定表示するためのスタイル設定
+  siteAnniDiv.style.position = "fixed"; siteAnniDiv.style.top = "50%"; siteAnniDiv.style.left = "50%"; siteAnniDiv.style.transform = "translate(-50%,-50%)";
+  siteAnniDiv.style.background = "#fff"; siteAnniDiv.style.border = "4px solid #ffd700"; siteAnniDiv.style.padding = "25px"; siteAnniDiv.style.zIndex = "10000";
+  siteAnniDiv.style.borderRadius = "12px"; siteAnniDiv.style.textAlign = "center"; siteAnniDiv.style.color = "#333"; siteAnniDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+  siteAnniDiv.style.width = "85%"; siteAnniDiv.style.maxWidth = "350px";
+  // 感謝のメッセージ内容
+  siteAnniDiv.innerHTML = "<h2 style='color:#d32f2f;margin-top:0;'>🎉 駅ドル 周年記念！ 🎉</h2>" +
+                          "<p style='font-size:14px;line-height:1.6;'>皆様にご乗車いただき、駅ドルは無事に周年を迎えることができました。</p>" +
+                          "<p style='font-size:14px;line-height:1.6;'>日頃の感謝を込めて、本日は特別なお祭り仕様で運行中です。<br>これからも末永いご愛顧をよろしくお願いいたします！</p>" +
+                          "<button id='close-site-anni-btn' class='btn' style='background:#d32f2f;color:#fff;margin-top:15px;font-size:16px;'>閉じる</button>";
+  document.body.appendChild(siteAnniDiv);
+  // 閉じるボタンが押されたらメッセージを消す
+  document.getElementById('close-site-anni-btn').addEventListener('click', () => siteAnniDiv.remove());
+}
 //4月1日（エイプリルフール）限定の最長文字数モードの処理
 if(ev==="aprilfool"){
 let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);　　　//全ての駅の中から、一番長い読みがなの文字数（例:32文字）を計算して「mLen」に保存する
@@ -810,6 +854,55 @@ else if(m===10&&day===14)ev="railway";
 else if(m===10&&day===31)ev="halloween";
 else if(m===12&&(day===24||day===25))ev="christmas";
 else if(m===12&&day===31)ev="nye";
+// ユーザー個人の周年記念をチェックする処理
+const meta = JSON.parse(localStorage.getItem("ekiZukanMeta") || '{}');
+if (meta.firstPlayDate) {
+  const firstDate = new Date(meta.firstPlayDate);
+  // 初回プレイ日と今日の「月」と「日」が完全に一致し、かつ年が違う（1年以上経っている）場合
+  if (firstDate.getMonth() + 1 === m && firstDate.getDate() === day && firstDate.getFullYear() < d.getFullYear()) {
+    const years = d.getFullYear() - firstDate.getFullYear();
+    
+    // 画面のモード選択エリア（4文字、5文字のボタンがある場所）を探す
+    const modeArea = document.querySelector(".mode-btn").parentNode;
+    // まだ記念ボタンが作られていない場合のみ、新しく追加する
+    if (modeArea && !document.getElementById("mode-anniversary")) {
+      const btnAnni = document.createElement("button");
+      btnAnni.id = "mode-anniversary";
+      btnAnni.className = "mode-btn btn";
+      btnAnni.innerText = "🎫 " + years + "周年特別ランダム";
+      // 目立つように金色のデザインにする
+      btnAnni.style.backgroundColor = "#ffd700";
+      btnAnni.style.color = "#333";
+      btnAnni.style.fontWeight = "900";
+      btnAnni.style.border = "2px solid #ff8c00";
+      
+      // 記念ボタンが押されたときの特別な動作
+      btnAnni.addEventListener("click", () => {
+        // 他のボタンの選択状態を解除し、このボタンを選択状態にする
+        document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+        btnAnni.classList.add("active");
+        
+        // ランダムに5文字の駅を1つ選び、今日の正解を書き換える（何度でも遊べる仕様）
+        const modeStations = stations.filter(s => s.yomi.length === 5);
+        todayStation = modeStations[Math.floor(Math.random() * modeStations.length)];
+        
+        // 5文字モードの設定にする
+        currentMode = 5; rowLength = 5; maxGuesses = 6;
+        document.getElementById("game-board").style.setProperty("--row-length", 5);
+        
+        // 記念モード用のセーブデータ枠を作り、過去の入力状態をリセットする
+        savedState[currentMode] = {guesses: [], guessTimes: [], startTime: null, endTime: null, usedHint: false, isWin: false, isOver: false};
+        
+        // ゲーム盤をまっさらにして再描画する
+        restoreBoard();
+        showMessage("特別きっぷ発券！<br>何度でもランダム出題に挑戦できます", "#ff9800");
+      });
+      
+      // 出来上がったボタンを画面に追加する
+      modeArea.appendChild(btnAnni);
+    }
+  }
+}
 window.triggerEventEffect(ev);
 };
 
