@@ -219,3 +219,46 @@ setTimeout(() => {
     location.reload();
   });
 }, 500);
+
+
+// エディタの「読込」ボタンを押したときの処理
+document.getElementById('adm-load-key').addEventListener('click', () => {
+  // 選択されたデータの名前（キー）を取得する
+  const key = document.getElementById('adm-edit-key').value;
+  // パソコン内からデータを取得する
+  const val = localStorage.getItem(key);
+  try {
+    // 取得したデータが存在すれば、改行して綺麗に整え、テキストエリアに表示する
+    document.getElementById('adm-edit-val').value = val ? JSON.stringify(JSON.parse(val), null, 2) : "{}";
+  } catch(e) {
+    // データが壊れている場合はそのまま表示する
+    document.getElementById('adm-edit-val').value = val || "";
+  }
+});
+
+// エディタの「上書き保存」ボタンを押したときの処理
+document.getElementById('adm-save-key').addEventListener('click', () => {
+  const key = document.getElementById('adm-edit-key').value;
+  const val = document.getElementById('adm-edit-val').value;
+  try {
+    // ユーザーが書き換えた文字が、正しいJSONデータか確認する（エラーチェック）
+    JSON.parse(val);
+    // 問題なければパソコン内に上書き保存する
+    localStorage.setItem(key, val);
+    alert(key + " を上書き保存しました。");
+  } catch(e) {
+    alert("エラー：入力されたテキストは正しいJSON形式ではありません。（括弧やカンマの閉じ忘れなど）");
+  }
+});
+
+// 「個人の周年をテスト」ボタンを押したときの処理
+document.getElementById('admin-user-anni-btn').addEventListener('click', () => {
+  // メタデータ（初回プレイ日など）を読み込む
+  let meta = JSON.parse(localStorage.getItem("ekiZukanMeta") || '{}');
+  const d = new Date();
+  // 強制的に、初回プレイ日を「今日のちょうど1年前」に書き換える
+  meta.firstPlayDate = (d.getFullYear() - 1) + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+  localStorage.setItem("ekiZukanMeta", JSON.stringify(meta));
+  alert("初回プレイ日を「1年前の今日」に書き換えました。ページを再読み込みします。");
+  location.reload();
+});
