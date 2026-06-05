@@ -46,6 +46,15 @@ function toHiragana(str){ return str.replace(/[ァ-ン]/g,m=>String.fromCharCode
 
 async function initGame(){
 try{
+  // 現在のデータ構造のバージョンを記録（将来のバグ防止用）
+  if (!localStorage.getItem("ekiSystemVersion")) localStorage.setItem("ekiSystemVersion", "1.0");
+  // URLの末尾に「?emergency_reset=true」がついている場合はデータを全消去して復活させる
+  if (new URLSearchParams(window.location.search).get("emergency_reset") === "true") {
+    localStorage.clear();
+    alert("データを初期化しました。");
+    window.location.href = window.location.origin + window.location.pathname;
+    return;
+  }
 loadStats();
 const res=await fetch('stations.json');
 const raw=await res.json();
