@@ -3,82 +3,177 @@ import json
 import re
 import requests
 from bs4 import BeautifulSoup
-import datetime
-import os
 
+# 1. 抽出したいWikipediaの「日本の鉄道駅一覧」の子ページ一覧
 BASE_INDEX_URL = "https://ja.wikipedia.org/wiki/日本の鉄道駅一覧"
-SUB_PAGES_ALL = ["あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ",
-                 "さ", "し", "しや-しん", "す", "せ", "そ", "た", "ち", "つ", "て", "と",
-                 "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ",
-                 "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り",
-                 "る", "れ", "ろ", "わ", "を", "ん"]
-
-def get_todays_sub_pages():
-    weekday = datetime.datetime.today().weekday() # 0:月, 1:火 ... 6:日
-    # 46項目を7分割（月〜木は7項目、金〜日は6項目）
-    # 動作テストのため、曜日にかかわらず強制的に「2:水曜日」に設定します
-    # weekday = 2
-    chunks = [
-        SUB_PAGES_ALL[0:7],   # 月
-        SUB_PAGES_ALL[7:14],  # 火
-        SUB_PAGES_ALL[14:21], # 水
-        SUB_PAGES_ALL[21:28], # 木
-        SUB_PAGES_ALL[28:34], # 金
-        SUB_PAGES_ALL[34:40], # 土
-        SUB_PAGES_ALL[40:46]  # 日
-    ]
-    return chunks[weekday], weekday
+SUB_PAGES = ["あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ",
+             "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と",
+             "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ",
+             "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り",
+             "る", "れ", "ろ", "わ", "を", "ん", "う-え", "く-け", "し-しも",
+             "しや-しん", "す-そ", "ち-て", "ふ-ほ", "む-も", "や-わ行"]
 
 def fetch_station_details(url):
     details = {"pref": "", "companies": [], "lines": [], "open_year": ""}
     try:
         res = requests.get(url, headers={"User-Agent": "EkiDleBot/1.0"}, timeout=10)
         soup = BeautifulSoup(res.text, "html.parser")
-        
+
+        def extract_advanced_station_data(soup):
+    # 抽出データの初期値となる辞書を定義
+    data = {
+        "platforms": 0,           # 面数（最大値）
+        "tracks": 0,              # 線路数（最大値）
+        "min_km": float('inf'),   # キロ程（最小値）
+        "open_month": None,       # 開業月
+        "open_day": None,         # 開業日
+        "max_passengers": 0,      # 乗車・乗降人員（最大値）
+        "municipality": "",       # 所在市区町村（最初のものを採用）
+        "companies": [],          # 所属事業者名
+        "lines": []               # 所属路線名
+    }
+
+    # ページ内のすべてのinfobox（右側の基本情報表）をループ処理
+    infoboxes = soup.find_all('table', class_='infobox')
+
+    for infobox in infoboxes:
+        for tr in infobox.find_all('tr'):
+            th = tr.find('th')
+            td = tr.find('td')
+            if not th or not td:
+                continue
+
+            header = th.get_text(strip=True)
+            # td内の改行や<br>を空白に置き換えてテキストを取得
+            value = td.get_text(" ", strip=True)
+
+            # ① 所在市区町村 (最初のものを採用。複数区町村や「大町市」等にも対応)
+            if header == '所在地' and not data["municipality"]:
+                # Wikipediaのリンク(aタグ)を優先的に探索（最も正確に市区町村が独立しているため）
+                for a in td.find_all('a'):
+                    txt = a.get_text(strip=True)
+                    if txt.endswith(('市', '区', '町', '村')):
+                        # 前に郡がある場合は結合する（例: 余市郡 + 余市町）
+                        prev = a.find_previous_sibling('a')
+                        if prev and prev.get_text(strip=True).endswith('郡'):
+                            data["municipality"] = prev.get_text(strip=True) + txt
+                        else:
+                            data["municipality"] = txt
+                        break
+
+                # リンクから見つからなかった場合の文字解析フォールバック
+                if not data["municipality"]:
+                    loc = value.split('・')[0].split(' ')[0] # 新宿駅などの「・」や空白の最初を取る
+                    loc = re.sub(r'^(?:東京都|北海道|(?:京都|大阪)府|.{2,3}県)', '', loc) # 都道府県を排除
+
+                    # 郡（任意）+ 市区町村を正規表現で抽出
+                    m = re.match(r'^((?:.+?郡)?)(.+?(?:市|区|町|村))', loc)
+                    if m:
+                        res = m.group(1) + m.group(2)
+                        # 四日市市、廿日市市など、末尾の文字が連続・重複する場合の補正
+                        if loc.startswith(res + res[-1]):
+                            res += res[-1]
+                        # 大町市など、途中に「町」を含み、末尾が「市」の補正
+                        if loc.startswith(res + '市'):
+                            res += '市'
+                        data["municipality"] = res
+
+            # ② ホーム面数・線路数 (最大値採用)
+            elif 'ホーム' in header:
+                matches = re.findall(r'(\d+)\s*面\s*(\d+)\s*線', value)
+                for m, s in matches:
+                    data["platforms"] = max(data["platforms"], int(m))
+                    data["tracks"] = max(data["tracks"], int(s))
+
+            # ③ キロ程 (最小値採用)
+            elif 'キロ程' in header:
+                matches = re.findall(r'(\d+(?:\.\d+)?)', value)
+                for km_str in matches:
+                    data["min_km"] = min(data["min_km"], float(km_str))
+
+            # ④ 開業月・開業日
+            elif '開業年月日' in header:
+                if data["open_month"] is None:
+                    m = re.search(r'(\d+)月(\d+)日', value)
+                    if m:
+                        data["open_month"] = int(m.group(1))
+                        data["open_day"] = int(m.group(2))
+
+            # ⑤ 乗車人員・乗降人員 (最大値採用、注釈や年は排除)
+            elif '乗車人員' in header or '乗降人員' in header:
+                # カンマを取り除き、純粋に「数字 + 人」の部分だけを抽出
+                clean_val = value.replace(',', '')
+                matches = re.findall(r'(\d+)\s*人', clean_val)
+                for num_str in matches:
+                    data["max_passengers"] = max(data["max_passengers"], int(num_str))
+
+            # ⑥ 所属事業者名 (「（）」の中身は排除)
+            elif '所属事業者' in header:
+                clean_val = re.sub(r'（[^）]*）|\([^)]*\)|\[[^\]]*\]', '', value)
+                # 空白や「・」で分割してリスト化
+                comps = [c.strip() for c in re.split(r'\s|・', clean_val) if c.strip()]
+                for c in comps:
+                    if c and c not in data["companies"]:
+                        data["companies"].append(c)
+
+            # ⑦ 所属路線名 (注釈[]の中身を排除)
+            elif '所属路線' in header or header == '路線':
+                for a in td.find_all('a'):
+                    line_name = a.get_text(strip=True)
+                    line_name = re.sub(r'\[[^\]]*\]', '', line_name) # 注釈を排除
+                    if line_name and line_name.endswith('線') and line_name not in data["lines"]:
+                        data["lines"].append(line_name)
+
+    # 最小キロ程が初期値のまま（見つからなかった）場合は None に戻す
+    if data["min_km"] == float('inf'):
+        data["min_km"] = None
+
+    return data
+
         for box in soup.find_all("table", class_="infobox"):
             for row in box.find_all("tr"):
                 th = row.find("th")
                 td = row.find("td")
                 if not th or not td: continue
-                
+
                 th_text = th.get_text(strip=True)
                 td_text = re.sub(r'\[.*?\]', '', td.get_text(separator=" ", strip=True))
-                
+
                 if "所在地" in th_text and not details["pref"]:
                     td_text_clean = td_text.replace(" ", "")
                     m = re.match(r'(東京都|北海道|(?:京都|大阪)府|.{2,3}県)', td_text_clean)
                     if m:
                         details["pref"] = m.group(1)
-                
+
                 elif "事業者" in th_text:
                     # 箇条書きでない場合も考慮し、改行や中黒で分割してリスト化する
                     td_html = str(td).replace("<br/>", "・").replace("<br>", "・")
                     td_soup = BeautifulSoup(td_html, "html.parser")
                     comps = [re.sub(r'\[.*?\]', '', li.get_text(strip=True)) for li in td_soup.find_all("li")]
-                    if not comps: 
+                    if not comps:
                         comps = td_soup.get_text(separator="・").split("・")
-                    
+
                     for c in comps:
                         # カッコの中身（通称）を消去して正式名称だけを抽出
                         c_clean = re.sub(r'（.*?）|\(.*?\)', '', c).strip()
                         if c_clean and c_clean not in details["companies"]:
                             details["companies"].append(c_clean)
-                
+
                 elif "路線" in th_text and "数" not in th_text:
                     lines = [a.get_text(strip=True) for a in td.find_all("a") if "Template:" not in a.get("href", "")]
                     if not lines: lines = [re.sub(r'[■●□○]', '', td_text).strip()]
                     for l in lines:
                         if l and l not in details["lines"]:
                             details["lines"].append(l)
-                
+
                 elif "開業年月日" in th_text:
                     m_year = re.search(r'(\d{4})年', td_text)
-                    if m_year: 
+                    if m_year:
                         year_val = int(m_year.group(1))
                         # 抽出した年が今までのものより小さければ（古ければ）更新する
                         if not details["open_year"] or year_val < int(details["open_year"]):
                             details["open_year"] = str(year_val)
-                            
+
     except Exception:
         pass
     return details
@@ -91,10 +186,6 @@ def extract_and_count_stations():
     }
 
     print("Wikipediaからの駅名抽出（全文字数・例外対応版）を開始します...")
-
-    SUB_PAGES, weekday_num = get_todays_sub_pages()
-    weekdays_str = ["月", "火", "水", "木", "金", "土", "日"]
-    print(f"本日は【{weekdays_str[weekday_num]}曜日】の割り当て分（{SUB_PAGES[0]}〜{SUB_PAGES[-1]}）を抽出します。")
 
     for page in SUB_PAGES:
         url = f"{BASE_INDEX_URL}_{page}"
@@ -127,30 +218,24 @@ def extract_and_count_stations():
                 display_name = kanji_raw.strip()
 
                 # 【処理2】読み（ひらがな）の抽出
-                yomi = ""
-                next_node = a_tag.next_sibling
-                
-                # <a>タグ直後のテキスト（ヨミガナ部分）から、一番外側のカッコの中身を取り出す
-                if next_node and hasattr(next_node, 'strip'):
-                    # 貪欲マッチ (.*) を使うことで、入れ子のカッコを破壊せずにひとまとめに取得
-                    match = re.search(r"^（(.*)）", next_node.strip())
-                    
-                    if match:
-                        inner_text = match.group(1)
-                        
-                        # ーーーこれ以降は、今までの専用処理を完全に維持ーーー
-                        m2 = re.match(r"^(.*?)(えき|ていりゅうじょう|しんごうじょう)(?:・|$)", inner_text)
-                        if m2:
-                            yomi_raw = m2.group(1)
-                        else:
-                            # 例外的に「えき」が付かない場合
-                            yomi_raw = inner_text.split("・")[0]
+                text = li.get_text()
+                match = re.search(r"（(.+?)）", text) # カッコの中身を抽出
 
-                        # 記号やスペース、アルファベット等をすべて排除し、純粋な「かな」にする
-                        yomi = re.sub(r"[^ぁ-んァ-ヶー]", "", yomi_raw)
+                if match:
+                    inner_text = match.group(1)
+                    # 「えき」「ていりゅうじょう」等の直前までを駅のヨミとして切り出す
+                    # これにより「栂・美木多駅（とが・みきたえき）」等から路線名部分を除外する
+                    m2 = re.match(r"^(.*?)(えき|ていりゅうじょう|しんごうじょう)(?:・|$)", inner_text)
+                    if m2:
+                        yomi_raw = m2.group(1)
+                    else:
+                        # 例外的に「えき」が付かない場合
+                        yomi_raw = inner_text.split("・")[0]
 
-                if not yomi:
-                    # みなとみらい駅など、カッコ自体がない場合のバックアップ
+                    # 記号（・）やスペースをすべて排除し、純粋な「かな」にする
+                    yomi = re.sub(r"[^ぁ-んァ-ヶー]", "", yomi_raw)
+                else:
+                    # みなとみらい駅など、カッコ自体がない場合は表示名から記号を抜く
                     yomi = re.sub(r"[^ぁ-んァ-ヶー]", "", display_name)
 
                 if not yomi:
@@ -177,22 +262,9 @@ def extract_and_count_stations():
 
         time.sleep(2.0) # サーバー負担軽減
 
-    # 重複排除と既存データの統合
-    existing_stations = {}
-    if os.path.exists("stations.json"):
-        try:
-            with open("stations.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for item in data:
-                    existing_stations[item["url"]] = item
-        except json.JSONDecodeError:
-            pass
-
-    # 今回取得したデータを上書き・追加
-    for v in stations_list:
-        existing_stations[v["url"]] = v
-
-    result_list = list(existing_stations.values())
+    # 重複排除
+    unique_stations = {v["url"]: v for v in stations_list}.values()
+    result_list = list(unique_stations)
 
     # JSON保存
     with open("stations.json", "w", encoding="utf-8") as f:
