@@ -15,7 +15,7 @@ adminPanel.innerHTML=`
 <button id="admin-full-wipe-btn" style="background-color:#b71c1c; color:#fff; border:1px solid #b71c1c; margin-left:5px;">データ完全消去</button>
 
 <div style="margin-top:10px; padding:10px; background:#fff3e0; border:1px solid #ff9800; border-radius:4px;">
-<b>【全データ一覧＆直接編集】</b><br>
+<span style="black";><b>【全データ一覧＆直接編集】</b></span><br>
 <button id="adm-load-all-btn" style="margin-bottom:10px; padding:4px 8px;">全データを読み込んで表示</button>
 <div id="adm-all-data-container" style="max-height:400px; overflow-y:auto; background:#fff; padding:5px; border:1px solid #ccc; font-size:12px; color:#333;">ここにデータが表示されます</div>
 </div>
