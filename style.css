@@ -121,3 +121,28 @@ body.event-tanabata{background-color:#0d1b2a;color:#fff9c4;}
 body.event-tanabata .tile{border-color:#415a77;}
 body.event-tanabata .key{background-color:#1b263b;color:#e0e1dd;}
 body.event-aprilfool h1{transform:rotate(180deg);transition:transform 0.5s;}
+/* 元旦・お正月用のテーマカラー */
+body.event-newyear {
+  background-color: #fffaf0; /* ほんのり温かみのある白 */
+  color: #b71c1c; /* おめでたい深い赤 */
+}
+body.event-newyear .tile {
+  border-color: #e53935;
+}
+body.event-newyear .key {
+  background-color: #ffcdd2;
+  color: #b71c1c;
+}
+
+/* 大晦日用のテーマカラー */
+body.event-nye {
+  background-color: #1a237e; /* 深い夜空のネイビー */
+  color: #fff9c4; /* 星や灯りのような淡い黄色 */
+}
+body.event-nye .tile {
+  border-color: #5c6bc0;
+}
+body.event-nye .key {
+  background-color: #283593;
+  color: #fff9c4;
+}
