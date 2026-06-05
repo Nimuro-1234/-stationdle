@@ -43,6 +43,7 @@ adminPanel.innerHTML=`
 <option value="christmas">クリスマス（❄️＆色）</option>
 <option value="nye">大晦日（🔔）</option>
 </select>
+<input type="number" id="admin-site-anni-year" value="1" style="width:40px; margin-left:5px;" title="サイト周年の数値(n)">
 <button id="admin-event-btn">演出テスト</button>
 <button id="admin-user-anni-btn" style="background:#e8f5e9; border:1px solid #4caf50; margin-left:10px;">個人の周年をテスト(初回日を1年前の今日にする)</button>
 </div>
@@ -102,10 +103,18 @@ document.getElementById('admin-stats-wipe-btn').addEventListener('click',()=>{
 if(confirm('全成績データを初期化します。よろしいですか？')){localStorage.removeItem('ekiPuzzleStatsV2');location.reload();}
 });
 
-// 行事日テスト
-document.getElementById('admin-event-btn').addEventListener('click',()=>{
-const ev=document.getElementById('admin-event-select').value;
-if(window.triggerEventEffect) window.triggerEventEffect(ev);
+// 行事日テスト（管理者画面からの演出起動）
+document.getElementById('admin-event-btn').addEventListener('click', () => {
+  const ev = document.getElementById('admin-event-select').value;
+  // 入力された周年の数値(n)を取得する
+  const nYear = document.getElementById('admin-site-anni-year').value;
+  
+  // もしサイト周年のテストなら、その数値をブラウザの一時記憶（sessionStorage）に保存しておく
+  if (ev === "site_anniversary") {
+    sessionStorage.setItem("debug_site_anni_year", nYear);
+  }
+  
+  if (window.triggerEventEffect) window.triggerEventEffect(ev);
 });
 
 // 個人の周年テスト
