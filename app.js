@@ -170,23 +170,29 @@ document.getElementById("share-btn").addEventListener("click",()=>shareResult("t
 document.getElementById("line-btn").addEventListener("click",()=>shareResult("line"));
 document.getElementById("fb-btn").addEventListener("click",()=>shareResult("facebook"));
 document.getElementById("copy-btn").addEventListener("click",()=>shareResult("copy"));
+// 結果画面の「×（閉じる）」ボタンが押されたときの処理
 document.getElementById("close-modal-btn").addEventListener("click",()=>{
+    // 結果画面を非表示にする
+    document.getElementById("result-modal").style.display="none";
+});
 // 【メモ】データのバックアップ（コード発行）ボタンを押したときの動き
 document.getElementById("export-data-btn").addEventListener("click", (e) => {
-  e.preventDefault(); // リンクのデフォルト動作（上へジャンプ）を無効化
-  exportUserData();
+    // リンクのデフォルト動作（画面の一番上へジャンプしてしまう挙動）を無効化
+    e.preventDefault(); 
+    // データ出力用の関数を呼び出し、クリップボードにコピーさせる
+    exportUserData();
 });
-
 // 【メモ】データの復活（コード入力）ボタンを押したときの動き
 document.getElementById("import-data-btn").addEventListener("click", (e) => {
-  e.preventDefault(); // リンクのデフォルト動作（上へジャンプ）を無効化
-  const code = prompt("控えておいた「引き継ぎコード」をここに貼り付けてください：");
-  
-  if (code) {
-    importUserData(code);
-  }
-});
-document.getElementById("result-modal").style.display="none";
+    // リンクのデフォルト動作を無効化
+    e.preventDefault(); 
+    // プレイヤーに引き継ぎコードの入力を促すダイアログを表示
+    const code = prompt("控えておいた「引き継ぎコード」をここに貼り付けてください：");
+    // もしキャンセルされず、何かしらのコードが入力されていれば
+    if (code) {
+        // データ復元用の関数にコードを渡して実行する
+        importUserData(code);
+    }
 });
 //「パレット」ボタンが押されたときに画面全体のテーマカラーを順番に変更する
 const themes=["","theme-dark","theme-sakura","theme-ocean","theme-green","theme-orange","theme-red","theme-blue","theme-purple"];
