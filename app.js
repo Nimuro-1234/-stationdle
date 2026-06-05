@@ -942,7 +942,6 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
 
 // データを1つのテキストにまとめて書き出す（エクスポート）
 function exportUserData() {
-  // ローカルストレージから必要な全データを集める
   const data = {
     stats: localStorage.getItem("ekiPuzzleStatsV2"),
     archive: localStorage.getItem("ekiPuzzleArchiveV1"),
@@ -953,24 +952,23 @@ function exportUserData() {
     cleared: localStorage.getItem("ekiClearedDays"),
     settings: localStorage.getItem("ekiSettings"),
     streak: localStorage.getItem("ekiLoginStreak"),
-    version: localStorage.getItem("ekiSystemVersion") // 【追加】データのバージョン証明書も持ち出す
+    version: localStorage.getItem("ekiSystemVersion"),
+    // 【追加】進行状況のログデータも引き継ぎ対象に含めます
+    log: localStorage.getItem("ekiPuzzleStateV1_Log")
   };
   
-  // JSONを文字列にし、日本語が文字化けしないようエンコード後、Base64（暗号風）に変換する
   const code = btoa(encodeURIComponent(JSON.stringify(data)));
   
-  // 出来上がった文字列をクリップボードにコピーする
-  navigator.clipboard.writeText(code).then(() => alert("引き継ぎコードをコピーしました！"));
+  navigator.clipboard.writeText(code).then(() => {
+    alert("引き継ぎコードをクリップボードにコピーしました！\n\n※大切なデータですので、ブラウザの不具合に備えて、念のためメモ帳アプリやメールなどに貼り付けて別で控えておくことを強くおすすめします。");
+  });
 }
-
 
 // テキストからデータを復元する（インポート）
 function importUserData(code) {
   try {
-    // Base64をデコードし、日本語を復元してからJSONオブジェクトに戻す
     const json = JSON.parse(decodeURIComponent(atob(code)));
     
-    // データが存在するものだけローカルストレージに上書きしていく
     if(json.stats) localStorage.setItem("ekiPuzzleStatsV2", json.stats);
     if(json.archive) localStorage.setItem("ekiPuzzleArchiveV1", json.archive);
     if(json.zukan) localStorage.setItem("ekiZukanData", json.zukan);
@@ -980,14 +978,13 @@ function importUserData(code) {
     if(json.cleared) localStorage.setItem("ekiClearedDays", json.cleared);
     if(json.settings) localStorage.setItem("ekiSettings", json.settings);
     if(json.streak) localStorage.setItem("ekiLoginStreak", json.streak);
-    if(json.version) localStorage.setItem("ekiSystemVersion", json.version); // 【追加】バージョン証明書も上書きする
+    if(json.version) localStorage.setItem("ekiSystemVersion", json.version); 
+    // 【追加】インポート側でもログデータを復元できるようにします
+    if(json.log) localStorage.setItem("ekiPuzzleStateV1_Log", json.log);
     
     alert("データを復元しました。再読み込みします。");
-    
-    // ページを再読み込みして、復元したデータを直ちに画面に反映させる
     location.reload();
   } catch(e) { 
-    // 壊れたコードが入力された場合のエラー処理
     alert("無効なコードです。"); 
   }
 }
