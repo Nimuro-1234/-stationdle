@@ -862,17 +862,16 @@ if(ev==="aprilfool"){
       document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
       bMax.classList.add("active"); 
       isAprilFoolMode=true; 
-      isPlayingRandom=false; // 【修正】ランダムフラグを確実に解除する
+      isPlayingRandom=false;
       currentMode=mLen; rowLength=mLen; maxGuesses=4;
       
       const gb=document.getElementById("game-board"); gb.style.setProperty("--row-length",mLen);
       const afs=document.createElement("style"); afs.id="af-style";
       afs.innerHTML=".event-aprilfool #game-board{display:block!important;width:100%!important;max-width:100vw!important;overflow-x:auto!important;padding-bottom:20px!important;box-sizing:border-box!important;}.event-aprilfool .board-row{display:grid!important;grid-template-columns:repeat("+mLen+",60px)!important;gap:5px!important;margin-bottom:5px!important;width:max-content!important;margin-left:auto!important;margin-right:auto!important;padding:0 10px!important;}.event-aprilfool .tile{width:60px!important;height:60px!important;font-size:24px!important;}";
       document.head.appendChild(afs);
-      
+
+      //エイプリルフール限定モードのデータ初期化
       if(!userStats[mLen])userStats[mLen]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
-      
-      // エイプリルフールのセーブデータ枠を、最新の形式で安全に初期化する
       if(!savedState[mLen]) {
         savedState[mLen]={guesses:[], guessTimes:[], startTime:null, endTime:null, usedHint:false, isOver:false, isWin:false};
       } else {
@@ -886,7 +885,8 @@ if(ev==="aprilfool"){
     document.querySelectorAll(".mode-btn:not(#mode-"+mLen+")").forEach(b=>{
       b.addEventListener("click",()=>{ isAprilFoolMode=false; const old=document.getElementById("af-style"); if(old)old.remove(); });
     });
-    // 【変更】エイプリルフールのポップアップを順番待ち列に入れる
+
+    // 順番待ちポップアップ（エイプリルフール）
     eventPopupQueue.push(() => {
       const div=document.createElement("div");
       div.style.position="fixed";div.style.top="50%";div.style.left="50%";div.style.transform="translate(-50%,-50%)";
@@ -897,7 +897,7 @@ if(ev==="aprilfool"){
       document.body.appendChild(div);
       document.getElementById("close-af-btn").addEventListener("click",()=>{
         div.remove();
-        showNextEventPopup(); // ★閉じた後に、次のポップアップを呼ぶ
+        showNextEventPopup(); // ★閉じた後に次を呼ぶ
       });
     });
   }
