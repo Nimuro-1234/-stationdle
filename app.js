@@ -1002,6 +1002,7 @@ if (meta.firstPlayDate) {
           showNextEventPopup(); // ★閉じた後に、次のポップアップを呼ぶ
         });
       });
+    }
     // ユーザー記念日用の紙吹雪をセット
     if(ev === "") ev = "anniversary";
   }
