@@ -254,11 +254,24 @@ if (ekiSettings.hardMode) {
 updateHelpContent(); // 起動時に説明文を現在の設定に合わせる
 
 hardSwitch.addEventListener("change", (e) => {
+  let st = savedState[isPlayingRandom ? "random" : currentMode];
+
+  // プレイ途中（1手以上入力済み）に「通常→ハード」へ変更しようとした場合はブロック
+  if (e.target.checked && st && st.guesses && st.guesses.length > 0) {
+    e.target.checked = false; // スイッチを強制的にオフに戻す
+    showMessage("プレイ開始後はハードモードに変更できません");
+    return;
+  }
+
+  // ハード→通常への変更はいつでも許可し、プレイ中のデータにも反映させる
   ekiSettings.hardMode = e.target.checked;
+  if (!e.target.checked && st && st.guesses && st.guesses.length > 0) {
+     st.isHardMode = false;
+     if(!isPlayingRandom) saveGameState();
+  }
+
   localStorage.setItem("ekiSettings", JSON.stringify(ekiSettings));
-  
-  updateHelpContent(); // スイッチ切り替え時に説明文をリアルタイム変更
-  restoreBoard();      // 難易度が変わった瞬間に、その難易度で保存されていた今日のプレイ状況へ即座に描き直す
+  updateHelpContent();
 });
 //最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
 selectTodayStation(); restoreBoard(); checkSpecialEvent();
@@ -288,7 +301,8 @@ function loadStats(){
 //今回のゲーム結果をこれまでのデータに加算して新しく保存する
 function saveStats(isWin,actualGuesses){
   // ランダムモード中は「random」の枠に集計する
-  let targetMode = isPlayingRandom ? "random" : currentMode;
+  let currentState = savedState[isPlayingRandom ? "random" : currentMode];
+  let targetMode = isPlayingRandom ? "random" : (currentMode + (currentState.isHardMode ? "_hard" : ""));
   let st=userStats[targetMode];
   if(!st) st={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
   if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
@@ -483,14 +497,22 @@ const box=document.getElementById("message-box");
 if(box) box.classList.add("hidden");
 const modal=document.getElementById("result-modal");
 if(modal) modal.style.display="none";
-// 現在の難易度設定（通常またはハード）に合わせた正しいセーブデータのキーを取得します
-let stateKey = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
+let stateKey = isPlayingRandom ? "random" : currentMode;
 let st=savedState[stateKey];
 // セーブデータが存在する場合のみ、過去の回答を盤面に1手ずつ再現して復元します
 if (st && st.guesses) {
   st.guesses.forEach(g=>{ currentGuess=g; submitGuess(true); });
 }
 currentGuess="";
+  // 盤面復元時、既にプレイ中であればそのゲームのハードモード状態にスイッチを合わせる
+  let currentSt = savedState[isPlayingRandom ? "random" : currentMode];
+  if (currentSt && currentSt.guesses && currentSt.guesses.length > 0) {
+    ekiSettings.hardMode = !!currentSt.isHardMode; 
+    const hardSwitch = document.getElementById("hardmode-switch");
+    if(hardSwitch) hardSwitch.checked = ekiSettings.hardMode;
+    localStorage.setItem("ekiSettings", JSON.stringify(ekiSettings));
+    updateHelpContent();
+  }
 }
 
 
@@ -598,8 +620,7 @@ function submitGuess(isRestore=false){
     if (!validateHardMode(currentGuess)) return;
   }
   
-  // 現在の難易度設定に応じて読み書きするデータのキーを切り替える（ランダム時は除く）
-  let stateKey = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
+  let stateKey = isPlayingRandom ? "random" : currentMode;
   let st = savedState[stateKey];
   if(!st) {
     st = {guesses: [], guessTimes: [], startTime: null, endTime: null, usedHint: false, isWin: false, isOver: false};
@@ -610,7 +631,15 @@ function submitGuess(isRestore=false){
   if (!st.guessTimes) st.guessTimes = [];
   if (!st.guesses) st.guesses = [];
 
+  
+  
   if(!isRestore){ 
+    // 1手目を送信した時点で、このゲームをハードモードとして集計するかを確定する
+    if (st.guesses.length === 0) {
+      st.isHardMode = ekiSettings.hardMode;
+    }
+
+    // 回答を配列に保存する
     st.guesses.push(currentGuess); 
     st.guessTimes.push(Date.now());
     
@@ -731,7 +760,7 @@ function validateHardMode(guess) {
   if (gridHistory.length === 0) return true;
   
   // 前回の回答文字列と、それぞれのマスの色情報を取得
-  const key = currentMode + (ekiSettings.hardMode ? "_hard" : "");
+  const key = isPlayingRandom ? "random" : currentMode;
   const lastGuess = savedState[key].guesses[gridHistory.length - 1];
   const lastColors = gridHistory[gridHistory.length - 1];
   
@@ -807,6 +836,7 @@ clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>box.classList.add("hidden"),
 //ゲーム終了時に、正解の駅名、Wikipediaへのリンク、旅行サイトへの広告、過去の戦績グラフをまとめて表示する大きな画面を作る
 function showResultModal(isWin,isRestore){
   // 難易度ごとに戦績グラフや勝率を別々に集計・表示するための切り替え
+  let currentState = savedState[isPlayingRandom ? "random" : currentMode];
   let targetMode = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
   let st = userStats[targetMode];
   if(!st) st = {played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
@@ -890,27 +920,45 @@ grid.innerHTML=gridHTML;
   // ランダムモード中は、日々の勝率や戦績グラフなどの要素を非表示にしてスッキリさせる
     document.getElementById("result-modal").style.display="flex"; // ←元からあるコード
 }
-//結果画面でシェアボタンが押されたとき、文字と絵文字のパズル結果を組み立てて各SNSの投稿画面を開く
+// 結果画面でシェアボタンが押されたとき、文字と絵文字のパズル結果を組み立てて各SNSの投稿画面を開く
 function shareResult(type){
-let lastColors=gridHistory.length>0?gridHistory[gridHistory.length-1]:[];
-let isWin=lastColors.length>0&&lastColors.every(c=>c==="correct");
-let scoreStr=isWin?`${gridHistory.length}/${maxGuesses}`:`X/${maxGuesses}`;
-let currentUrl=window.location.href.split('?')[0];
-let text=`駅ドル ${currentMode}文字モード ${scoreStr}\n\n`;
-text+=gridHistory.map((row,i)=>{
-let r=row.map(c=>colorToEmoji[c]).join("");
-return (isWin&&i===gridHistory.length-1)?r+"💮":r;
-}).join("\n");
-text+=`\n\n#駅ドル\n#駅ドル${currentMode}\n${currentUrl}`;
-if(type==="twitter"){
-let url=`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`; window.open(url,"_blank");
-}else if(type==="line"){
-let url=`https://line.me/R/msg/text/?${encodeURIComponent(text)}`; window.open(url,"_blank");
-}else if(type==="facebook"){
-let url=`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`; window.open(url,"_blank");
-}else if(type==="copy"){
-navigator.clipboard.writeText(text).then(()=>showMessage("クリップボードにコピーしました"));
-}
+  let lastColors=gridHistory.length>0?gridHistory[gridHistory.length-1]:[];
+  let isWin=lastColors.length>0&&lastColors.every(c=>c==="correct");
+  let scoreStr=isWin?`${gridHistory.length}/${maxGuesses}`:`X/${maxGuesses}`;
+  let currentUrl=window.location.href.split('?')[0];
+
+  // ハードモードONのときはタイトルを「駅ドルHard」に変更する
+  let currentState = savedState[isPlayingRandom ? "random" : currentMode];
+  let isHard = !!currentState.isHardMode;
+  let gameTitle = ekiSettings.hardMode ? "駅ドルHard" : "駅ドル";
+  let text=`${gameTitle} ${currentMode}文字モード ${scoreStr}\n\n`;
+
+  text+=gridHistory.map((row,i)=>{
+    let r=row.map(c=>colorToEmoji[c]).join("");
+    return (isWin&&i===gridHistory.length-1)?r+"💮":r;
+  }).join("\n");
+
+  // ハードモードONのときは専用のハッシュタグ（#駅ドルHard と #駅ドルHard[文字数]）を追加する
+  let hashtagStr = `#駅ドル\n`;
+  if (ekiSettings.hardMode) {
+    hashtagStr += `#駅ドルHard\n`;
+  }
+  hashtagStr += `#駅ドル${currentMode}\n`;
+  if (ekiSettings.hardMode) {
+    hashtagStr += `#駅ドルHard${currentMode}\n`;
+  }
+
+  text+=`\n\n${hashtagStr}${currentUrl}`;
+
+  if(type==="twitter"){
+    let url=`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`; window.open(url,"_blank");
+  }else if(type==="line"){
+    let url=`https://line.me/R/msg/text/?${encodeURIComponent(text)}`; window.open(url,"_blank");
+  }else if(type==="facebook"){
+    let url=`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`; window.open(url,"_blank");
+  }else if(type==="copy"){
+    navigator.clipboard.writeText(text).then(()=>showMessage("クリップボードにコピーしました"));
+  }
 }
 // すべての画面準備が整った（DOM構築完了）タイミングで一番最初の初期化関数（initGame）を起動させます
 window.addEventListener("DOMContentLoaded",initGame);
