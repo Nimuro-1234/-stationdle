@@ -23,7 +23,7 @@ def extract_municipality_data(html_text):
     自治体のWikipediaページから、人口や面積などの詳細データを抽出する関数
     """
     soup = BeautifulSoup(html_text, 'html.parser')
-    
+
     data = {
         "region": [],               # 地方
         "prefecture": "",           # 都道府県
@@ -38,14 +38,14 @@ def extract_municipality_data(html_text):
         "first_paragraph": "",      # 冒頭の1段落
         "postal_code": ""           # 所在地の郵便番号
     }
-    
+
     kanji_raw = ""
     yomi_raw = ""
-    
+
     h1 = soup.find('h1', id='firstHeading')
     if h1:
         kanji_raw = re.sub(r'\s*\(.*?\)', '', h1.get_text(strip=True))
-        
+
     infobox = soup.find('table', class_='infobox')
     if infobox:
         th_first = infobox.find('th')
@@ -58,21 +58,21 @@ def extract_municipality_data(html_text):
         for tr in infobox.find_all('tr'):
             th = tr.find('th')
             td = tr.find('td')
-            if not th or not td: 
+            if not th or not td:
                 continue
-            
+
             header = th.get_text(strip=True)
             # 注釈（[1]など）のリンクを完全に排除してからテキスト化
             td_copy = copy.copy(td)
             for sup in td_copy.find_all('sup'):
                 sup.decompose()
             value = td_copy.get_text(" ", strip=True)
-            
+
             if header == '地方':
                 # 変更点1：value.replace(' ', '') を廃止し、区切りのスペースや改行をそのまま活かす
                 # 変更点2：正規表現を「+? (最短一致)」にして、「北陸地方甲信越地方」と繋がるのを防ぐ
                 regions = re.findall(r'[一-龠ぁ-んァ-ヶ]+?地方', value)
-                
+
                 # 重複を排除して配列（リスト）として格納する
                 if regions:
                     data["region"] = list(dict.fromkeys(regions))
@@ -108,7 +108,7 @@ def extract_municipality_data(html_text):
         if match:
             data["muni_type"] = match.group(1)
             data["name_kanji_len"] = len(kanji_raw) - 1
-            
+
     if yomi_raw:
         if yomi_raw.endswith(('まち', 'むら', 'そん')):
             data["name_yomi_len"] = len(yomi_raw) - 2
@@ -205,20 +205,20 @@ def fetch_station_details(url):
         "companies": [],
         "lines": []
     }
-    
+
     try:
         res = requests.get(url, headers={"User-Agent": "EkiDleBot/1.0"}, timeout=10)
         soup = BeautifulSoup(res.text, "html.parser")
-        
+
         infoboxes = soup.find_all('table', class_='infobox')
         for infobox in infoboxes:
             for tr in infobox.find_all('tr'):
                 th = tr.find('th')
                 td = tr.find('td')
-                
+
                 header = ""
                 value_text = ""
-                
+
                 if th and td:
                     header = th.get_text(strip=True)
                     value_text = td.get_text(" ", strip=True)
@@ -229,7 +229,7 @@ def fetch_station_details(url):
                         header = '所在地'
                 else:
                     continue
-                
+
                 # ① 所在地と自治体データの自動取得
                 if header == '所在地':
                     # 1. 駅ページから都道府県を優先取得
@@ -237,19 +237,19 @@ def fetch_station_details(url):
                         m_pref = re.search(r'(東京都|北海道|(?:京都|大阪)府|[一-龠]{2,3}県)', value_text)
                         if m_pref:
                             data["pref"] = m_pref.group(1)
-                            
+
                     # 2. 所在地内のリンクから市区町村と行政区を抽出
                     if not data.get("municipality") or not data.get("ward"):
                         for a in td.find_all('a'):
                             txt = a.get_text(strip=True)
                             href = a.get('href')
-                            
+
                             # 修正箇所1：startswithではなく、inを使って柔軟に判定
                             if not href or '/wiki/' not in href:
                                 continue
-                                
+
                             is_tokyo_ku = txt.endswith('区') and (data["pref"] == '東京都' or '東京' in value_text)
-                            
+
                             # 市区町村の特定とURLの確保
                             if txt.endswith(('市', '町', '村')) or is_tokyo_ku:
                                 if not data["municipality"]:
@@ -258,11 +258,11 @@ def fetch_station_details(url):
                                         data["municipality"] = prev.get_text(strip=True) + txt
                                     else:
                                         data["municipality"] = txt
-                                        
+
                                     # 修正箇所2：urljoinを使って安全に絶対URLへ変換
                                     data["muni_url"] = urllib.parse.urljoin("https://ja.wikipedia.org", href)
-                                    
-                            # 政令指定都市の行政区は名前のみ抽出        
+
+                            # 政令指定都市の行政区は名前のみ抽出
                             elif txt.endswith('区'):
                                 if not data["ward"]:
                                     data["ward"] = txt
@@ -289,13 +289,13 @@ def fetch_station_details(url):
                                 municipality_cache[data["muni_url"]] = extract_municipality_data(m_res.text)
                             except Exception:
                                 municipality_cache[data["muni_url"]] = {}
-                        
+
                         muni_data = municipality_cache[data["muni_url"]]
-                        
+
                         # 都道府県が駅ページに無かった場合は自治体データから補完
                         if not data["pref"] and muni_data.get("prefecture"):
                             data["pref"] = muni_data["prefecture"]
-                        
+
                         # 抽出した人口や面積などを駅データに結合
                         data.update(muni_data)
 
@@ -305,13 +305,13 @@ def fetch_station_details(url):
                     for m, s in matches:
                         data["platforms"] = max(data["platforms"], int(m))
                         data["tracks"] = max(data["tracks"], int(s))
-                        
+
                 # ③ キロ程
                 elif 'キロ程' in header:
                     matches = re.findall(r'(\d+(?:\.\d+)?)', value_text)
                     for km_str in matches:
                         data["min_km"] = min(data["min_km"], float(km_str))
-                        
+
                 # ④ 開業年月日
                 elif '開業年月日' in header:
                     m_date = re.search(r'(\d{4})年(?:.*?(\d+)月(\d+)日)?', value_text)
@@ -319,14 +319,14 @@ def fetch_station_details(url):
                         data["open_year"] = int(m_date.group(1))
                         if m_date.group(2): data["open_month"] = int(m_date.group(2))
                         if m_date.group(3): data["open_day"] = int(m_date.group(3))
-                        
+
                 # ⑤ 乗降人員
                 elif '乗車人員' in header or '乗降人員' in header:
                     clean_val = value_text.replace(',', '')
                     matches = re.findall(r'(\d+)\s*人', clean_val)
                     for num_str in matches:
                         data["max_passengers"] = max(data["max_passengers"], int(num_str))
-                        
+
                 # ⑥ 所属事業者
                 elif '所属事業者' in header or '事業者' in header:
                     clean_val = re.sub(r'（[^）]*）|\([^)]*\)|\[[^\]]*\]', '', value_text)
@@ -334,7 +334,7 @@ def fetch_station_details(url):
                     for c in comps:
                         if c and c not in data["companies"]:
                             data["companies"].append(c)
-                            
+
                 # ⑦ 所属路線
                 elif '所属路線' in header or header == '路線':
                     for a in td.find_all('a'):
@@ -348,7 +348,7 @@ def fetch_station_details(url):
 
     except Exception:
         pass
-        
+
     return data
 
 def extract_and_count_stations():
