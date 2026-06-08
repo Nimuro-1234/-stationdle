@@ -700,7 +700,7 @@ function showResultModal(isWin,isRestore){
   // バナー上のテキストも、抽出した地域名を表示してクリックしたくなるようにアレンジ
   let prText = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode 
     ? `＼ 聖地のある「${safePref}」へ巡礼して指の疲れを癒やす ／` 
-    : `＼ この駅のある${areaKeyword}へ聖地巡礼に行こう！ ／`;
+    : `＼ この駅のある「${areaKeyword}」へ聖地巡礼に行こう！ ／`;
 
   // Yahooと楽天のアフィリエイトURL生成（エンコードの回数は元の仕様を厳密に維持しています）
   let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(searchKw)));
