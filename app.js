@@ -847,10 +847,10 @@ window.triggerEventEffect=(ev)=>{
       siteAnniDiv.style.width = "85%"; siteAnniDiv.style.maxWidth = "350px";
       siteAnniDiv.innerHTML = "<h2 style='color:#d32f2f;margin-top:0;'>🎉 駅ドル "+nYear+"周年記念！ 🎉</h2><p style='font-size:14px;line-height:1.6;'>皆様にご乗車いただき、駅ドルは無事に "+nYear+" 周年を迎えることができました。</p><p style='font-size:14px;line-height:1.6;'>日頃の感謝を込めて、本日は特別なお祭り仕様で運行中です。<br>これからも末永いご愛顧をよろしくお願いいたします！</p><button id='close-site-anni-btn' class='btn' style='background:#d32f2f;color:#fff;margin-top:15px;font-size:16px;'>出発進行！</button>";
       document.body.appendChild(siteAnniDiv);
-      document.getElementById('close-site-anni-btn').addEventListener('click', () => {
-        siteAnniDiv.remove();
-        showNextEventPopup(); // 閉じた後に次のポップアップを呼ぶ
-      });
+      siteAnniDiv.querySelector('button').addEventListener('click', () => {
+      siteAnniDiv.remove();
+      showNextEventPopup(); // 閉じた後に次のポップアップを呼ぶ
+    });
     });
   }
 
@@ -957,22 +957,6 @@ if (m === openDate.getMonth() + 1 && day === openDate.getDate() && d.getFullYear
   ev = "site_anniversary";
   let nYear = d.getFullYear() - openDate.getFullYear();
   sessionStorage.setItem("debug_site_anni_year", nYear);
-  
-  // 【優先度10】サイト周年ポップアップを登録（一番最初に表示）
-  registerEventPopup(10, () => {
-    const siteAnniDiv = document.createElement("div");
-    siteAnniDiv.style.position = "fixed"; siteAnniDiv.style.top = "50%"; siteAnniDiv.style.left = "50%"; siteAnniDiv.style.transform = "translate(-50%,-50%)";
-    siteAnniDiv.style.background = "#fff"; siteAnniDiv.style.border = "4px solid #ff9800"; siteAnniDiv.style.padding = "25px"; siteAnniDiv.style.zIndex = "10000";
-    siteAnniDiv.style.borderRadius = "12px"; siteAnniDiv.style.textAlign = "center"; siteAnniDiv.style.color = "#333"; siteAnniDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
-    siteAnniDiv.style.width = "85%"; siteAnniDiv.style.maxWidth = "350px";
-    siteAnniDiv.innerHTML="<h2 style='color:#ff9800;margin-top:0;'>🎉 サイト公開 "+nYear+" 周年！ 🎉</h2><p style='font-size:14px;line-height:1.6;'>皆様のおかげで、駅ドルは <b>"+nYear+" 周年</b> を迎えました！<br>いつも遊んでいただきありがとうございます。</p><button id='close-site-anni-btn' class='btn' style='background:#ff9800;color:#fff;margin-top:15px;font-size:16px;width:100%;'>閉じる</button>";
-    document.body.appendChild(siteAnniDiv);
-    // サイト周年ポップアップの中にあるボタンを確実に指定する
-    siteAnniDiv.querySelector('button').addEventListener('click', () => {
-      siteAnniDiv.remove();
-      showNextEventPopup(); 
-    });
-  });
 }
 // ユーザー個人の周年記念判定
 const meta = JSON.parse(localStorage.getItem("ekiZukanMeta") || '{}');
@@ -1043,7 +1027,9 @@ if (meta.firstPlayDate) {
 }
 window.triggerEventEffect(ev);
 //キューに溜まったポップアップの表示をスタートする！
-showNextEventPopup();
+// triggerEventEffect内で setTimeout(startEventPopups, 100); が実行されるため、
+// ここで直接 showNextEventPopup() を呼ぶのはやめて startEventPopups() に直します。
+startEventPopups(); 
 };
 
 
