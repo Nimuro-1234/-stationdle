@@ -1,4 +1,5 @@
 //1.共通変数の定義
+const SITE_OPEN_DATE = "2026-06-08";　 // 【設定】サイトを公開した日（周年記念の基準日）
 let stations=[];　　　　　　　//すべての駅データの入れる箱
 let availableStations=[];　　//選択文字数に一致する駅を入れる箱
 let todayStation=null;　　　 //今日の正解駅
@@ -682,11 +683,16 @@ function showResultModal(isWin,isRestore){
   document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
   document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
 
-  // 【追加・変更】検索キーワードを「都道府県＋市区町村（郡抜き）＋区」にする
+  // 【変更】人口や市町村種別を使って検索キーワードを分岐させる
   let safePref = todayStation.pref || "富山県";
-  let searchMuni = (todayStation.municipality || "").replace(/^.+郡/, ""); // 「利根郡みなかみ町」→「みなかみ町」
+  let searchMuni = (todayStation.municipality || "").replace(/^.+郡/, "");
   let searchWard = todayStation.ward || "";
-  let areaKeyword = safePref + " " + searchMuni + searchWard;
+  
+  // 「町」「村」であるか、または人口が3万人未満の駅は「田舎（宿泊施設が少ない）」と判定する
+  let isRural = todayStation.muni_type === "町" || todayStation.muni_type === "村" || todayStation.population < 30000;
+  
+  // 田舎なら「都道府県」、都会なら「都道府県＋市区町村＋区」をキーワードにする（0件ヒット回避）
+  let areaKeyword = isRural ? safePref : (safePref + " " + searchMuni + searchWard);
 
   // エイプリルフール時は都道府県のみ、通常時は先ほど作った市区町村名で検索する
   let searchKw = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode ? safePref : areaKeyword;
@@ -791,7 +797,6 @@ if(!ev)return;
 document.body.classList.add("event-"+ev);
 
 //サイト周年記念（ロゴの特別装飾と感謝メッセージ）
-//サイト周年記念（ロゴの特別装飾と感謝メッセージ）
 if(ev === "site_anniversary"){
   // 管理者パネルで設定した数値を取得する（通常は1）
   let nYear = sessionStorage.getItem("debug_site_anni_year") || 1; 
@@ -892,6 +897,16 @@ else if(m===10&&day===14)ev="railway";
 else if(m===10&&day===31)ev="halloween";
 else if(m===12&&(day===24||day===25))ev="christmas";
 else if(m===12&&day===31)ev="nye";
+
+// サイト周年の自動判定
+const openDate = new Date(SITE_OPEN_DATE);
+// 今日が公開日と同じ「月・日」で、かつ年が1年以上進んでいる場合
+if (m === openDate.getMonth() + 1 && day === openDate.getDate() && d.getFullYear() > openDate.getFullYear()) {
+  ev = "site_anniversary";
+  // 何周年かを自動計算して、演出用の変数（sessionStorage）にこっそり保存しておく
+  let nYear = d.getFullYear() - openDate.getFullYear();
+  sessionStorage.setItem("debug_site_anni_year", nYear);
+}
 
 // ユーザー個人の周年記念判定
 const meta = JSON.parse(localStorage.getItem("ekiZukanMeta") || '{}');
