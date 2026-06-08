@@ -234,9 +234,15 @@ selectTodayStation(); restoreBoard(); checkSpecialEvent();
 function loadStats(){
   const saved=localStorage.getItem("ekiPuzzleStatsV2");
   if(saved) userStats=JSON.parse(saved);
-  // ランダムモード専用の集計枠が存在しなければ作成する
-  if(!userStats["random"]){
-    userStats["random"]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
+  
+  // 今日の日付文字列を作成（例: "2026-6-5"）
+  const d = new Date();
+  const todayStr = d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+
+  // ランダム専用の枠がない、または「前回ランダムを遊んだ日」が今日ではない場合、成績を0にリセットする
+  if(!userStats["random"] || userStats["random"].lastDate !== todayStr){
+    userStats["random"]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0], lastDate: todayStr};
+    localStorage.setItem("ekiPuzzleStatsV2",JSON.stringify(userStats));
   }
 }
 //今回のゲーム結果をこれまでのデータに加算して新しく保存する
@@ -674,34 +680,48 @@ function showResultModal(isWin,isRestore){
   if(!st) st = {played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
   if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
   document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
-document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
-let safePref=todayStation.pref||"富山県";
-let searchKw=typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode?safePref:todayStation.kanji;
-let prText=typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode?`＼ 聖地のある「${safePref}」へ巡礼して指の疲れを癒やす ／`:`＼ 正解の駅へ聖地巡礼に行こう！ ／`;
-let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(searchKw)));
-let yahooUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fadc%253D1%2526discsort%253D1%2526kwd%253D${encodedStation}%2526lc%253D1%2526ppc%253D2%2526rc%253D1%2526si%253D6`;
-let yahooImp='<img border="0" width="1" height="1" src="https://www10.a8.net/0.gif?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2" alt="" style="display:none;">';
-let rakutenKeyword=encodeURIComponent(encodeURIComponent(searchKw));
-let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
-let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
-document.getElementById("wiki-link-container").innerHTML=`
-<div style="margin-bottom:12px;">
-<a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
-</div>
-<div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px;">
-<div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">${prText}</div>
-<div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
-<a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:45%;">
-<img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
-</a>
-<a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
-<img src="./R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
-</a>
-</div>
-</div>
-${rakutenImp}
-${yahooImp}
-`;
+  document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
+
+  // 【追加・変更】検索キーワードを「都道府県＋市区町村（郡抜き）＋区」にする
+  let safePref = todayStation.pref || "富山県";
+  let searchMuni = (todayStation.municipality || "").replace(/^.+郡/, ""); // 「利根郡みなかみ町」→「みなかみ町」
+  let searchWard = todayStation.ward || "";
+  let areaKeyword = safePref + " " + searchMuni + searchWard;
+
+  // エイプリルフール時は都道府県のみ、通常時は先ほど作った市区町村名で検索する
+  let searchKw = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode ? safePref : areaKeyword;
+  
+  // バナー上のテキストも、抽出した地域名を表示してクリックしたくなるようにアレンジ
+  let prText = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode 
+    ? `＼ 聖地のある「${safePref}」へ巡礼して指の疲れを癒やす ／` 
+    : `＼ 聖地（${areaKeyword}）へ巡礼に行こう！ ／`;
+
+  // Yahooと楽天のアフィリエイトURL生成（エンコードの回数は元の仕様を厳密に維持しています）
+  let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(searchKw)));
+  let yahooUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fadc%253D1%2526discsort%253D1%2526kwd%253D${encodedStation}%2526lc%253D1%2526ppc%253D2%2526rc%253D1%2526si%253D6`;
+  let yahooImp='<img border="0" width="1" height="1" src="https://www10.a8.net/0.gif?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2" alt="" style="display:none;">';
+  let rakutenKeyword=encodeURIComponent(encodeURIComponent(searchKw));
+  let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
+  let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+
+  document.getElementById("wiki-link-container").innerHTML=`
+  <div style="margin-bottom:12px;">
+  <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
+  </div>
+  <div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px;">
+  <div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">${prText}</div>
+  <div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
+  <a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:45%;">
+  <img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
+  </a>
+  <a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
+  <img src="./R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
+  </a>
+  </div>
+  </div>
+  ${rakutenImp}
+  ${yahooImp}
+  `;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
 document.getElementById("stat-winrate").textContent=winRate;
@@ -919,6 +939,20 @@ if (meta.firstPlayDate) {
         showMessage("特別きっぷ発券！<br>何度でもランダム出題に挑戦できます", "#ff9800", "none", "0 4px 10px rgba(0,0,0,0.3)");
       });
       modeArea.appendChild(btnAnni);
+
+      // 【追加】ユーザー周年の読み込み時ポップアップ
+      const userAnniDiv = document.createElement("div");
+      userAnniDiv.style.position = "fixed"; userAnniDiv.style.top = "50%"; userAnniDiv.style.left = "50%"; userAnniDiv.style.transform = "translate(-50%,-50%)";
+      userAnniDiv.style.background = "#fff"; userAnniDiv.style.border = "4px solid #4caf50"; userAnniDiv.style.padding = "25px"; userAnniDiv.style.zIndex = "10000";
+      userAnniDiv.style.borderRadius = "12px"; userAnniDiv.style.textAlign = "center"; userAnniDiv.style.color = "#333"; userAnniDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
+      userAnniDiv.style.width = "85%"; userAnniDiv.style.maxWidth = "350px";
+      userAnniDiv.innerHTML = "<h2 style='color:#4caf50;margin-top:0;'>🎉 ご乗車 " + years + " 周年！ 🎉</h2>" +
+                              "<p style='font-size:14px;line-height:1.6;'>今日で「駅ドル」の運行に加わっていただいてから、ちょうど <b>" + years + " 年</b> が経ちました！</p>" +
+                              "<p style='font-size:14px;line-height:1.6;'>日頃の感謝を込めまして、何度でも遊べる<b>ランダム出題モード</b>の特別きっぷを発券いたしました。<br>（画面上の金色のボタンから挑戦できます）</p>" +
+                              "<p style='font-size:12px;color:#777;'>※特別きっぷの戦績記録は、本日限定で集計されます。</p>" +
+                              "<button id='close-user-anni-btn' class='btn' style='background:#4caf50;color:#fff;margin-top:15px;font-size:16px;width:100%;'>出発進行！</button>";
+      document.body.appendChild(userAnniDiv);
+      document.getElementById('close-user-anni-btn').addEventListener('click', () => userAnniDiv.remove());
     }
     // ユーザー記念日用の紙吹雪をセット
     if(ev === "") ev = "anniversary";
