@@ -959,9 +959,7 @@ if (m === openDate.getMonth() + 1 && day === openDate.getDate() && d.getFullYear
     siteAnniDiv.style.background = "#fff"; siteAnniDiv.style.border = "4px solid #ff9800"; siteAnniDiv.style.padding = "25px"; siteAnniDiv.style.zIndex = "10000";
     siteAnniDiv.style.borderRadius = "12px"; siteAnniDiv.style.textAlign = "center"; siteAnniDiv.style.color = "#333"; siteAnniDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
     siteAnniDiv.style.width = "85%"; siteAnniDiv.style.maxWidth = "350px";
-<div style="font-size:14px;line-height:1.6;margin-bottom:15px;text-align:left;">
     siteAnniDiv.innerHTML="<h2 style='color:#ff9800;margin-top:0;'>🎉 サイト公開 "+nYear+" 周年！ 🎉</h2><p style='font-size:14px;line-height:1.6;'>皆様のおかげで、駅ドルは <b>"+nYear+" 周年</b> を迎えました！<br>いつも遊んでいただきありがとうございます。</p><button id='close-site-anni-btn' class='btn' style='background:#ff9800;color:#fff;margin-top:15px;font-size:16px;width:100%;'>閉じる</button>";
-</div>
     document.body.appendChild(siteAnniDiv);
     document.getElementById('close-site-anni-btn').addEventListener('click', () => {
       siteAnniDiv.remove();
@@ -1023,9 +1021,7 @@ if (meta.firstPlayDate) {
         userAnniDiv.style.background = "#fff"; userAnniDiv.style.border = "4px solid #4caf50"; userAnniDiv.style.padding = "25px"; userAnniDiv.style.zIndex = "10000";
         userAnniDiv.style.borderRadius = "12px"; userAnniDiv.style.textAlign = "center"; userAnniDiv.style.color = "#333"; userAnniDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.3)";
         userAnniDiv.style.width = "85%"; userAnniDiv.style.maxWidth = "350px";
-<div style="font-size:14px;line-height:1.6;margin-bottom:15px;text-align:left;">
         userAnniDiv.innerHTML="<h2 style='color:#4caf50;margin-top:0;'>🎉 ご乗車 "+years+" 周年！ 🎉</h2><p style='font-size:14px;line-height:1.6;'>今日で「駅ドル」の運行に加わっていただいてから、ちょうど <b>"+years+" 年</b> が経ちました！</p><p style='font-size:14px;line-height:1.6;'>日頃の感謝を込めまして、何度でも遊べる<b>ランダム出題モード</b>の特別きっぷを発券いたしました。<br>（画面上の金色のボタンから挑戦できます）</p><p style='font-size:12px;color:#777;'>※特別きっぷの戦績記録は、本日限定で集計されます。</p><button id='close-user-anni-btn' class='btn' style='background:#4caf50;color:#fff;margin-top:15px;font-size:16px;width:100%;'>出発進行！</button>";
-</div>
         document.body.appendChild(userAnniDiv);
         document.getElementById('close-user-anni-btn').addEventListener('click', () => {
           userAnniDiv.remove();
