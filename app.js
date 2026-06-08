@@ -904,7 +904,8 @@ window.triggerEventEffect=(ev)=>{
         div.style.width="85%";div.style.maxWidth="400px";
         div.innerHTML="<h2 style='color:#e91e63;margin-top:0;'>駅ドルへようこそ！</h2><p style='font-size:16px;line-height:1.6;'>本日はエイプリルフール。</p><p style='font-size:16px;line-height:1.6;'>日本一長い駅名（"+mLen+"文字）を当てる<br><b>超・鬼畜モード</b>が解禁されました！</p><p style='font-size:14px;color:#555;'>画面上の「"+mLen+"文字」ボタンから挑戦できます。<br>横にスクロールして全文字を入力してください。<br>（※回答回数は特別に <b>4回</b> です）</p><button id='close-af-btn' class='btn' style='background:#e91e63;color:#fff;margin-top:15px;font-size:18px;'>挑戦する</button>";
         document.body.appendChild(div);
-        document.getElementById("close-af-btn").addEventListener("click",()=>{
+        // エイプリルフールポップアップの中にあるボタンを確実に指定する
+        div.querySelector('button').addEventListener('click', () => {
           div.remove();
           showNextEventPopup(); // 閉じた後に次のポップアップを呼ぶ
         });
@@ -913,7 +914,12 @@ window.triggerEventEffect=(ev)=>{
   }
 
   if(["newyear","hinamatsuri","kodomo","tanabata","nye","anniversary","site_anniversary","christmas","valentine","halloween","railway"].includes(ev)){
-    c=document.createElement("div");c.id="event-container";document.body.appendChild(c);
+    c=document.createElement("div");c.id="event-container";
+    // エフェクトの枠が画面を覆ってクリックを邪魔しないようにする設定
+    c.style.position="fixed";c.style.top="0";c.style.left="0";c.style.width="100vw";c.style.height="100vh";
+    c.style.pointerEvents="none"; // ★これが「見えない壁」をすり抜ける魔法のコードです
+    c.style.zIndex="99999";
+    document.body.appendChild(c);
     let char=Math.random()>0.5?"❄️":"🎄";
     if(ev==="hinamatsuri"||ev==="anniversary"||ev==="site_anniversary")char="🌸";
     if(ev==="newyear")char="🎍";if(ev==="kodomo")char="🎏";if(ev==="tanabata")char="🎋";if(ev==="nye")char="🔔";
@@ -961,7 +967,8 @@ if (m === openDate.getMonth() + 1 && day === openDate.getDate() && d.getFullYear
     siteAnniDiv.style.width = "85%"; siteAnniDiv.style.maxWidth = "350px";
     siteAnniDiv.innerHTML="<h2 style='color:#ff9800;margin-top:0;'>🎉 サイト公開 "+nYear+" 周年！ 🎉</h2><p style='font-size:14px;line-height:1.6;'>皆様のおかげで、駅ドルは <b>"+nYear+" 周年</b> を迎えました！<br>いつも遊んでいただきありがとうございます。</p><button id='close-site-anni-btn' class='btn' style='background:#ff9800;color:#fff;margin-top:15px;font-size:16px;width:100%;'>閉じる</button>";
     document.body.appendChild(siteAnniDiv);
-    document.getElementById('close-site-anni-btn').addEventListener('click', () => {
+    // サイト周年ポップアップの中にあるボタンを確実に指定する
+    siteAnniDiv.querySelector('button').addEventListener('click', () => {
       siteAnniDiv.remove();
       showNextEventPopup(); 
     });
@@ -1023,7 +1030,8 @@ if (meta.firstPlayDate) {
         userAnniDiv.style.width = "85%"; userAnniDiv.style.maxWidth = "350px";
         userAnniDiv.innerHTML="<h2 style='color:#4caf50;margin-top:0;'>🎉 ご乗車 "+years+" 周年！ 🎉</h2><p style='font-size:14px;line-height:1.6;'>今日で「駅ドル」の運行に加わっていただいてから、ちょうど <b>"+years+" 年</b> が経ちました！</p><p style='font-size:14px;line-height:1.6;'>日頃の感謝を込めまして、何度でも遊べる<b>ランダム出題モード</b>の特別きっぷを発券いたしました。<br>（画面上の金色のボタンから挑戦できます）</p><p style='font-size:12px;color:#777;'>※特別きっぷの戦績記録は、本日限定で集計されます。</p><button id='close-user-anni-btn' class='btn' style='background:#4caf50;color:#fff;margin-top:15px;font-size:16px;width:100%;'>出発進行！</button>";
         document.body.appendChild(userAnniDiv);
-        document.getElementById('close-user-anni-btn').addEventListener('click', () => {
+        // ユーザー周年ポップアップの中にあるボタンを確実に指定する
+        userAnniDiv.querySelector('button').addEventListener('click', () => {
           userAnniDiv.remove();
           showNextEventPopup(); // ★閉じた後に次を呼ぶ
         });
