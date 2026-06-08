@@ -182,7 +182,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    return ["ぬ-の"], weekday
+    return ["お"], weekday
 
     return chunks[weekday], weekday
 
@@ -452,7 +452,8 @@ def extract_and_count_stations():
                 print(f"  詳細データ取得中: {display_name}")
                 details = fetch_station_details(wiki_url)
 
-                details.update({"kanji": display_name, "yomi": yomi, "url": wiki_url})
+                # subPage を追加して、どの五十音ページから見つかったかを記録させる
+                details.update({"kanji": display_name, "yomi": yomi, "url": wiki_url, "subPage": page})
                 stations_list.append(details)
 
                 # サーバー負担軽減のための待機時間を0.5秒に短縮
@@ -474,31 +475,183 @@ def extract_and_count_stations():
         except json.JSONDecodeError:
             pass
 
-    # 今回取得したデータを上書き・追加
+    # =========================================================================
+    # 【究極改修】新駅・廃駅・Wikipediaのページ名変更すら全自動追従するロジック
+    # =========================================================================
+    existing_stations = {}
+    max_id = 0
+
+    # 2024年1月1日を基準とした、今日の日付インデックス（経過日数）を計算
+    base_date = datetime.datetime(2024, 1, 1)
+    today_dt = datetime.datetime.today()
+    current_day_index = (today_dt - base_date).days
+
+    # 【超重要】今日割り当てのページだけでなく、「現在のWikipediaに存在する全ページ」を裏で取得しておく
+    # get_todays_sub_pages() を少し改造するか、ここで全ページリストを取得できるようにします
+    # 今回は安全のため、BACKUP_SUB_PAGES も含めた「今存在するはずの全ページ名」を仮定します
+    # ※もし可能なら、get_todays_sub_pages() が「今日の分」と「全ページ分」を両方返すようにすると最強です。
+    # ここでは、元の get_todays_sub_pages を活かしつつ、通信して全ページを把握するロジックにします。
+    all_wikipedia_sub_pages = []
+    try:
+        res_all = requests.get(BASE_INDEX_URL, headers={"User-Agent": "EkiDleBot/1.0"}, timeout=10)
+        soup_all = BeautifulSoup(res_all.text, "html.parser")
+        for a in soup_all.find_all("a", href=True):
+            href = urllib.parse.unquote(a["href"])
+            if "/wiki/日本の鉄道駅一覧_" in href:
+                p_name = href.split("日本の鉄道駅一覧_")[-1].split("#")[0]
+                if p_name and "?" not in p_name and p_name not in all_wikipedia_sub_pages:
+                    all_wikipedia_sub_pages.append(p_name)
+    except Exception:
+        all_wikipedia_sub_pages = BACKUP_SUB_PAGES
+
+    # 1. 既存の JSON データを読み込む（古いデータの自動アップデート付き）
+    if os.path.exists("stations.json"):
+        try:
+            with open("stations.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+                
+                # ① 最大のIDを特定
+                for item in data:
+                    if item.get("id") is not None and item["id"] > max_id:
+                        max_id = item["id"]
+                
+                # ② データを辞書に登録しつつ、足りないデータを一括で初期化する
+                for item in data:
+                    # まだIDを持たない古い駅にIDを割り振る
+                    if item.get("id") is None:
+                        max_id += 1
+                        item["id"] = max_id
+                    
+                    # ★【ここが追加部分】既存の駅に startDay / endDay が無ければ 0 と 999999 で補完！
+                    if "startDay" not in item:
+                        item["startDay"] = 0
+                    if "endDay" not in item:
+                        item["endDay"] = 999999
+                    
+                    existing_stations[item["url"]] = item
+        except json.JSONDecodeError:
+            pass
+
+    fetched_urls = set(v["url"] for v in stations_list)
+
+    # 2. 今回取得したデータを既存データと統合（新駅検知＆復活駅の完全安全化）
     for v in stations_list:
-        existing_stations[v["url"]] = v
+        url = v["url"]
+        
+        if url in existing_stations:
+            # 既存のデータを取得
+            old_item = existing_stations[url]
+            
+            # --- 【超安全化】もし「過去に完全に廃止された駅」だった場合 ---
+            if old_item.get("endDay", 999999) < current_day_index:
+                
 
+                # すでに「_archived_day」が付いている場合は、そこから前（元のURL）だけを切り出す
+                base_url = url.split("_archived_day")[0]
+
+                # 過去のデータは「過去問の歴史」としてそのまま残すため、URLを変更してゾンビ化を防ぐ
+                #（URLの後ろに履歴用の文字を付けて、過去の遺物としてJSONに残す）
+                archived_url = url + f"_archived_day{old_item['endDay']}"
+                existing_stations[archived_url] = old_item
+                
+                # そして、今回復活した駅は「完全な新しい駅」として、新しいIDを振って新規登録する！
+                max_id += 1
+                v["id"] = max_id
+                v["startDay"] = current_day_index
+                v["endDay"] = 999999
+                v["missingCount"] = 0
+
+                # 登録するURLは、末尾に何もついていない純粋な「base_url」を使う
+                existing_stations[base_url] = v
+                print(f"  [安全復活検知] 過去に廃止された駅 {v['kanji']} を、過去問を汚さないよう新しいID({max_id})で新規登録しました。")
+                continue
+
+            # --- 通常の現役駅のアップデート処理 ---
+            preserved_id = old_item.get("id")
+            preserved_start = old_item.get("startDay", 0)
+            preserved_end = old_item.get("endDay", 999999)
+
+            existing_stations[url] = v
+            existing_stations[url]["id"] = preserved_id
+            existing_stations[url]["startDay"] = preserved_start
+            existing_stations[url]["endDay"] = preserved_end
+            existing_stations[url]["missingCount"] = 0 
+        else:
+            # 純粋な新駅
+            max_id += 1
+            v["id"] = max_id
+            v["startDay"] = current_day_index
+            v["endDay"] = 999999
+            v["missingCount"] = 0
+            existing_stations[url] = v
+            print(f"  [新駅検知] 新しい駅が追加されました (ID: {max_id}): {v['kanji']}")
+
+    # 3. 廃駅の自動検知ロジック（★猶予期間付きサバイバル方式へ超絶強化）
+    if len(stations_list) > 0:
+        for url, item in list(existing_stations.items()):
+            # すでに廃駅処理済みのものはスキップ
+            if item.get("endDay", 999999) < 999999:
+                continue
+            
+            sub_page = item.get("subPage")
+            missing_count = item.get("missingCount", 0)
+            
+            # --- パターンA: ページ名は健在なのに、駅から消えた場合（通常の廃駅） ---
+            # これは言い訳のしようがないので、その日のうちに即座に廃駅にします。
+            if sub_page in SUB_PAGES:
+                if url not in fetched_urls:
+                    item["endDay"] = current_day_index
+                    item["subPage"] = "廃止済"
+                    print(f"  [廃駅検知] Wikipediaから消滅した駅を廃止に設定しました: {item['kanji']}")
+                    continue
+            
+            # --- パターンB: Wikipediaの仕様変更でページ自体が消え、駅が迷子になった場合 ---
+            # すぐに廃駅にはせず、ステータスを「引っ越し調査中」に切り替えて1週間の猶予を与える
+            if sub_page not in all_wikipedia_sub_pages and sub_page != "引っ越し調査中":
+                item["subPage"] = "引っ越し調査中"
+                item["missingCount"] = 1
+                print(f"  [仕様変更検知] ページ消滅につき、駅を引っ越し調査中に設定しました: {item['kanji']}")
+                continue
+                
+            # --- パターンC: 「引っ越し調査中」の駅の、その後の生存確認 ---
+            if sub_page == "引っ越し調査中":
+                # もし今日引っ越し先で見つかっていれば、上の「ステップ2」の処理を通過した時点で
+                # subPageが「しゆ-しん」等に上書きされているため、このパターンCには入ってきません。
+                # ここを通過しているということは、「今日も見つからなかった」という意味になります。
+                if url not in fetched_urls:
+                    missing_count += 1
+                    item["missingCount"] = missing_count
+                    
+                    # 7日間（＝全曜日を1周）どこからも見つからなかったら、本当にこの世から消えたとみなす
+                    if missing_count >= 7:
+                        item["endDay"] = current_day_index
+                        item["subPage"] = "廃止済"
+                        print(f"  [廃駅確定] 1週間どこからも発見されなかったため、廃駅と判定しました: {item['kanji']}")
+
+    # 4. リスト化し、常にID順でソート
     result_list = list(existing_stations.values())
+    result_list.sort(key=lambda x: x["id"])
 
-    # JSON保存
+    # 5. JSONファイルへ書き込み
     with open("stations.json", "w", encoding="utf-8") as f:
         json.dump(result_list, f, ensure_ascii=False, indent=2)
 
-    # ＝＝＝＝＝＝ 文字数ごとの集計 ＝＝＝＝＝＝
+
+    # ＝＝＝＝＝＝ 文字数ごとの集計（既存の処理） ＝＝＝＝＝＝
     length_counts = {}
+    active_count = 0
     for s in result_list:
-        l = len(s["yomi"])
-        length_counts[l] = length_counts.get(l, 0) + 1
+        if s.get("endDay", 999999) == 999999: # 現役の駅だけカウント
+            active_count += 1
+            l = len(s["yomi"])
+            length_counts[l] = length_counts.get(l, 0) + 1
 
     print("\n========================================")
-    print("抽出完了！文字数ごとの駅数内訳：")
-
-    # 1文字から順番に表示
+    print("抽出・同期完了！ 現役駅の文字数内訳：")
     for length in sorted(length_counts.keys()):
         print(f" {length:2}文字の駅名 : {length_counts[length]:4} 駅")
-
     print("----------------------------------------")
-    print(f"👉 総合計 : {len(result_list)} 駅を 'stations.json' に保存しました。")
+    print(f"👉 総データ数 : {len(result_list)} 駅 (うち現役: {active_count} 駅) を 'stations.json' に保存しました。")
     print("========================================")
 
 if __name__ == "__main__":
