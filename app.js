@@ -483,8 +483,13 @@ const box=document.getElementById("message-box");
 if(box) box.classList.add("hidden");
 const modal=document.getElementById("result-modal");
 if(modal) modal.style.display="none";
-let st=savedState[currentMode];
-st.guesses.forEach(g=>{ currentGuess=g; submitGuess(true); });
+// 現在の難易度設定（通常またはハード）に合わせた正しいセーブデータのキーを取得します
+let stateKey = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
+let st=savedState[stateKey];
+// セーブデータが存在する場合のみ、過去の回答を盤面に1手ずつ再現して復元します
+if (st && st.guesses) {
+  st.guesses.forEach(g=>{ currentGuess=g; submitGuess(true); });
+}
 currentGuess="";
 }
 
