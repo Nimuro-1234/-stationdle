@@ -28,9 +28,15 @@ jobs:
       - name: Run extraction script
         run: python extract_stations.py
 
-      - name: Commit and push changes
+      - name: 取得したデータをコミットしてプッシュする
         run: |
+          # 誰が更新したかを記録するためのGitの初期設定です
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
+          # stations.jsonの変更内容を記録対象にします
           git add stations.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update stations.json" && git push)
+          
+          # 変更がある場合のみコミット（保存）し、リポジトリへプッシュ（反映）します
+          git commit -m "Auto-update stations.json" || echo "No changes to commit"
+          git push
