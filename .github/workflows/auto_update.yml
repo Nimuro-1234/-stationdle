@@ -39,4 +39,9 @@ jobs:
           
           # 変更がある場合のみコミット（保存）し、リポジトリへプッシュ（反映）します
           git commit -m "Auto-update stations.json" || echo "No changes to commit"
+
+          # プッシュする前にGitHub側の最新データをダウンロードして合流させる
+          git pull origin development --rebase
+          
+          # 最後にリポジトリへプッシュ（反映）します
           git push
