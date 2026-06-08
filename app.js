@@ -381,7 +381,7 @@ history.push(candidate.yomi);
 if(d===currentDayIndex)todayStation=candidate;
 }
 //デバッグ時、ブラウザのコンソールに答えを出力
-console.log(`※${currentMode}文字の答え:`,todayStation.kanji,todayStation.yomi);
+//console.log(`※${currentMode}文字の答え:`,todayStation.kanji,todayStation.yomi);
 }
 
 
