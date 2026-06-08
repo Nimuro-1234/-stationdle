@@ -170,7 +170,7 @@ def get_todays_sub_pages():
     weekday = datetime.datetime.today().weekday()
 
     # ★動作テストのため、強制的に「6:日曜日」に設定します
-    weekday = 3
+    weekday = 0
 
     # 取得した全ページを曜日ごとに自動で7等分する
     chunks = [[] for _ in range(7)]
@@ -182,7 +182,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    # return ["と"], weekday
+    # return ["しや-しん"], weekday
 
     return chunks[weekday], weekday
 
@@ -337,11 +337,34 @@ def fetch_station_details(url):
 
                 # ⑦ 所属路線
                 elif '所属路線' in header or header == '路線':
-                    for a in td.find_all('a'):
-                        line_name = a.get_text(strip=True)
-                        line_name = re.sub(r'\[[^\]]*\]', '', line_name)
-                        if line_name and line_name.endswith('線') and line_name not in data["lines"]:
-                            data["lines"].append(line_name)
+                    paren_depth = 0
+                    
+                    # td要素内のすべての要素とテキストを上から順番に走査
+                    for node in td.descendants:
+                        
+                        # テキストデータ（文字）の場合、カッコの開閉状態をカウント
+                        if getattr(node, 'name', None) is None:
+                            text_str = str(node)
+                            paren_depth += text_str.count('（') + text_str.count('(')
+                            paren_depth -= text_str.count('）') + text_str.count(')')
+                            paren_depth = max(0, paren_depth) # マイナスにならないようガード
+                        
+                        # aタグの場合
+                        elif getattr(node, 'name', None) == 'a':
+                            # 現在カッコに囲まれた階層（直通路線や列車線の補足など）にいる場合はスキップ
+                            if paren_depth > 0:
+                                continue
+                            
+                            # title属性（Wikipediaの正式な記事名）を取得
+                            line_name = node.get('title')
+                            
+                            # title属性が存在しないリンクはスキップ
+                            if not line_name:
+                                continue
+                                
+                            # 路線名の重複を防ぎつつリストに追加
+                            if line_name not in data["lines"]:
+                                data["lines"].append(line_name)
 
         if data["min_km"] == float('inf'):
             data["min_km"] = None
