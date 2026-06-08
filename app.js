@@ -547,6 +547,10 @@ function submitGuess(isRestore=false){
     savedState[stateKey] = st;
   }
 
+  //古いセーブデータが原因のエラー（クラッシュ）を完全に防ぐ安全装置
+  if (!st.guessTimes) st.guessTimes = [];
+  if (!st.guesses) st.guesses = [];
+
   if(!isRestore){ 
     st.guesses.push(currentGuess); 
     st.guessTimes.push(Date.now());
@@ -833,41 +837,56 @@ if(ev === "site_anniversary"){
   document.getElementById('close-site-anni-btn').addEventListener('click', () => siteAnniDiv.remove());
 }
 
+//エイプリルフール限定モード
 if(ev==="aprilfool"){
-let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);
-let longestPool=stations.filter(s=>s.yomi.length===mLen);
-let afSaved=localStorage.getItem("ekiAF_"+currentDayIndex);
-let longestSt;
-if(afSaved){ longestSt=JSON.parse(afSaved); }else{ longestSt=longestPool[Math.floor(Math.random()*longestPool.length)]; localStorage.setItem("ekiAF_"+currentDayIndex,JSON.stringify(longestSt)); }
-const modeArea=document.querySelector(".mode-btn").parentNode;
-if(modeArea&&!document.getElementById("mode-"+mLen)){
-const bMax=document.createElement("button");
-bMax.id="mode-"+mLen;bMax.className="mode-btn btn";bMax.innerText=mLen+"文字";
-bMax.style.backgroundColor="#e91e63";bMax.style.color="#fff";bMax.style.border="none";
-bMax.addEventListener("click",()=>{
-document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
-bMax.classList.add("active"); isAprilFoolMode=true; currentMode=mLen;rowLength=mLen;maxGuesses=4;
-const gb=document.getElementById("game-board"); gb.style.setProperty("--row-length",mLen);
-const afs=document.createElement("style"); afs.id="af-style";
-afs.innerHTML=".event-aprilfool #game-board{display:block!important;width:100%!important;max-width:100vw!important;overflow-x:auto!important;padding-bottom:20px!important;box-sizing:border-box!important;}.event-aprilfool .board-row{display:grid!important;grid-template-columns:repeat("+mLen+",60px)!important;gap:5px!important;margin-bottom:5px!important;width:max-content!important;margin-left:auto!important;margin-right:auto!important;padding:0 10px!important;}.event-aprilfool .tile{width:60px!important;height:60px!important;font-size:24px!important;}";
-document.head.appendChild(afs);
-if(!userStats[mLen])userStats[mLen]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
-if(!savedState[mLen])savedState[mLen]={board:[],guesses:[],isOver:false,isWin:false,lastDate:""};
-todayStation=longestSt; restoreBoard();
-});
-modeArea.appendChild(bMax);
-document.querySelectorAll(".mode-btn:not(#mode-"+mLen+")").forEach(b=>{
-b.addEventListener("click",()=>{ isAprilFoolMode=false; const old=document.getElementById("af-style"); if(old)old.remove(); });
-});
-const div=document.createElement("div");
-div.style.position="fixed";div.style.top="50%";div.style.left="50%";div.style.transform="translate(-50%,-50%)";
-div.style.background="#fff";div.style.border="4px solid #e91e63";div.style.padding="25px";div.style.zIndex="10000";
-div.style.borderRadius="12px";div.style.textAlign="center";div.style.color="#333";div.style.boxShadow="0 4px 15px rgba(0,0,0,0.3)";
-div.style.width="85%";div.style.maxWidth="400px";
-div.innerHTML="<h2 style='color:#e91e63;margin-top:0;'>駅ドルへようこそ！</h2><p style='font-size:16px;line-height:1.6;'>本日はエイプリルフール。</p><p style='font-size:16px;line-height:1.6;'>日本一長い駅名（"+mLen+"文字）を当てる<br><b>超・鬼畜モード</b>が解禁されました！</p><p style='font-size:14px;color:#555;'>画面上の「"+mLen+"文字」ボタンから挑戦できます。<br>横にスクロールして全文字を入力してください。<br>（※回答回数は特別に <b>4回</b> です）</p><button id='close-af-btn' class='btn' style='background:#e91e63;color:#fff;margin-top:15px;font-size:18px;'>挑戦する</button>";
-document.body.appendChild(div);
-document.getElementById("close-af-btn").addEventListener("click",()=>div.remove());
-}
+  let mLen=stations.reduce((max,s)=>Math.max(max,s.yomi.length),0);
+  let longestPool=stations.filter(s=>s.yomi.length===mLen);
+  let afSaved=localStorage.getItem("ekiAF_"+currentDayIndex);
+  let longestSt;
+  if(afSaved){ longestSt=JSON.parse(afSaved); }else{ longestSt=longestPool[Math.floor(Math.random()*longestPool.length)]; localStorage.setItem("ekiAF_"+currentDayIndex,JSON.stringify(longestSt)); }
+  const modeArea=document.querySelector(".mode-btn").parentNode;
+  if(modeArea&&!document.getElementById("mode-"+mLen)){
+    const bMax=document.createElement("button");
+    bMax.id="mode-"+mLen;bMax.className="mode-btn btn";bMax.innerText=mLen+"文字";
+    bMax.style.backgroundColor="#e91e63";bMax.style.color="#fff";bMax.style.border="none";
+    
+    bMax.addEventListener("click",()=>{
+      document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
+      bMax.classList.add("active"); 
+      isAprilFoolMode=true; 
+      isPlayingRandom=false; // 【修正】ランダムフラグを確実に解除する
+      currentMode=mLen; rowLength=mLen; maxGuesses=4;
+      
+      const gb=document.getElementById("game-board"); gb.style.setProperty("--row-length",mLen);
+      const afs=document.createElement("style"); afs.id="af-style";
+      afs.innerHTML=".event-aprilfool #game-board{display:block!important;width:100%!important;max-width:100vw!important;overflow-x:auto!important;padding-bottom:20px!important;box-sizing:border-box!important;}.event-aprilfool .board-row{display:grid!important;grid-template-columns:repeat("+mLen+",60px)!important;gap:5px!important;margin-bottom:5px!important;width:max-content!important;margin-left:auto!important;margin-right:auto!important;padding:0 10px!important;}.event-aprilfool .tile{width:60px!important;height:60px!important;font-size:24px!important;}";
+      document.head.appendChild(afs);
+      
+      if(!userStats[mLen])userStats[mLen]={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
+      
+      // エイプリルフールのセーブデータ枠を、最新の形式で安全に初期化する
+      if(!savedState[mLen]) {
+        savedState[mLen]={guesses:[], guessTimes:[], startTime:null, endTime:null, usedHint:false, isOver:false, isWin:false};
+      } else {
+        if(!savedState[mLen].guessTimes) savedState[mLen].guessTimes = [];
+      }
+      
+      todayStation=longestSt; restoreBoard();
+    });
+    
+    modeArea.appendChild(bMax);
+    document.querySelectorAll(".mode-btn:not(#mode-"+mLen+")").forEach(b=>{
+      b.addEventListener("click",()=>{ isAprilFoolMode=false; const old=document.getElementById("af-style"); if(old)old.remove(); });
+    });
+    const div=document.createElement("div");
+    div.style.position="fixed";div.style.top="50%";div.style.left="50%";div.style.transform="translate(-50%,-50%)";
+    div.style.background="#fff";div.style.border="4px solid #e91e63";div.style.padding="25px";div.style.zIndex="10000";
+    div.style.borderRadius="12px";div.style.textAlign="center";div.style.color="#333";div.style.boxShadow="0 4px 15px rgba(0,0,0,0.3)";
+    div.style.width="85%";div.style.maxWidth="400px";
+    div.innerHTML="<h2 style='color:#e91e63;margin-top:0;'>駅ドルへようこそ！</h2><p style='font-size:16px;line-height:1.6;'>本日はエイプリルフール。</p><p style='font-size:16px;line-height:1.6;'>日本一長い駅名（"+mLen+"文字）を当てる<br><b>超・鬼畜モード</b>が解禁されました！</p><p style='font-size:14px;color:#555;'>画面上の「"+mLen+"文字」ボタンから挑戦できます。<br>横にスクロールして全文字を入力してください。<br>（※回答回数は特別に <b>4回</b> です）</p><button id='close-af-btn' class='btn' style='background:#e91e63;color:#fff;margin-top:15px;font-size:18px;'>挑戦する</button>";
+    document.body.appendChild(div);
+    document.getElementById("close-af-btn").addEventListener("click",()=>div.remove());
+  }
 }
 if(["newyear","hinamatsuri","kodomo","tanabata","nye","anniversary","site_anniversary","christmas","valentine","halloween","railway"].includes(ev)){
 c=document.createElement("div");c.id="event-container";document.body.appendChild(c);
