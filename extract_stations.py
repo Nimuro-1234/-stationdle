@@ -194,7 +194,7 @@ def get_todays_sub_pages():
     weekday = datetime.datetime.today().weekday()
 
     # ★動作テストのため、強制的に「6:日曜日」に設定します
-    weekday = 2
+    # weekday = 6
 
     # 取得した全ページを曜日ごとに自動で7等分する
     chunks = [[] for _ in range(7)]
@@ -206,7 +206,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    # return ["しや-しん"], weekday
+    return ["い"], weekday
 
     return chunks[weekday], weekday
 
@@ -702,41 +702,42 @@ def extract_and_count_stations():
                     if "endDay" not in item:
                         item["endDay"] = 999999
 
-                    existing_stations[item["url"]] = item
+                    # 【修正1】URLと漢字の合体キーを生成して登録する
+                    base_url = item.get("url", "")
+                    kanji = item.get("kanji", "")
+                    unique_key = item.get("unique_key", f"{base_url}_{kanji}")
+                    item["unique_key"] = unique_key
+                    existing_stations[unique_key] = item
         except json.JSONDecodeError:
             pass
 
-    fetched_urls = set(v["url"] for v in stations_list)
+    # 【修正1の続き】生存確認用のリストも合体キーに変更
+    fetched_keys = set(f"{v['url']}_{v['kanji']}" for v in stations_list)
 
     # 2. 今回取得したデータを既存データと統合（新駅検知＆復活駅の完全安全化）
     for v in stations_list:
-        url = v["url"]
+        # 【修正2】URLではなく合体キーを使用する
+        unique_key = f"{v['url']}_{v['kanji']}"
+        v["unique_key"] = unique_key
 
-        if url in existing_stations:
-            # 既存のデータを取得
-            old_item = existing_stations[url]
+        if unique_key in existing_stations:
+            old_item = existing_stations[unique_key]
 
             # --- 【超安全化】もし「過去に完全に廃止された駅」だった場合 ---
             if old_item.get("endDay", 999999) < current_day_index:
 
+                # 過去のデータは「過去問の歴史」として残すため、キーの末尾に履歴を付けて退避
+                archived_key = unique_key + f"_archived_day{old_item['endDay']}"
+                existing_stations[archived_key] = old_item
 
-                # すでに「_archived_day」が付いている場合は、そこから前（元のURL）だけを切り出す
-                base_url = url.split("_archived_day")[0]
-
-              # 過去のデータは「過去問の歴史」としてそのまま残すため、URLを変更してゾンビ化を防ぐ
-                #（URLの後ろに履歴用の文字を付けて、過去の遺物としてJSONに残す）
-                archived_url = url + f"_archived_day{old_item['endDay']}"
-                existing_stations[archived_url] = old_item
-
-                # そして、今回復活した駅は「完全な新しい駅」として、新しいIDを振って新規登録する！
+                # 今回復活した駅は、新しいIDを振って新規登録する！
                 max_id += 1
                 v["id"] = max_id
                 v["startDay"] = current_day_index
                 v["endDay"] = 999999
                 v["missingCount"] = 0
 
-                # 登録するURLは、末尾に何もついていない純粋な「base_url」を使う
-                existing_stations[base_url] = v
+                existing_stations[unique_key] = v
                 print(f"  [安全復活検知] 過去に廃止された駅 {v['kanji']} を、過去問を汚さないよう新しいID({max_id})で新規登録しました。")
                 continue
 
@@ -745,28 +746,26 @@ def extract_and_count_stations():
             preserved_start = old_item.get("startDay", 0)
             preserved_end = old_item.get("endDay", 999999)
 
-            # 【究極安全化】もし「読みがな(文字数)」が変更されていたら、過去のプールを壊さないよう別駅として世代交代させる
+            # 【究極安全化】もし「読みがな(文字数)」が変更されていたら別駅として世代交代させる
             if old_item.get("yomi") != v["yomi"]:
-                # 古いデータを「今日で廃止」としてアーカイブ化
-                archived_url = url + f"_archived_yomi{current_day_index}"
+                archived_key = unique_key + f"_archived_yomi{current_day_index}"
                 old_item["endDay"] = current_day_index
-                existing_stations[archived_url] = old_item
+                existing_stations[archived_key] = old_item
                 
-                # 新しい読みがなのデータを、新しいIDで今日からの新駅として登録
                 max_id += 1
                 v["id"] = max_id
                 v["startDay"] = current_day_index
                 v["endDay"] = 999999
                 v["missingCount"] = 0
-                existing_stations[url] = v
+                existing_stations[unique_key] = v
                 print(f"  [読みがな変更検知] {v['kanji']} の読みが変更されたため、新ID({max_id})で世代交代しました。({old_item.get('yomi')} -> {v['yomi']})")
                 continue
 
-            existing_stations[url] = v
-            existing_stations[url]["id"] = preserved_id
-            existing_stations[url]["startDay"] = preserved_start
-            existing_stations[url]["endDay"] = preserved_end
-            existing_stations[url]["missingCount"] = 0
+            existing_stations[unique_key] = v
+            existing_stations[unique_key]["id"] = preserved_id
+            existing_stations[unique_key]["startDay"] = preserved_start
+            existing_stations[unique_key]["endDay"] = preserved_end
+            existing_stations[unique_key]["missingCount"] = 0
         else:
             # 純粋な新駅
             max_id += 1
@@ -774,12 +773,13 @@ def extract_and_count_stations():
             v["startDay"] = current_day_index
             v["endDay"] = 999999
             v["missingCount"] = 0
-            existing_stations[url] = v
+            existing_stations[unique_key] = v
             print(f"  [新駅検知] 新しい駅が追加されました (ID: {max_id}): {v['kanji']}")
 
     # 3. 廃駅の自動検知ロジック（★猶予期間付きサバイバル方式へ超絶強化）
     if len(stations_list) > 0:
-        for url, item in list(existing_stations.items()):
+        # 【修正3】ループの変数を unique_key に変更
+        for unique_key, item in list(existing_stations.items()):
             # すでに廃駅処理済みのものはスキップ
             if item.get("endDay", 999999) < 999999:
                 continue
@@ -790,14 +790,14 @@ def extract_and_count_stations():
             # --- パターンA: ページ名は健在なのに、駅から消えた場合（通常の廃駅） ---
             # これは言い訳のしようがないので、その日のうちに即座に廃駅にします。
             if sub_page in SUB_PAGES:
-                if url not in fetched_urls:
+                # 【修正3】fetched_keys で判定する
+                if unique_key not in fetched_keys:
                     item["endDay"] = current_day_index
                     item["subPage"] = "廃止済"
                     print(f"  [廃駅検知] Wikipediaから消滅した駅を廃止に設定しました: {item['kanji']}")
                     continue
 
             # --- パターンB: Wikipediaの仕様変更でページ自体が消え、駅が迷子になった場合 ---
-            # すぐに廃駅にはせず、ステータスを「引っ越し調査中」に切り替えて1週間の猶予を与える
             if sub_page not in all_wikipedia_sub_pages and sub_page != "引っ越し調査中":
                 item["subPage"] = "引っ越し調査中"
                 item["missingCount"] = 1
@@ -806,10 +806,8 @@ def extract_and_count_stations():
 
             # --- パターンC: 「引っ越し調査中」の駅の、その後の生存確認 ---
             if sub_page == "引っ越し調査中":
-                # もし今日引っ越し先で見つかっていれば、上の「ステップ2」の処理を通過した時点で
-                # subPageが「しゆ-しん」等に上書きされているため、このパターンCには入ってきません。
-                # ここを通過しているということは、「今日も見つからなかった」という意味になります。
-                if url not in fetched_urls:
+                # 【修正3】fetched_keys で判定する
+                if unique_key not in fetched_keys:
                     missing_count += 1
                     item["missingCount"] = missing_count
 
