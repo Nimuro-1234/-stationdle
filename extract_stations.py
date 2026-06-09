@@ -206,7 +206,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    return ["お"], weekday
+    return ["しや-しん"], weekday
 
     return chunks[weekday], weekday
 
@@ -215,20 +215,26 @@ def fetch_station_details(url):
     駅のWikipediaページから各種データを抽出し、自治体データと統合する関数
     """
     data = {
-        "pref": "",
-        "county": "",                 
-        "municipality": "",
-        "ward": "",                 # 政令指定都市の行政区名のみ
-        "muni_url": "",             # 自治体ページのURL保存用
-        "platforms": 0,
-        "tracks": 0,
-        "min_km": float('inf'),
-        "open_year": None,
-        "open_month": None,
-        "open_day": None,
-        "max_passengers": 0,
-        "companies": [],
-        "lines": []
+        "pref": "",                # 都道府県名
+        "county": "",              # 郡名
+        "municipality": "",        # 市区町村名
+        "ward": "",                # 政令指定都市の行政区名
+        "muni_url": "",            # 自治体ページのURL
+        "platforms": 0,            # 面数
+        "tracks": 0,               # 線路数
+        "min_km": float('inf'),    # 最小営業キロ
+        "open_year": None,         # 開業年
+        "open_month": None,        # 開業月
+        "open_day": None,          # 開業日
+        "max_passengers": 0,       # 最大乗降客数
+        "companies": [],           # 所属事業者
+        "lines": [],               # 乗入路線
+        "romaji": "",              # アルファベット表記（最初のinfoboxのみ）
+        "address": "",             # 住所（所在地）
+        "latitude": None,          # 緯度
+        "longitude": None,         # 経度
+        "adjacent_stations": [],   # 隣駅リスト（辞書形式: name, link）
+        "transfer_stations": []    # 乗換駅リスト（辞書形式: name, link）
     }
 
     try:
@@ -236,7 +242,99 @@ def fetch_station_details(url):
         soup = BeautifulSoup(res.text, "html.parser")
 
         infoboxes = soup.find_all('table', class_='infobox')
-        for infobox in infoboxes:
+        
+        # ↓↓↓ ここから追加 ↓↓↓
+        best_addr = ""
+        oldest_y = float('inf')
+        
+        for box in infoboxes:
+            box_addr = ""
+            box_y = None
+            for tr in box.find_all('tr'):
+                th = tr.find('th')
+                td = tr.find('td')
+                if th and td:
+                    hdr = th.get_text(strip=True)
+                    if hdr == '所在地':
+                        clean = re.split(r'<div|<sup', str(td))[0]
+                        txt = BeautifulSoup(clean, "html.parser").get_text(strip=True)
+                        box_addr = re.split(r'\[|座標:|北緯|〒', txt)[0].strip()
+                    elif '開業年月日' in hdr:
+                        m = re.search(r'(\d{4})年', td.get_text(strip=True))
+                        if m:
+                            y = int(m.group(1))
+                            if box_y is None or y < box_y:
+                                box_y = y
+            
+            # 最初の住所を保険としてキープ
+            if box_addr and not best_addr:
+                best_addr = box_addr
+            # より古い開業年が見つかれば、そのInfoboxの住所で上書き！
+            if box_y is not None and box_y < oldest_y:
+                oldest_y = box_y
+                if box_addr:
+                    best_addr = box_addr
+
+        data["address"] = best_addr
+        # ↑↑↑ ここまで追加 ↑↑↑
+
+        # （これ以降は、もともとある既存の for tr in infobox.find_all('tr'): などの処理が続きます）
+
+        # 全Infoboxを横断して「最も古い開業年」を追跡するための変数
+        global_oldest_year = float('inf')
+        best_address = ""
+        fallback_address = ""
+
+        # 複数のInfoboxを1つずつ順番に処理する
+        for idx, infobox in enumerate(infoboxes):
+
+            local_address = ""
+            local_year = None
+            local_month = None
+            local_day = None
+            
+            # --- 【追加】アルファベット表記の抽出（最初のinfoboxのみ） ---
+            if idx == 0:
+                romaji_span = infobox.find('span', lang='en')
+                if romaji_span:
+                    data["romaji"] = romaji_span.get_text(strip=True)
+            
+            # --- 【追加】緯度経度の抽出 ---
+            geo_span = infobox.find('span', class_='geo')
+            if geo_span and data["latitude"] is None:
+                lat_lon = geo_span.get_text(strip=True).split(';')
+                if len(lat_lon) == 2:
+                    try:
+                        data["latitude"] = float(lat_lon[0].strip())
+                        data["longitude"] = float(lat_lon[1].strip())
+                    except ValueError:
+                        pass
+            
+            # --- 【修正】隣駅の抽出（リンク付き） ---
+            # 「float:left」と「float:right」のdivが横並びになっている行を探す
+            for tr in infobox.find_all('tr'):
+                tds = tr.find_all('td')
+                if len(tds) == 1 and tds[0].get('colspan') == "2":
+                    left_div = tds[0].find('div', style=lambda s: s and 'float:left' in s.replace(' ', ''))
+                    right_div = tds[0].find('div', style=lambda s: s and 'float:right' in s.replace(' ', ''))
+                    
+                    # 左右のdivの中からリンク付きで駅名を取り出す内部関数
+                    def add_adjacent(div_node):
+                        if div_node:
+                            for a in div_node.find_all('a'):
+                                txt = a.get_text(strip=True)
+                                href = a.get('href')
+                                # 画像リンク（駅ナンバリングのアイコン等）を弾き、名前とリンクがあるものだけ抽出
+                                if href and '/wiki/' in href and a.get('title') and txt:
+                                    full_link = urllib.parse.urljoin("https://ja.wikipedia.org", href)
+                                    # 既に同じ駅名が登録されていなければ追加
+                                    if not any(adj["name"] == txt for adj in data["adjacent_stations"]):
+                                        data["adjacent_stations"].append({"name": txt, "link": full_link})
+
+                    add_adjacent(left_div)
+                    add_adjacent(right_div)
+
+            # ここから元の処理（<th>と<td>のペアを探す処理）が続く
             for tr in infobox.find_all('tr'):
                 th = tr.find('th')
                 td = tr.find('td')
@@ -255,8 +353,23 @@ def fetch_station_details(url):
                 else:
                     continue
 
-                # ① 所在地と自治体データの自動取得
+                # ① 所在地と住所の抽出
                 if header == '所在地':
+                    
+                    # 【シンプル化】注釈(<sup)や座標等の補足(<div)が始まる前までのHTMLを切り出してテキスト化
+                    clean_html = re.split(r'<div|<sup', str(td))[0]
+                    address_text = BeautifulSoup(clean_html, "html.parser").get_text(strip=True)
+                    # 念のため、テキスト上のゴミ（[1]、座標、郵便番号など）から先を完全にカット
+                    address_text = re.split(r'\[|座標:|北緯|〒', address_text)[0].strip()
+
+                    # このInfobox内で見つけた住所として一時保存
+                    if address_text:
+                        local_address = address_text
+                        if not fallback_address:
+                            fallback_address = local_address
+
+                    
+
                     # 1. 駅ページから都道府県を優先取得
                     if not data["pref"]:
                         m_pref = re.search(r'(東京都|北海道|(?:京都|大阪)府|[一-龠]{2,3}県)', value_text)
@@ -403,6 +516,20 @@ def fetch_station_details(url):
                             # 路線名の重複を防ぎつつリストに追加
                             if line_name not in data["lines"]:
                                 data["lines"].append(line_name)
+
+                # ↓↓↓ ここから追加 ↓↓↓
+                # ⑧ 乗換駅の名前とリンクの抽出
+                elif '乗換' in header:
+                    for a in td.find_all('a'):
+                        txt = a.get_text(strip=True)
+                        href = a.get('href')
+                        # 路線名（ゆりかもめ等）が混ざるのを防ぐため、「〜駅」で終わるリンクのみを厳格に抽出する
+                        if href and '/wiki/' in href and txt.endswith('駅'):
+                            full_link = urllib.parse.urljoin("https://ja.wikipedia.org", href)
+                            # 重複登録を防ぐ
+                            if not any(ts["name"] == txt for ts in data["transfer_stations"]):
+                                data["transfer_stations"].append({"name": txt, "link": full_link})
+                # ↑↑↑ ここまで追加 ↑↑↑
 
         if data["min_km"] == float('inf'):
             data["min_km"] = None
@@ -596,7 +723,7 @@ def extract_and_count_stations():
                 # すでに「_archived_day」が付いている場合は、そこから前（元のURL）だけを切り出す
                 base_url = url.split("_archived_day")[0]
 
-                # 過去のデータは「過去問の歴史」としてそのまま残すため、URLを変更してゾンビ化を防ぐ
+              # 過去のデータは「過去問の歴史」としてそのまま残すため、URLを変更してゾンビ化を防ぐ
                 #（URLの後ろに履歴用の文字を付けて、過去の遺物としてJSONに残す）
                 archived_url = url + f"_archived_day{old_item['endDay']}"
                 existing_stations[archived_url] = old_item
@@ -690,7 +817,7 @@ def extract_and_count_stations():
                     if missing_count >= 14:
                         item["endDay"] = current_day_index
                         item["subPage"] = "廃止済"
-                        print(f"  [廃駅確定] 1週間どこからも発見されなかったため、廃駅と判定しました: {item['kanji']}")
+                        print(f"  [廃駅確定] 2週間どこからも発見されなかったため、廃駅と判定しました: {item['kanji']}")
 
     # 4. リスト化し、常にID順でソート
     result_list = list(existing_stations.values())
