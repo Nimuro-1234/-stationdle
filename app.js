@@ -922,16 +922,8 @@ function showResultModal(isWin,isRestore){
   let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " ふるさと納税")}/`;
   let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
 
-  // 結果ウィンドウ全体（モーダル）の縦幅を画面の70%に制限し、スクロールさせる
-let modalContent = document.querySelector(".modal-content");
-if (modalContent) {
-modalContent.style.maxHeight = "70vh";
-modalContent.style.overflowY = "auto";
-modalContent.style.overflowX = "hidden";
-}
-
-// 結果画面のHTML書き換え
-document.getElementById("wiki-link-container").innerHTML=`
+  // 結果画面のHTML書き換え
+  document.getElementById("wiki-link-container").innerHTML=`
 <div style="margin-bottom:12px;">
 <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
 </div>
