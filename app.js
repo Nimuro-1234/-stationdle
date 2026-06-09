@@ -857,7 +857,7 @@ function showResultModal(isWin,isRestore){
 
   // 【修正】お取り寄せ・ふるさと納税用に、常に市区町村単位の正確な地域名を作成
   let safePref = todayStation.pref || "富山県";
-  let searchMuni = (todayStation.municipality || "").replace(/^.+郡/, "");
+  let searchMuni = todayStation.municipality || "富山市";
   let searchWard = todayStation.ward || "";
   let muniMuni = safePref + searchMuni + searchWard; // 例：「島根県江津市」
 
