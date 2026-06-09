@@ -397,36 +397,60 @@ function saveGameState() {
 
 //今日出題する駅を、日付をもとにした乱数シードにより1つ決定
 function selectTodayStation(){
-const modeStations=stations.filter(s=>s.yomi.length===currentMode);
-if(modeStations.length===0){
-alert(`エラー: ${currentMode}文字の駅データが見つかりません。`);
-todayStation={kanji:"えらー",yomi:"えらー"}; return;
-}
-//2024年1月1日を基準に、世界中どこからアクセスしても強制的に「日本時間（JST）」で今日が何日目かを決定する
-const t=new Date();
-const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
-const jstObj = new Date(jstMs);
-const todayUTC = Date.UTC(jstObj.getFullYear(), jstObj.getMonth(), jstObj.getDate());
-const baseUTC = Date.UTC(2024, 0, 1);
-currentDayIndex=Math.round((todayUTC - baseUTC) / 86400000)+debugOffset;
-loadGameState(currentDayIndex);
-//直近で出題された駅とできるだけ被らないようにしながら今日の正解駅を1つ決定
-let uniqueYomiCount=new Set(modeStations.map(s=>s.yomi)).size;
-let lookback=Math.min(1000,Math.floor(uniqueYomiCount*0.7));
-let history=[];
-for(let d=0;d<=currentDayIndex;d++){
-let recentSet=new Set(history.slice(-lookback));
-let pool=modeStations.filter(s=>!recentSet.has(s.yomi));
-let seed=d*12345+currentMode*6789;
-let hash=Math.imul(seed^(seed>>>15),2246822507);
-hash=Math.imul(hash^(hash>>>13),3266489909);
-hash=(hash^(hash>>>16))>>>0;
-let candidate=pool[hash%pool.length];
-history.push(candidate.yomi);
-if(d===currentDayIndex)todayStation=candidate;
-}
-//デバッグ時、ブラウザのコンソールに答えを出力
-//console.log(`※${currentMode}文字の答え:`,todayStation.kanji,todayStation.yomi);
+  const modeStations = stations.filter(s => s.yomi.length === currentMode);
+  if(modeStations.length === 0){
+    alert(`エラー: ${currentMode}文字の駅データが見つかりません。`);
+    todayStation = {kanji:"えらー", yomi:"えらー"}; 
+    return;
+  }
+  
+  //2024年1月1日を基準に、世界中どこからアクセスしても強制的に「日本時間（JST）」で今日が何日目かを決定する
+  const t=new Date();
+  const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
+  const jstObj = new Date(jstMs);
+  const todayUTC = Date.UTC(jstObj.getFullYear(), jstObj.getMonth(), jstObj.getDate());
+  const baseUTC = Date.UTC(2024, 0, 1);
+  currentDayIndex=Math.round((todayUTC - baseUTC) / 86400000)+debugOffset;
+  loadGameState(currentDayIndex);
+  
+  let uniqueYomiCount = new Set(modeStations.map(s => s.yomi)).size;
+  let lookback = Math.min(1000, Math.floor(uniqueYomiCount * 0.7));
+  
+  // 各駅の「次回出禁解除日」を記録する箱
+  let nextAvailableDay = {}; 
+  
+  for(let d = 0; d <= currentDayIndex; d++){
+    
+    // その日（d）時点で、すでに登場しており、かつまだ廃止されていない駅を絞り込む
+    let activeStations = modeStations.filter(s => 
+      s.startDay !== undefined && s.startDay <= d && (s.endDay === undefined || s.endDay > d || s.endDay === 999999)
+    );
+    
+    //【超安全装置】もしその日の現役駅が0件なら、データ未設定とみなして全駅を対象にする！
+    if (activeStations.length === 0) {
+      activeStations = modeStations;
+    }
+    
+    // その日現役の駅の中から、さらに「ロック期間中ではない駅」を絞り込んでプールを作る
+    let pool = activeStations.filter(s => !nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d);
+    
+    // 万が一プールが空になった場合の安全装置も、その日現役の駅にする
+    if(pool.length === 0) pool = activeStations; 
+    
+    let seed = d * 12345 + currentMode * 6789;
+    let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
+    hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+    hash = (hash ^ (hash >>> 16)) >>> 0;
+    
+    let candidate = pool[hash % pool.length];
+    
+    nextAvailableDay[candidate.yomi] = d + lookback + 1;
+    
+    if(d === currentDayIndex) todayStation = candidate;
+  }
+  
+  //公開時には絶対消す！！
+  console.log(`※${currentMode}文字の答え:`, todayStation.kanji, todayStation.yomi);
 }
 
 
@@ -857,26 +881,23 @@ function showResultModal(isWin,isRestore){
   document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
   document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
 
-  // 【変更】人口や市町村種別を使って検索キーワードを分岐させる
+  // 【修正】お取り寄せ・ふるさと納税用に、常に市区町村単位の正確な地域名を作成
   let safePref = todayStation.pref || "富山県";
-  let searchMuni = (todayStation.municipality || "").replace(/^.+郡/, "");
+  let searchMuni = todayStation.municipality || "富山市";
   let searchWard = todayStation.ward || "";
-  
-  // 「町」「村」であるか、または人口が3万人未満の駅は「田舎（宿泊施設が少ない）」と判定する
-  let isRural = todayStation.muni_type === "町" || todayStation.muni_type === "村" || todayStation.population < 30000;
-  
-  // 田舎なら「都道府県」、都会なら「都道府県＋市区町村＋区」をキーワードにする（0件ヒット回避）
-  let areaKeyword = isRural ? safePref : (safePref + searchMuni + searchWard);
+  let muniMuni = safePref + searchMuni + searchWard; // 例：「島根県江津市」
 
-  // エイプリルフール時は都道府県のみ、通常時は先ほど作った市区町村名で検索する
+  // トラベル用の都会・田舎のキーワード分岐（宿泊施設の件数0を回避するためトラベル側のみ維持）
+  let isRural = todayStation.muni_type === "町" || todayStation.muni_type === "村" || todayStation.population < 30000;
+  let areaKeyword = isRural ? safePref : muniMuni;
   let searchKw = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode ? safePref : areaKeyword;
   
-  // バナー上のテキストも、抽出した地域名を表示してクリックしたくなるようにアレンジ
+  // ポップアップ内のPR用バナー文言（トラベル用に修正）
   let prText = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode 
     ? `＼ 聖地のある「${safePref}」へ巡礼して指の疲れを癒やす ／` 
-    : `＼ この駅のある「${areaKeyword}」へ聖地巡礼に行こう！ ／`;
+    : `＼ この駅のある「${muniMuni}」へ聖地巡礼に行こう！ ／`;
 
-  // Yahooと楽天のアフィリエイトURL生成（エンコードの回数は元の仕様を厳密に維持しています）
+  // 1段目：宿・ホテル予約（既存のトラベルURL）
   let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(searchKw)));
   let yahooUrl=`https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=https%3A%2F%2Ftravel.yahoo.co.jp%2FikCo.ashx%3Fcosid%3Dy_a8net%26surl%3Dhttps%253A%252F%252Ftravel.yahoo.co.jp%252Fsearch%253Fadc%253D1%2526discsort%253D1%2526kwd%253D${encodedStation}%2526lc%253D1%2526ppc%253D2%2526rc%253D1%2526si%253D6`;
   let yahooImp='<img border="0" width="1" height="1" src="https://www10.a8.net/0.gif?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2" alt="" style="display:none;">';
@@ -884,24 +905,64 @@ function showResultModal(isWin,isRestore){
   let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
   let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
+  // 2段目：通常のお取り寄せ
+  let yahooGiftKw = encodeURIComponent(muniMuni + " 特産品");
+  let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${yahooGiftKw}/0/?area=13&first=1&ss_first=1&ts=1780965121&mcr=a50de90c7f9059dfb652acb37a54e919&tab_ex=commerce&sretry=1&sc_i=shopping-pc-web-result-suggest-h_srch-srchbtn-sgstfrom-result-item-h_srch-srchbox`;
+  let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
+  let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  
+  let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " 特産品")}/`;
+  let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
+  let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+
+  // 3段目：ふるさと納税
+  let satofullDest = `https://www.satofull.jp/products/list.php?q=${encodeURIComponent(muniMuni)}&utm_source=a8&utm_medium=affiliate`;
+  let satofullUrl = `https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=${encodeURIComponent(satofullDest)}`;
+
+  let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " ふるさと納税")}/`;
+  let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
+
+  // 結果画面のHTML書き換え
   document.getElementById("wiki-link-container").innerHTML=`
-  <div style="margin-bottom:12px;">
-  <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
-  </div>
-  <div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px;">
-  <div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">${prText}</div>
-  <div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
-  <a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px; width:45%;">
-  <img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
-  </a>
-  <a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
-  <img src="./R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
-  </a>
-  </div>
-  </div>
-  ${rakutenImp}
-  ${yahooImp}
-  `;
+<div style="margin-bottom:12px;">
+<a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
+</div>
+<div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px; position:relative;">
+<div style="text-align:center; margin-bottom:8px;">
+<span style="display:inline-block; border:1px solid #aaa; border-radius:4px; padding:1px 6px; font-size:10px; color:#aaa; font-weight:bold;">PR</span>
+</div>
+<div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">${prText}</div>
+<div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
+<a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+<img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
+</a>
+<a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
+<img src="./R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
+</a>
+<div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
+<div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🎁 この土地の名産品をお取り寄せ（通常購入）</div>
+<a href="${yahooShoppingUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+<img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ショッピング
+</a>
+<a href="${rakutenMarketUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#bf0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+楽天市場で探す
+</a>
+<div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
+<div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🗾 地域を応援して名産品を貰う（ふるさと納税）</div>
+<a href="${satofullUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; background-color:#ffffff; border:none; border-radius:4px; width:45%; height:32px; overflow:hidden; position:relative; text-decoration:none;">
+<span style="font-size:11px; font-weight:bold; color:#33aaff;">さとふるで探す</span>
+<img src="./satofuru.jpg" alt="さとふる" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background-color:#ffffff; border:none;" onerror="this.style.display='none';">
+</a>
+<a href="${rakutenFurusatoUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#7a0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+楽天ふるさと納税
+</a>
+</div>
+</div>
+${rakutenImp}
+${yahooImp}
+${rakutenMarketImp}
+${yahooShoppingImp}
+`;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
 document.getElementById("stat-winrate").textContent=winRate;
