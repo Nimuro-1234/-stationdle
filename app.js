@@ -554,16 +554,14 @@ currentGuess="";
 // キーボードの文字や、特殊ボタン（回答・消去）が押されたときの振り分けを行う
 // プレイヤーの入力を処理する
 function handleKeyPress(char){
-  // 現在の難易度設定に応じて読み書きするデータのキーを切り替える（ランダム時は除く）
   let stateKey = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
   let st = savedState[stateKey];
   if(!st || st.isOver || guessesSubmitted>=maxGuesses) return;
   
-  // 最初の1文字目が入力されたときにタイマーを開始してセーブする
   if(!st.startTime && char!=="BACK" && char!=="CLEAR" && char!=="ENTER"){
     st.startTime=Date.now();
     if(!isPlayingRandom) {
-      saveGameState(); // ← 確実なセーブを実行
+      saveGameState();
     }
   }
   
@@ -572,8 +570,14 @@ function handleKeyPress(char){
   }else if(char==="CLEAR"){
     currentGuess=""; updateTiles();
   }else if(char==="ENTER"){
-    if(currentGuess.length===rowLength) submitGuess(false);
-    else showMessage(`${rowLength}文字入力してください`);
+    if(currentGuess.length===rowLength) {
+      // 【修正】重い判定処理を10ミリ秒だけ遅らせて、ブラウザのフリーズ（処理落ち）を防ぐ
+      setTimeout(() => {
+        submitGuess(false);
+      }, 10);
+    } else {
+      showMessage(`${rowLength}文字入力してください`);
+    }
   }else{
     if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }
   }
