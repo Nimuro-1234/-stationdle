@@ -153,8 +153,8 @@ try{
 }
 loadStats();　　　　　　　//全プレイヤーの戦績データをパソコンから読み込む
 updateLoginStreak(); 　　//連続ログイン日数をカウント
-//すべての駅データが書かれた「station.json」ファイルをインターネット経由で読み込む
-const res=await fetch('stations.json');
+//すべての駅データが書かれた「station.json」ファイルをインターネット経由で読み込む。キャッシュを強制的に無視して常に最新を取得する
+const res=await fetch('stations.json', { cache: "no-store" });
 const raw=await res.json();
 //貨物専用駅を除外し、駅名の読みを全てひらがなに整えて保存
 stations=raw.filter(s=>!(s.companies&&s.companies.length===1&&s.companies[0]==="日本貨物鉄道")).map(s=>({...s,yomi:toHiragana(s.yomi)}));
@@ -402,11 +402,13 @@ if(modeStations.length===0){
 alert(`エラー: ${currentMode}文字の駅データが見つかりません。`);
 todayStation={kanji:"えらー",yomi:"えらー"}; return;
 }
-//2024年1月1日を基準に、今日が何日目かを決定する
+//2024年1月1日を基準に、世界中どこからアクセスしても強制的に「日本時間（JST）」で今日が何日目かを決定する
 const t=new Date();
-const tDate=new Date(t.getFullYear(),t.getMonth(),t.getDate());
-const baseDate=new Date(2024,0,1);
-currentDayIndex=Math.round((tDate-baseDate)/86400000)+debugOffset;
+const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
+const jstObj = new Date(jstMs);
+const todayUTC = Date.UTC(jstObj.getFullYear(), jstObj.getMonth(), jstObj.getDate());
+const baseUTC = Date.UTC(2024, 0, 1);
+currentDayIndex=Math.round((todayUTC - baseUTC) / 86400000)+debugOffset;
 loadGameState(currentDayIndex);
 //直近で出題された駅とできるだけ被らないようにしながら今日の正解駅を1つ決定
 let uniqueYomiCount=new Set(modeStations.map(s=>s.yomi)).size;
