@@ -1,4 +1,5 @@
-!pip install requests beautifulsoup4
+#Google Colab用
+# !pip install requests beautifulsoup4 
 
 import time
 import json
