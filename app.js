@@ -922,14 +922,10 @@ function showResultModal(isWin,isRestore){
   let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " ふるさと納税")}/`;
   let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
 
-  // 結果ウィンドウ（モーダル）自体の最大縦幅を画面の50%に制限し、はみ出た分をスクロールさせます
-  let wikiContainer = document.getElementById("wiki-link-container");
-  wikiContainer.style.maxHeight = "50vh";
-  wikiContainer.style.overflowY = "auto";
-  wikiContainer.style.paddingRight = "4px";
-
   // 結果画面のHTML書き換え
-  wikiContainer.innerHTML=`
+  // PCでもスマホでも確実にコンパクトになるよう、最大高さを「280px」で厳密に固定してスクロールさせます
+  document.getElementById("wiki-link-container").innerHTML=`
+<div style="max-height:280px; overflow-y:auto; overflow-x:hidden; padding-right:4px;">
 <div style="margin-bottom:12px;">
 <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
 </div>
@@ -957,11 +953,12 @@ function showResultModal(isWin,isRestore){
 <div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🗾 地域を応援して名産品を貰う（ふるさと納税）</div>
 <a href="${satofullUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; background-color:#ffffff; border:1px solid #cccccc; border-radius:4px; width:45%; height:32px; overflow:hidden; position:relative; text-decoration:none;">
 <span style="font-size:11px; font-weight:bold; color:#33aaff;">さとふるで探す</span>
-<img src="https://www.satofull.jp/static/packages/default/images/linksetting/bnr-satofull-728_90_b.jpg" alt="さとふる" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background-color:#ffffff; border:none;" onerror="this.style.display='none';">
+<img src="./satofuru.jpg" alt="さとふる" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background-color:#ffffff; border:none;" onerror="this.style.display='none';">
 </a>
 <a href="${rakutenFurusatoUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#7a0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
 楽天ふるさと納税
 </a>
+</div>
 </div>
 </div>
 ${rakutenImp}
