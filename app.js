@@ -1495,7 +1495,6 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
   }
 
   // ハードモードの記録（ハードモード維持でクリアした場合のみ、別途 _hard 枠にも記録）
-  let currentState = savedState[currentMode];
   if (currentState && currentState.isHardMode) {
     let hardKey = currentMode + "_hard";
     if (!clearedData[hardKey]) clearedData[hardKey] = [];
