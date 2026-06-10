@@ -148,21 +148,26 @@ document.getElementById('admin-user-anni-btn').addEventListener('click', () => {
 
 // オフライン警告バナーのテスト（ON/OFFトグル）
 document.getElementById('admin-offline-banner-btn').addEventListener('click', () => {
+  // 画面内にすでに警告バナーが出ているか確認します
   const existingBanner = document.getElementById("offline-warning-banner");
-  // 既に表示されている場合は消す（非表示）
+  
   if (existingBanner) {
+    // すでにある場合は、ボタン押下で消去（非表示）します
     existingBanner.remove();
   } else {
-    // 表示されていない場合は、ヘッダーの直下にバナーを差し込む
-    const header = document.querySelector(".game-header");
+    // 【修正】特定のクラス名ではなく、headerタグそのものを直接探すように変更
+    const header = document.querySelector("header");
+    
     if (header) {
+      // ヘッダーのすぐ後ろの位置にバナーを動的挿入します
       header.insertAdjacentHTML("afterend", `
         <div id="offline-warning-banner" style="background-color: #fff3e0; color: #e65100; font-size: 11px; font-weight: bold; text-align: center; padding: 6px; border-bottom: 1px solid #ffcc80; width: 100%; box-sizing: border-box;">
           ⚠️ バックアップデータで運行中。通常の出題と答えが異なる場合があります。
         </div>
       `);
     } else {
-      alert("エラー：ヘッダー（.game-header）が見つからないため表示できません。");
+      // 万が一headerタグも見つからない場合の安全装置です
+      alert("エラー：ヘッダー（headerタグ）が見つからないため表示できません。");
     }
   }
 });
