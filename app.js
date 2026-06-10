@@ -309,6 +309,13 @@ updateHelpContent(); // 起動時に説明文を現在の設定に合わせる
 hardSwitch.addEventListener("change", (e) => {
   let st = savedState[isPlayingRandom ? "random" : currentMode];
 
+  // 【追加】すでにゲームクリア・ゲームオーバーになっている場合は変更をブロック
+  if (st && st.isOver) {
+    e.target.checked = !e.target.checked; // スイッチの見た目を強制的に戻す
+    showMessage("ゲーム終了後は変更できません");
+    return;
+}
+
   // プレイ途中（1手以上入力済み）に「通常→ハード」へ変更しようとした場合はブロック
   if (e.target.checked && st && st.guesses && st.guesses.length > 0) {
     e.target.checked = false; // スイッチを強制的にオフに戻す
@@ -613,7 +620,8 @@ currentGuess="";
 // キーボードの文字や、特殊ボタン（回答・消去）が押されたときの振り分けを行う
 // プレイヤーの入力を処理する
 function handleKeyPress(char){
-  let stateKey = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
+  // 箱が統合されたため、単純に文字数モードのキーを参照するように修正
+  let stateKey = isPlayingRandom ? "random" : currentMode;
   let st = savedState[stateKey];
   if(!st || st.isOver || guessesSubmitted>=maxGuesses) return;
   
@@ -1477,13 +1485,27 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
   localStorage.setItem("ekiAchievements", JSON.stringify(ach));
   
   // --- 8. クリア済みインデックスの記録（文字数モード別） ---
-  let clearedData = JSON.parse(localStorage.getItem("ekiClearedDays") || '{"4":[],"5":[],"6":[]}');
+  let clearedData = JSON.parse(localStorage.getItem("ekiClearedDays") || '{"4":[],"5":[],"6":[],"4_hard":[],"5_hard":[],"6_hard":[]}');
+  
+  // 通常モードの記録（ハードでクリアした場合も、大元の「クリア済み」として記録しておく）
   if (!clearedData[currentMode]) clearedData[currentMode] = [];
   if (!clearedData[currentMode].includes(currentDayIndex)) {
     clearedData[currentMode].push(currentDayIndex);
     clearedData[currentMode].sort((a, b) => a - b);
-    localStorage.setItem("ekiClearedDays", JSON.stringify(clearedData));
   }
+
+  // ハードモードの記録（ハードモード維持でクリアした場合のみ、別途 _hard 枠にも記録）
+  let currentState = savedState[currentMode];
+  if (currentState && currentState.isHardMode) {
+    let hardKey = currentMode + "_hard";
+    if (!clearedData[hardKey]) clearedData[hardKey] = [];
+    if (!clearedData[hardKey].includes(currentDayIndex)) {
+      clearedData[hardKey].push(currentDayIndex);
+      clearedData[hardKey].sort((a, b) => a - b);
+    }
+  }
+  
+  localStorage.setItem("ekiClearedDays", JSON.stringify(clearedData));
 }
 
 
