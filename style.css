@@ -75,17 +75,20 @@ position: absolute; top: 30%; background-color: var(--correct-color); color: whi
 .hidden { display: none !important; }
 .modal-content {
   position: relative;
-  
-  /* 親の黒マスクではなく、現在のテーマの背景色と文字色をピンポイントで適用します */
   background-color: var(--bg-color);
+  
+  /* 【工夫】元の色を活かしつつ、135度の角度でほんのり光と影のグラデーションを重ねて深みを出します */
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.06) 100%);
+  
   color: var(--text-color);
-  
-  /* ダイアログが背景に沈まないよう、駅ドルカラーの縁取りとクッキリした影をつけます */
   border: 3px solid var(--correct-color);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   
-  padding: 20px 15px;
-  border-radius: 8px;
+  /* 【工夫】外側への強い影に加え、inset（内側）にうっすら光の縁取りを入れて高級感を出します */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
+  
+  /* 駅の案内板や記念切符のイメージに合わせて、角の丸みを「12px」に少し優しくします */
+  border-radius: 12px;
+  padding: 25px 20px;
   text-align: center;
   width: 95%;
   max-width: 350px;
