@@ -28,7 +28,7 @@ municipality_cache = {}
 #         response.raise_for_status()
 #        response.encoding = response.apparent_encoding
 #         soup = BeautifulSoup(response.text, 'html.parser')
-        
+
 #         municipality_tags = soup.find_all('td', class_=['bcity', 'btown', 'bvill'])
 #         municipalities = [tag.get_text(strip=True) for tag in municipality_tags]
 #         return municipalities
@@ -194,7 +194,7 @@ def get_todays_sub_pages():
     weekday = datetime.datetime.today().weekday()
 
     # ★動作テストのため、強制的に「6:日曜日」に設定します
-    # weekday = 6
+    weekday = 6
 
     # 取得した全ページを曜日ごとに自動で7等分する
     chunks = [[] for _ in range(7)]
@@ -206,7 +206,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    # return ["しや-しん"], weekday
+    # return ["ち-て"], weekday
 
     return chunks[weekday], weekday
 
@@ -242,11 +242,11 @@ def fetch_station_details(url):
         soup = BeautifulSoup(res.text, "html.parser")
 
         infoboxes = soup.find_all('table', class_='infobox')
-        
+
         # ↓↓↓ ここから追加 ↓↓↓
         best_addr = ""
         oldest_y = float('inf')
-        
+
         for box in infoboxes:
             box_addr = ""
             box_y = None
@@ -265,7 +265,7 @@ def fetch_station_details(url):
                             y = int(m.group(1))
                             if box_y is None or y < box_y:
                                 box_y = y
-            
+
             # 最初の住所を保険としてキープ
             if box_addr and not best_addr:
                 best_addr = box_addr
@@ -292,13 +292,13 @@ def fetch_station_details(url):
             local_year = None
             local_month = None
             local_day = None
-            
+
             # --- 【追加】アルファベット表記の抽出（最初のinfoboxのみ） ---
             if idx == 0:
                 romaji_span = infobox.find('span', lang='en')
                 if romaji_span:
                     data["romaji"] = romaji_span.get_text(strip=True)
-            
+
             # --- 【追加】緯度経度の抽出 ---
             geo_span = infobox.find('span', class_='geo')
             if geo_span and data["latitude"] is None:
@@ -309,7 +309,7 @@ def fetch_station_details(url):
                         data["longitude"] = float(lat_lon[1].strip())
                     except ValueError:
                         pass
-            
+
             # --- 【修正】隣駅の抽出（リンク付き） ---
             # 「float:left」と「float:right」のdivが横並びになっている行を探す
             for tr in infobox.find_all('tr'):
@@ -317,7 +317,7 @@ def fetch_station_details(url):
                 if len(tds) == 1 and tds[0].get('colspan') == "2":
                     left_div = tds[0].find('div', style=lambda s: s and 'float:left' in s.replace(' ', ''))
                     right_div = tds[0].find('div', style=lambda s: s and 'float:right' in s.replace(' ', ''))
-                    
+
                     # 左右のdivの中からリンク付きで駅名を取り出す内部関数
                     def add_adjacent(div_node):
                         if div_node:
@@ -355,7 +355,7 @@ def fetch_station_details(url):
 
                 # ① 所在地と住所の抽出
                 if header == '所在地':
-                    
+
                     # 【シンプル化】注釈(<sup)や座標等の補足(<div)が始まる前までのHTMLを切り出してテキスト化
                     clean_html = re.split(r'<div|<sup', str(td))[0]
                     address_text = BeautifulSoup(clean_html, "html.parser").get_text(strip=True)
@@ -368,7 +368,7 @@ def fetch_station_details(url):
                         if not fallback_address:
                             fallback_address = local_address
 
-                    
+
 
                     # 1. 駅ページから都道府県を優先取得
                     if not data["pref"]:
@@ -409,32 +409,32 @@ def fetch_station_details(url):
                         loc = re.sub(r'^(?:東京都|北海道|(?:京都|大阪)府|[一-龠]{2,3}県)', '', loc).strip()
                         # 【スペース削除対応】空白を完全に消去してから判別
                         loc = loc.replace(' ', '').replace(' ', '')
-                        
+
                         # ★変更箇所：郡と市区町村を別々にキャプチャする
                         m = re.match(r'^((?:.+?郡)?)(.+?(?:市|区|町|村))', loc)
                         if m:
                             county_str = m.group(1)
                             muni_str = m.group(2)
-                            
+
                             if county_str:
                                 data["county"] = county_str
-                                
+
                             # 大町町や野々市市などの文字重複対策
-                            if loc.startswith(county_str + muni_str + muni_str[-1]): 
+                            if loc.startswith(county_str + muni_str + muni_str[-1]):
                                 muni_str += muni_str[-1]
-                            if loc.startswith(county_str + muni_str + '市'): 
+                            if loc.startswith(county_str + muni_str + '市'):
                                 muni_str += '市'
-                                
+
                             data["municipality"] = muni_str
 
                     # 4. 【合体】自治体データを取得して駅データに統合
                     if data["muni_url"]:
                         if data["muni_url"] not in municipality_cache:
-                            
+
                             # ★変更箇所：ログ出力時に郡名と市区町村名を足して表示
                             full_muni_name = data.get("county", "") + data["municipality"]
                             print(f"    自治体詳細データを取得中: {full_muni_name}")
-                            
+
                             try:
                                 m_res = requests.get(data["muni_url"], headers={"User-Agent": "EkiDleBot/1.0"}, timeout=10)
                                 municipality_cache[data["muni_url"]] = extract_municipality_data(m_res.text)
@@ -539,7 +539,7 @@ def fetch_station_details(url):
 
     return data
 
-  
+
 
 def extract_and_count_stations():
     stations_list = []
@@ -603,21 +603,27 @@ def extract_and_count_stations():
                     if match:
                         inner_text = match.group(1)
 
-                        # ーーーこれ以降は、今までの専用処理を完全に維持ーーー
-                        m2 = re.match(r"^(.*?)(えき|ていりゅうじょう|しんごうじょう)(?:・|$)", inner_text)
-                        if m2:
-                            yomi_raw = m2.group(1)
+                        # ▼▼▼ ここから差し替え ▼▼▼
+                        # 「・」で分割して、後ろの要素が補足情報（路線名など）か、駅名の続きかを判定
+                        parts = inner_text.split('・')
+                        
+                        # 最後のパーツが「えき」「ていりゅうじょう」「しんごうじょう」で終わっているかチェック
+                        if len(parts) > 1 and re.search(r"(えき|ていりゅうじょう|しんごうじょう)$", parts[-1]):
+                            # パターンA（駅名の続き）：全体の末尾の接尾辞だけを削除し、途中の「えき」や「・」は残す
+                            combined = "・".join(parts)
+                            yomi_raw = re.sub(r"(えき|ていりゅうじょう|しんごうじょう)$", "", combined)
                         else:
-                            # 例外的に「えき」が付かない場合
-                            yomi_raw = inner_text.split("・")[0]
+                            # パターンB（補足情報、または通常の駅）：最初のパーツのみを対象に接尾辞を削除
+                            yomi_raw = re.sub(r"(えき|ていりゅうじょう|しんごうじょう)$", "", parts[0])
+                        # ▲▲▲ ここまで差し替え ▲▲▲
 
-                        # 記号やスペース、アルファベット等をすべて排除し、純粋な「かな」にする
+                        # 記号やスペース、アルファベット等をすべて排除し、純粋な「かな」にする（※ここは残す！）
                         yomi = re.sub(r"[^ぁ-んァ-ヶー]", "", yomi_raw)
                         # 読みのカタカナをひらがなにする
                         # yomi="".join([chr(ord(c)-0x60)if 0x30A1<=ord(c)<=0x30F6 else c for c in yomi])
 
                 if not yomi:
-                    # みなとみらい駅など、カッコ自体がない場合のバックアップ
+                    # みなとみらい駅など、カッコ自体がない場合のバックアップ（※これも残す！）
                     yomi = re.sub(r"[^ぁ-んァ-ヶー]", "", display_name)
 
                 if not yomi:
@@ -702,41 +708,42 @@ def extract_and_count_stations():
                     if "endDay" not in item:
                         item["endDay"] = 999999
 
-                    existing_stations[item["url"]] = item
+                    # 【修正1】URLと漢字の合体キーを生成して登録する
+                    base_url = item.get("url", "")
+                    kanji = item.get("kanji", "")
+                    unique_key = item.get("unique_key", f"{base_url}_{kanji}")
+                    item["unique_key"] = unique_key
+                    existing_stations[unique_key] = item
         except json.JSONDecodeError:
             pass
 
-    fetched_urls = set(v["url"] for v in stations_list)
+    # 【修正1の続き】生存確認用のリストも合体キーに変更
+    fetched_keys = set(f"{v['url']}_{v['kanji']}" for v in stations_list)
 
     # 2. 今回取得したデータを既存データと統合（新駅検知＆復活駅の完全安全化）
     for v in stations_list:
-        url = v["url"]
+        # 【修正2】URLではなく合体キーを使用する
+        unique_key = f"{v['url']}_{v['kanji']}"
+        v["unique_key"] = unique_key
 
-        if url in existing_stations:
-            # 既存のデータを取得
-            old_item = existing_stations[url]
+        if unique_key in existing_stations:
+            old_item = existing_stations[unique_key]
 
             # --- 【超安全化】もし「過去に完全に廃止された駅」だった場合 ---
             if old_item.get("endDay", 999999) < current_day_index:
 
+                # 過去のデータは「過去問の歴史」として残すため、キーの末尾に履歴を付けて退避
+                archived_key = unique_key + f"_archived_day{old_item['endDay']}"
+                existing_stations[archived_key] = old_item
 
-                # すでに「_archived_day」が付いている場合は、そこから前（元のURL）だけを切り出す
-                base_url = url.split("_archived_day")[0]
-
-              # 過去のデータは「過去問の歴史」としてそのまま残すため、URLを変更してゾンビ化を防ぐ
-                #（URLの後ろに履歴用の文字を付けて、過去の遺物としてJSONに残す）
-                archived_url = url + f"_archived_day{old_item['endDay']}"
-                existing_stations[archived_url] = old_item
-
-                # そして、今回復活した駅は「完全な新しい駅」として、新しいIDを振って新規登録する！
+                # 今回復活した駅は、新しいIDを振って新規登録する！
                 max_id += 1
                 v["id"] = max_id
                 v["startDay"] = current_day_index
                 v["endDay"] = 999999
                 v["missingCount"] = 0
 
-                # 登録するURLは、末尾に何もついていない純粋な「base_url」を使う
-                existing_stations[base_url] = v
+                existing_stations[unique_key] = v
                 print(f"  [安全復活検知] 過去に廃止された駅 {v['kanji']} を、過去問を汚さないよう新しいID({max_id})で新規登録しました。")
                 continue
 
@@ -745,28 +752,26 @@ def extract_and_count_stations():
             preserved_start = old_item.get("startDay", 0)
             preserved_end = old_item.get("endDay", 999999)
 
-            # 【究極安全化】もし「読みがな(文字数)」が変更されていたら、過去のプールを壊さないよう別駅として世代交代させる
+            # 【究極安全化】もし「読みがな(文字数)」が変更されていたら別駅として世代交代させる
             if old_item.get("yomi") != v["yomi"]:
-                # 古いデータを「今日で廃止」としてアーカイブ化
-                archived_url = url + f"_archived_yomi{current_day_index}"
+                archived_key = unique_key + f"_archived_yomi{current_day_index}"
                 old_item["endDay"] = current_day_index
-                existing_stations[archived_url] = old_item
-                
-                # 新しい読みがなのデータを、新しいIDで今日からの新駅として登録
+                existing_stations[archived_key] = old_item
+
                 max_id += 1
                 v["id"] = max_id
                 v["startDay"] = current_day_index
                 v["endDay"] = 999999
                 v["missingCount"] = 0
-                existing_stations[url] = v
+                existing_stations[unique_key] = v
                 print(f"  [読みがな変更検知] {v['kanji']} の読みが変更されたため、新ID({max_id})で世代交代しました。({old_item.get('yomi')} -> {v['yomi']})")
                 continue
 
-            existing_stations[url] = v
-            existing_stations[url]["id"] = preserved_id
-            existing_stations[url]["startDay"] = preserved_start
-            existing_stations[url]["endDay"] = preserved_end
-            existing_stations[url]["missingCount"] = 0
+            existing_stations[unique_key] = v
+            existing_stations[unique_key]["id"] = preserved_id
+            existing_stations[unique_key]["startDay"] = preserved_start
+            existing_stations[unique_key]["endDay"] = preserved_end
+            existing_stations[unique_key]["missingCount"] = 0
         else:
             # 純粋な新駅
             max_id += 1
@@ -774,12 +779,13 @@ def extract_and_count_stations():
             v["startDay"] = current_day_index
             v["endDay"] = 999999
             v["missingCount"] = 0
-            existing_stations[url] = v
+            existing_stations[unique_key] = v
             print(f"  [新駅検知] 新しい駅が追加されました (ID: {max_id}): {v['kanji']}")
 
     # 3. 廃駅の自動検知ロジック（★猶予期間付きサバイバル方式へ超絶強化）
     if len(stations_list) > 0:
-        for url, item in list(existing_stations.items()):
+        # 【修正3】ループの変数を unique_key に変更
+        for unique_key, item in list(existing_stations.items()):
             # すでに廃駅処理済みのものはスキップ
             if item.get("endDay", 999999) < 999999:
                 continue
@@ -790,14 +796,14 @@ def extract_and_count_stations():
             # --- パターンA: ページ名は健在なのに、駅から消えた場合（通常の廃駅） ---
             # これは言い訳のしようがないので、その日のうちに即座に廃駅にします。
             if sub_page in SUB_PAGES:
-                if url not in fetched_urls:
+                # 【修正3】fetched_keys で判定する
+                if unique_key not in fetched_keys:
                     item["endDay"] = current_day_index
                     item["subPage"] = "廃止済"
                     print(f"  [廃駅検知] Wikipediaから消滅した駅を廃止に設定しました: {item['kanji']}")
                     continue
 
             # --- パターンB: Wikipediaの仕様変更でページ自体が消え、駅が迷子になった場合 ---
-            # すぐに廃駅にはせず、ステータスを「引っ越し調査中」に切り替えて1週間の猶予を与える
             if sub_page not in all_wikipedia_sub_pages and sub_page != "引っ越し調査中":
                 item["subPage"] = "引っ越し調査中"
                 item["missingCount"] = 1
@@ -806,10 +812,8 @@ def extract_and_count_stations():
 
             # --- パターンC: 「引っ越し調査中」の駅の、その後の生存確認 ---
             if sub_page == "引っ越し調査中":
-                # もし今日引っ越し先で見つかっていれば、上の「ステップ2」の処理を通過した時点で
-                # subPageが「しゆ-しん」等に上書きされているため、このパターンCには入ってきません。
-                # ここを通過しているということは、「今日も見つからなかった」という意味になります。
-                if url not in fetched_urls:
+                # 【修正3】fetched_keys で判定する
+                if unique_key not in fetched_keys:
                     missing_count += 1
                     item["missingCount"] = missing_count
 
