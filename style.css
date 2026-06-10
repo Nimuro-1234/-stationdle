@@ -75,16 +75,12 @@ position: absolute; top: 30%; background-color: var(--correct-color); color: whi
 .hidden { display: none !important; }
 .modal-content {
   position: relative;
-  /* background-color: white; */ 
-
   
-  /* 【ここを修正】白固定をやめ、画面全体のテーマ背景色をそのまま引き継ぎます */
-  background-color: inherit; 
+  /* 親の黒マスクではなく、現在のテーマの背景色と文字色をピンポイントで適用します */
+  background-color: var(--bg-color);
+  color: var(--text-color);
   
-  /* 【ここを修正】黒固定をやめ、画面全体のテーマ文字色をそのまま引き継ぎます */
-  color: inherit; 
-  
-  /* 背景と同化してしまわないよう、クッキリとした影と、駅ドルカラー（緑）の枠線でおしゃれに装飾します */
+  /* ダイアログが背景に沈まないよう、駅ドルカラーの縁取りとクッキリした影をつけます */
   border: 3px solid var(--correct-color);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   
