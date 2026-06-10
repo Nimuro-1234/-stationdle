@@ -22,6 +22,7 @@ adminPanel.innerHTML=`
 
 <div style="margin-top:10px; padding:10px; background:#f5f5f5; border:1px solid #ddd; border-radius:4px; font-size:12px; color:black; text-align:left;">
 <b>【各種カウンター手動編集】</b><br>
+ハードクリア駅: <input type="text" id="adm-hard-stations" style="width:200px; font-size:10px; background:#e0e0e0;" readonly title="ハードモードでクリアした駅一覧"><br>
 連続ログイン: <input type="number" id="adm-cur-streak" style="width:50px;"> 日 / 最高: <input type="number" id="adm-max-streak" style="width:50px;"> 日 <button id="adm-save-streak">保存</button><br>
 通算連勝: <input type="number" id="adm-total-streak" style="width:40px;"> 日 / 最高: <input type="number" id="adm-total-max" style="width:40px;"> 日 <button id="adm-save-total-streak">保存</button><br>
 実績[ノーヒント]: <input type="number" id="adm-count-nohint" style="width:50px;"> 回 <button id="adm-save-achieve-1">保存</button><br>
@@ -221,6 +222,7 @@ setTimeout(() => {
   document.getElementById("adm-max-streak").value = sData.maxStreak || 0;
   document.getElementById("adm-total-streak").value = (aData.winStreak && aData.winStreak.currentStreak) ? aData.winStreak.currentStreak : 0;
   document.getElementById("adm-total-max").value = (aData.winStreak && aData.winStreak.maxStreak) ? aData.winStreak.maxStreak : 0;
+  document.getElementById("adm-hard-stations").value = (aData.unlockedSets && aData.unlockedSets.hardClearedStationNames && aData.unlockedSets.hardClearedStationNames.length > 0) ? aData.unlockedSets.hardClearedStationNames.join(", ") : "なし";      // ハードモードでクリアした駅名をカンマ区切りで表示（データがなければ「なし」）
   document.getElementById("adm-count-nohint").value = (aData.counters && aData.counters.noHintClears) ? aData.counters.noHintClears : 0;
   document.getElementById("adm-count-submit").value = (aData.counters && aData.counters.totalSubmitCount) ? aData.counters.totalSubmitCount : 0;
   document.getElementById("adm-set-sound").value = String(setData.sound !== false);
