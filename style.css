@@ -225,3 +225,27 @@ body.event-nye .key {
   background-color: #25202b;
   color: #d1c7bd;
 }
+
+/* ==========================================
+結果ウィンドウのスクロールバーはみ出し対策
+========================================== */
+/* スクロールバー全体の横幅を少し細くしてスタイリッシュにします */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* スクロールバーが走るレーン（トラック）の設定 */
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+  /* 【ここがポイント】上下に12pxの余白を作ることで、丸角のカーブ部分にバーが進入するのを防ぎます */
+  margin: 12px 0;
+}
+
+/* スクロールバーの動くつまみ（ハンドル）の設定 */
+.modal-content::-webkit-scrollbar-thumb {
+  /* 現在のボタン色（緑など）をうっすら透かせた色にして画面に馴染ませます */
+  background-color: var(--correct-color);
+  opacity: 0.5;
+  /* つまみ自体の角も丸めることで、枠線との干渉を完全に無くします */
+  border-radius: 10px;
+}
