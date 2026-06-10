@@ -51,7 +51,6 @@ adminPanel.innerHTML=`
 <button id="admin-offline-banner-btn" style="background:#fff3e0; border:1px solid #ff9800; margin-top:10px; padding:4px 8px;">⚠️ オフライン警告バナーをテスト表示 (ON/OFF)</button>
 </div>
 `;
-`;
 document.querySelector('header').insertAdjacentElement('afterend',adminPanel);
 const getList=()=>window.stations||window.stationsList||window.allStations||(typeof stations!=='undefined'?stations:null);
 let currentLength=4;
