@@ -141,24 +141,71 @@ try{
   if (!localStorage.getItem("ekiSystemVersion")) localStorage.setItem("ekiSystemVersion", "1.0");
   // URLの末尾に「?emergency_reset=true」がついている場合の処理
   if (new URLSearchParams(window.location.search).get("emergency_reset") === "true") {
-  // ページ読み込み時に、まず確認ダイアログを表示してユーザーに問いかける
-  if (confirm("これまでのプレイ実績や設定がすべて消去されます。本当に初期化しますか？")) {
-    // ユーザーが「OK」を押した場合のみ、データを全消去する
-    localStorage.clear();
-    alert("データを初期化しました。");  
+    if (confirm("これまでのプレイ実績や設定がすべて消去されます。本当に初期化しますか？")) {
+      localStorage.clear();
+      alert("データを初期化しました。");  
+    }
+    window.location.href = window.location.origin + window.location.pathname;
+    return;
   }
-  // 「OK」の場合も、消去を「キャンセル」した場合も、通常のURL（末尾の?~がない状態）に画面を切り替える
-  window.location.href = window.location.origin + window.location.pathname;
-  return;
-}
-loadStats();　　　　　　　//全プレイヤーの戦績データをパソコンから読み込む
-updateLoginStreak(); 　　//連続ログイン日数をカウント
-//すべての駅データが書かれた「station.json」ファイルをインターネット経由で読み込む。キャッシュを強制的に無視して常に最新を取得する
-const res=await fetch('stations.json', { cache: "no-store" });
-const raw=await res.json();
-//貨物専用駅を除外し、駅名の読みを全てひらがなに整えて保存
-stations=raw.filter(s=>!(s.companies&&s.companies.length===1&&s.companies[0]==="日本貨物鉄道")).map(s=>({...s,yomi:toHiragana(s.yomi)}));
-if(stations.length===0)return;
+  loadStats();
+  updateLoginStreak();
+
+  // 【究極版】データ取得失敗時の安全装置（Cache APIを使った非同期の大容量バックアップ）
+  let raw = [];
+  try {
+    // 常に最新を取りに行く
+    const res = await fetch('stations.json', { cache: "no-store" });
+    if (!res.ok) throw new Error("ネットワークエラー");
+    
+    // 【重要】レスポンスの中身（2MB）は1回しか読めないため、バックアップ用にコピー（clone）を作る
+    const resToCache = res.clone();
+    raw = await res.json();
+    
+    // Cache APIを使って、ブラウザの専用金庫に非同期で安全に保存する（フリーズしない・容量制限に引っかからない）
+    if ('caches' in window) {
+      const cache = await caches.open('eki-backup-v1');
+      cache.put('stations.json', resToCache).catch(e => console.warn("キャッシュ保存スキップ:", e));
+    }
+  } catch (err) {
+    console.warn("最新データの取得に失敗。Cache APIのバックアップを使用します。", err);
+    
+    let isRecovered = false;
+    // 通信エラー時は、Cache APIの金庫から過去のデータを引っ張り出す
+    if ('caches' in window) {
+      const cache = await caches.open('eki-backup-v1');
+      const cachedRes = await cache.match('stations.json');
+      if (cachedRes) {
+        raw = await cachedRes.json();
+        isRecovered = true;
+
+        // 【追加】画面上部に「バックアップ起動中」の警告バナーを動的に表示する
+        const header = document.querySelector(".game-header");
+        if (header && !document.getElementById("offline-warning-banner")) {
+          header.insertAdjacentHTML("afterend", `
+            <div id="offline-warning-banner" style="background-color: #fff3e0; color: #e65100; font-size: 11px; font-weight: bold; text-align: center; padding: 6px; border-bottom: 1px solid #ffcc80; width: 100%; box-sizing: border-box;">
+              ⚠️ バックアップデータで運行中。通常の出題と答えが異なる場合があります。
+            </div>
+          `);
+        }
+      }
+    }
+    
+    // バックアップすら無い（完全な初回プレイで通信エラー）場合の致命的エラー画面
+    if (!isRecovered) {
+      document.body.innerHTML = `
+        <div style="text-align:center; padding:50px; font-family:sans-serif;">
+          <h3 style="color:#e53935;">駅データの読み込みに失敗しました</h3>
+          <p style="font-size:14px; color:#555;">通信環境の良いところで、もう一度お試しください。</p>
+          <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; font-size:16px; font-weight:bold; background:#3498db; color:#fff; border:none; border-radius:5px;">再読み込み</button>
+        </div>`;
+      return; // 処理を止める
+    }
+  }
+
+  //貨物専用駅を除外し、駅名の読みを全てひらがなに整えて保存
+  stations=raw.filter(s=>!(s.companies&&s.companies.length===1&&s.companies[0]==="日本貨物鉄道")).map(s=>({...s,yomi:toHiragana(s.yomi)}));
+  if(stations.length===0)return;
 //画面下部の「回答」「1字消す」「全削除」ボタンの動作
 document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
 document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
@@ -262,6 +309,13 @@ updateHelpContent(); // 起動時に説明文を現在の設定に合わせる
 hardSwitch.addEventListener("change", (e) => {
   let st = savedState[isPlayingRandom ? "random" : currentMode];
 
+  // 【追加】すでにゲームクリア・ゲームオーバーになっている場合は変更をブロック
+  if (st && st.isOver) {
+    e.target.checked = !e.target.checked; // スイッチの見た目を強制的に戻す
+    showMessage("ゲーム終了後は変更できません");
+    return;
+}
+
   // プレイ途中（1手以上入力済み）に「通常→ハード」へ変更しようとした場合はブロック
   if (e.target.checked && st && st.guesses && st.guesses.length > 0) {
     e.target.checked = false; // スイッチを強制的にオフに戻す
@@ -308,7 +362,7 @@ function loadStats(){
 function saveStats(isWin,actualGuesses){
   // ランダムモード中は「random」の枠に集計する
   let currentState = savedState[isPlayingRandom ? "random" : currentMode];
-  let targetMode = isPlayingRandom ? "random" : (currentMode + (currentState.isHardMode ? "_hard" : ""));
+  let targetMode = isPlayingRandom ? "random" : currentMode;
   let st=userStats[targetMode];
   if(!st) st={played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
   if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
@@ -318,6 +372,18 @@ function saveStats(isWin,actualGuesses){
     st.won++; st.currentStreak++;
     if(st.currentStreak>st.maxStreak)st.maxStreak=st.currentStreak;
     st.dist[actualGuesses]=(st.dist[actualGuesses]||0)+1;
+    // 【ここから追加】
+    // プレイ状態を取得し、最後までハードモードを維持していたか判定する
+    let currentState = savedState[isPlayingRandom ? "random" : currentMode];
+    
+    if (currentState && currentState.isHardMode) {
+      
+      // ハードモードでのクリア回数（hardWon）をカウントアップする
+      // データが存在しない場合は0からスタートさせる
+      st.hardWon = (st.hardWon || 0) + 1;
+      
+    }
+    // 【ここまで追加】
   }else{ st.currentStreak=0; }
   
   userStats[targetMode]=st;
@@ -554,16 +620,15 @@ currentGuess="";
 // キーボードの文字や、特殊ボタン（回答・消去）が押されたときの振り分けを行う
 // プレイヤーの入力を処理する
 function handleKeyPress(char){
-  // 現在の難易度設定に応じて読み書きするデータのキーを切り替える（ランダム時は除く）
-  let stateKey = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
+  // 箱が統合されたため、単純に文字数モードのキーを参照するように修正
+  let stateKey = isPlayingRandom ? "random" : currentMode;
   let st = savedState[stateKey];
   if(!st || st.isOver || guessesSubmitted>=maxGuesses) return;
   
-  // 最初の1文字目が入力されたときにタイマーを開始してセーブする
   if(!st.startTime && char!=="BACK" && char!=="CLEAR" && char!=="ENTER"){
     st.startTime=Date.now();
     if(!isPlayingRandom) {
-      saveGameState(); // ← 確実なセーブを実行
+      saveGameState();
     }
   }
   
@@ -572,8 +637,14 @@ function handleKeyPress(char){
   }else if(char==="CLEAR"){
     currentGuess=""; updateTiles();
   }else if(char==="ENTER"){
-    if(currentGuess.length===rowLength) submitGuess(false);
-    else showMessage(`${rowLength}文字入力してください`);
+    if(currentGuess.length===rowLength) {
+      // 【修正】重い判定処理を10ミリ秒だけ遅らせて、ブラウザのフリーズ（処理落ち）を防ぐ
+      setTimeout(() => {
+        submitGuess(false);
+      }, 10);
+    } else {
+      showMessage(`${rowLength}文字入力してください`);
+    }
   }else{
     if(currentGuess.length<rowLength){ currentGuess+=char; updateTiles(); }
   }
@@ -874,7 +945,7 @@ clearTimeout(msgTimeout); msgTimeout=setTimeout(()=>box.classList.add("hidden"),
 function showResultModal(isWin,isRestore){
   // 難易度ごとに戦績グラフや勝率を別々に集計・表示するための切り替え
   let currentState = savedState[isPlayingRandom ? "random" : currentMode];
-  let targetMode = isPlayingRandom ? "random" : (currentMode + (ekiSettings.hardMode ? "_hard" : ""));
+  let targetMode = isPlayingRandom ? "random" : currentMode;
   let st = userStats[targetMode];
   if(!st) st = {played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
   if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
@@ -905,25 +976,26 @@ function showResultModal(isWin,isRestore){
   let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
   let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  // 2段目：通常のお取り寄せ
-  let yahooGiftKw = encodeURIComponent(muniMuni + " 特産品");
-  let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${yahooGiftKw}/0/?area=13&first=1&ss_first=1&ts=1780965121&mcr=a50de90c7f9059dfb652acb37a54e919&tab_ex=commerce&sretry=1&sc_i=shopping-pc-web-result-suggest-h_srch-srchbtn-sgstfrom-result-item-h_srch-srchbox`;
-  let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
-  let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
-  
-  let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " 特産品")}/`;
-  let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
-  let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  // 2段目：通常のお取り寄せ（楽天側もご提示いただいた半角プラス区切りへ修正）
+let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/0/?area=13&first=1&ss_first=1&sretry=0&tab_ex=commerce`;
+let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
+let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  // 3段目：ふるさと納税
-  let satofullDest = `https://www.satofull.jp/products/list.php?q=${encodeURIComponent(muniMuni)}&utm_source=a8&utm_medium=affiliate`;
-  let satofullUrl = `https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=${encodeURIComponent(satofullDest)}`;
+let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/`;
+let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
+let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " ふるさと納税")}/`;
-  let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
+// 3段目：ふるさと納税（こちらも同様に半角プラス区切りへ統一）
+let yahooFurusatoDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/0/?first=1&ss_first=1&sretry=0&tab_ex=commerce`;
+let yahooFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooFurusatoDest)}`;
+let yahooFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  // 結果画面のHTML書き換え
-  document.getElementById("wiki-link-container").innerHTML=`
+let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/`;
+let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
+let rakutenFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+
+// 結果画面のHTML書き換え
+document.getElementById("wiki-link-container").innerHTML=`
 <div style="margin-bottom:12px;">
 <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
 </div>
@@ -931,7 +1003,7 @@ function showResultModal(isWin,isRestore){
 <div style="text-align:center; margin-bottom:8px;">
 <span style="display:inline-block; border:1px solid #aaa; border-radius:4px; padding:1px 6px; font-size:10px; color:#aaa; font-weight:bold;">PR</span>
 </div>
-<div style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:8px;">${prText}</div>
+<div style="font-size:11px; font-weight:bold; color:#e65100; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prText}</div>
 <div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
 <a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
 <img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
@@ -949,9 +1021,8 @@ function showResultModal(isWin,isRestore){
 </a>
 <div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
 <div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🗾 地域を応援して名産品を貰う（ふるさと納税）</div>
-<a href="${satofullUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; background-color:#ffffff; border:none; border-radius:4px; width:45%; height:32px; overflow:hidden; position:relative; text-decoration:none;">
-<span style="font-size:11px; font-weight:bold; color:#33aaff;">さとふるで探す</span>
-<img src="./satofuru.jpg" alt="さとふる" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background-color:#ffffff; border:none;" onerror="this.style.display='none';">
+<a href="${yahooFurusatoUrl}" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+<img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ふるさと納税
 </a>
 <a href="${rakutenFurusatoUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#7a0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
 楽天ふるさと納税
@@ -962,6 +1033,8 @@ ${rakutenImp}
 ${yahooImp}
 ${rakutenMarketImp}
 ${yahooShoppingImp}
+${yahooFurusatoImp}
+${rakutenFurusatoImp}
 `;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
@@ -1367,9 +1440,30 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
   //    if (!ach.unlockedSets.lines.includes(l)) ach.unlockedSets.lines.push(l);
   //  });
   //}
+  
   if (!ach.unlockedSets.clearedStationNames.includes(todayStation.kanji)) {
     ach.unlockedSets.clearedStationNames.push(todayStation.kanji); // 駅名（新幹線全制覇などの判定用）
   }
+
+  // 【ここから追加】
+  // 現在の文字数モードのプレイ状態を取得する
+  let currentState = savedState[currentMode];
+  
+  // 1手目から最後までハードモードを維持してクリアした場合の処理
+  if (currentState && currentState.isHardMode) {
+    
+    // ハードでクリアした駅名を保存する配列がまだ無ければ作成する
+    if (!ach.unlockedSets.hardClearedStationNames) {
+      ach.unlockedSets.hardClearedStationNames = [];
+    }
+    
+    // まだ記録されていない駅名であれば、配列の末尾に追加する
+    if (!ach.unlockedSets.hardClearedStationNames.includes(todayStation.kanji)) {
+      ach.unlockedSets.hardClearedStationNames.push(todayStation.kanji);
+    }
+    
+  }
+  // 【ここまで追加】
   
   // 毎月1日や周年記念などの判定用に、月日のスタンプ（例：06-05）を保存します
   const monthDayStr = String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0');
@@ -1391,13 +1485,26 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
   localStorage.setItem("ekiAchievements", JSON.stringify(ach));
   
   // --- 8. クリア済みインデックスの記録（文字数モード別） ---
-  let clearedData = JSON.parse(localStorage.getItem("ekiClearedDays") || '{"4":[],"5":[],"6":[]}');
+  let clearedData = JSON.parse(localStorage.getItem("ekiClearedDays") || '{"4":[],"5":[],"6":[],"4_hard":[],"5_hard":[],"6_hard":[]}');
+  
+  // 通常モードの記録（ハードでクリアした場合も、大元の「クリア済み」として記録しておく）
   if (!clearedData[currentMode]) clearedData[currentMode] = [];
   if (!clearedData[currentMode].includes(currentDayIndex)) {
     clearedData[currentMode].push(currentDayIndex);
     clearedData[currentMode].sort((a, b) => a - b);
-    localStorage.setItem("ekiClearedDays", JSON.stringify(clearedData));
   }
+
+  // ハードモードの記録（ハードモード維持でクリアした場合のみ、別途 _hard 枠にも記録）
+  if (currentState && currentState.isHardMode) {
+    let hardKey = currentMode + "_hard";
+    if (!clearedData[hardKey]) clearedData[hardKey] = [];
+    if (!clearedData[hardKey].includes(currentDayIndex)) {
+      clearedData[hardKey].push(currentDayIndex);
+      clearedData[hardKey].sort((a, b) => a - b);
+    }
+  }
+  
+  localStorage.setItem("ekiClearedDays", JSON.stringify(clearedData));
 }
 
 

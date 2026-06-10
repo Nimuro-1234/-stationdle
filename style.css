@@ -74,8 +74,24 @@ position: absolute; top: 30%; background-color: var(--correct-color); color: whi
 }
 .hidden { display: none !important; }
 .modal-content {
-position: relative;
-background-color: white; padding: 20px 15px; border-radius: 8px; text-align: center; width: 95%; max-width: 350px;
+  position: relative;
+  background-color: var(--bg-color);
+  
+  /* 【工夫】元の色を活かしつつ、135度の角度でほんのり光と影のグラデーションを重ねて深みを出します */
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.06) 100%);
+  
+  color: var(--text-color);
+  border: 3px solid var(--correct-color);
+  
+  /* 【工夫】外側への強い影に加え、inset（内側）にうっすら光の縁取りを入れて高級感を出します */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
+  
+  /* 駅の案内板や記念切符のイメージに合わせて、角の丸みを「12px」に少し優しくします */
+  border-radius: 12px;
+  padding: 25px 20px;
+  text-align: center;
+  width: 95%;
+  max-width: 350px;
 }
 .wiki-link {
 display: inline-block; padding: 5px 15px; background-color: #eee; border-radius: 20px; text-decoration: none; color: #333; font-size: 12px;
@@ -107,24 +123,87 @@ body.theme-purple .key{background-color:#e1bee7;color:#4a148c;}
 #event-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden;}
 .particle{position:absolute;top:-20px;animation:fall linear 1 forwards;}
 @keyframes fall{to{transform:translateY(110vh) rotate(360deg);}}
-body.event-halloween{background-color:#2c1b18;color:#ff9800;}
-body.event-halloween .tile{border-color:#ff9800;}
-body.event-valentine{background-color:#3e2723;color:#ffcdd2;}
-body.event-valentine .tile{border-color:#ffcdd2;}
-body.event-christmas{background-color:#0f3024;color:#e8f5e9;}
-body.event-christmas .tile{border-color:#d32f2f;}
-body.event-hinamatsuri{background-color:#fff0f5;color:#c2185b;}
-body.event-hinamatsuri .tile{border-color:#f48fb1;}
-body.event-kodomo{background-color:#f1f8e9;color:#33691e;}
-body.event-kodomo .tile{border-color:#aed581;}
-body.event-tanabata{background-color:#0d1b2a;color:#fff9c4;}
-body.event-tanabata .tile{border-color:#415a77;}
-body.event-tanabata .key{background-color:#1b263b;color:#e0e1dd;}
+
+/* 直接背景色を変えるのではなく、テーマ変数を上書きすることでダイアログとも色を連動させます */
+/* エイプリルフールのタイトル反転演出 */
 body.event-aprilfool h1{transform:rotate(180deg);transition:transform 0.5s;}
+/* ハロウィンのテーマカラー */
+body.event-halloween{
+  --bg-color:#2c1b18;
+  --text-color:#ff9800;
+}
+body.event-halloween .tile{
+  border-color:#ff9800;
+}
+body.event-halloween .key { 
+  background-color: #3d2721; 
+  color: #ff9800; 
+}
+/* バレンタインのテーマカラー */
+body.event-valentine{
+  --bg-color:#3e2723;
+  --text-color:#ffcdd2;
+}
+body.event-valentine .tile{
+  border-color:#ffcdd2;
+}
+body.event-valentine .key { 
+  background-color: #5d4037; 
+  color: #ffcdd2; 
+}
+/* クリスマスのテーマカラー */
+body.event-christmas{
+  --bg-color:#0f3024;
+  --text-color:#e8f5e9;
+}
+body.event-christmas .tile{
+  border-color:#d32f2f;
+}
+body.event-christmas .key { 
+  background-color: #1b4d3e; 
+  color: #e8f5e9; 
+}
+/* ひなまつりのテーマカラー */
+body.event-hinamatsuri{
+  --bg-color:#fff0f5;
+  --text-color:#c2185b;
+}
+body.event-hinamatsuri .tile{
+  border-color:#f48fb1;
+}
+body.event-hinamatsuri .key { 
+  background-color: #f8bbd0; 
+  color: #c2185b; 
+}
+/* 子どもの日のテーマカラー */
+body.event-kodomo{
+  --bg-color:#f1f8e9;
+  --text-color:#33691e;
+}
+body.event-kodomo .tile{
+  border-color:#aed581;
+}
+body.event-kodomo .key { 
+  background-color: #dcedc8; 
+  color: #33691e; 
+}
+/* 七夕のテーマカラー */
+body.event-tanabata{
+  --bg-color:#0d1b2a;
+  --text-color:#fff9c4;
+}
+body.event-tanabata .tile{
+  border-color:#415a77;
+}
+body.event-tanabata .key{
+  background-color:#1b263b;
+  color:#e0e1dd;
+}
+
 /* 元旦・お正月用のテーマカラー */
 body.event-newyear {
-  background-color: #fffaf0; /* ほんのり温かみのある白 */
-  color: #b71c1c; /* おめでたい深い赤 */
+  --bg-color: #fffaf0; /* ほんのり温かみのある白 */
+  --text-color: #b71c1c; /* おめでたい深い赤 */
 }
 body.event-newyear .tile {
   border-color: #e53935;
@@ -135,17 +214,38 @@ body.event-newyear .key {
 }
 
 /* 大晦日用の特別なプレミアムテーマカラー */
-/* 除夜の鐘が響く大晦日の静寂と、境内の灯火をイメージした厳かな色彩です */
 body.event-nye {
-  background-color: #161219;
-  color: #d1c7bd;
+  --bg-color: #161219;
+  --text-color: #d1c7bd;
 }
-
 body.event-nye .tile {
   border-color: #36303d;
 }
-
 body.event-nye .key {
   background-color: #25202b;
   color: #d1c7bd;
+}
+
+/* ==========================================
+結果ウィンドウのスクロールバーはみ出し対策
+========================================== */
+/* スクロールバー全体の横幅を少し細くしてスタイリッシュにします */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* スクロールバーが走るレーン（トラック）の設定 */
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+  /* 【ここがポイント】上下に12pxの余白を作ることで、丸角のカーブ部分にバーが進入するのを防ぎます */
+  margin: 12px 0;
+}
+
+/* スクロールバーの動くつまみ（ハンドル）の設定 */
+.modal-content::-webkit-scrollbar-thumb {
+  /* 現在のボタン色（緑など）をうっすら透かせた色にして画面に馴染ませます */
+  background-color: var(--correct-color);
+  opacity: 0.5;
+  /* つまみ自体の角も丸めることで、枠線との干渉を完全に無くします */
+  border-radius: 10px;
 }
