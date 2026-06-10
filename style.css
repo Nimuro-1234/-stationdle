@@ -125,20 +125,80 @@ body.theme-purple .key{background-color:#e1bee7;color:#4a148c;}
 @keyframes fall{to{transform:translateY(110vh) rotate(360deg);}}
 
 /* 直接背景色を変えるのではなく、テーマ変数を上書きすることでダイアログとも色を連動させます */
-body.event-halloween{--bg-color:#2c1b18;--text-color:#ff9800;}
-body.event-halloween .tile{border-color:#ff9800;}
-body.event-valentine{--bg-color:#3e2723;--text-color:#ffcdd2;}
-body.event-valentine .tile{border-color:#ffcdd2;}
-body.event-christmas{--bg-color:#0f3024;--text-color:#e8f5e9;}
-body.event-christmas .tile{border-color:#d32f2f;}
-body.event-hinamatsuri{--bg-color:#fff0f5;--text-color:#c2185b;}
-body.event-hinamatsuri .tile{border-color:#f48fb1;}
-body.event-kodomo{--bg-color:#f1f8e9;--text-color:#33691e;}
-body.event-kodomo .tile{border-color:#aed581;}
-body.event-tanabata{--bg-color:#0d1b2a;--text-color:#fff9c4;}
-body.event-tanabata .tile{border-color:#415a77;}
-body.event-tanabata .key{background-color:#1b263b;color:#e0e1dd;}
+/* エイプリルフールのタイトル反転演出 */
 body.event-aprilfool h1{transform:rotate(180deg);transition:transform 0.5s;}
+/* ハロウィンのテーマカラー */
+body.event-halloween{
+  --bg-color:#2c1b18;
+  --text-color:#ff9800;
+}
+body.event-halloween .tile{
+  border-color:#ff9800;
+}
+body.event-halloween .key { 
+  background-color: #3d2721; 
+  color: #ff9800; 
+}
+/* バレンタインのテーマカラー */
+body.event-valentine{
+  --bg-color:#3e2723;
+  --text-color:#ffcdd2;
+}
+body.event-valentine .tile{
+  border-color:#ffcdd2;
+}
+body.event-valentine .key { 
+  background-color: #5d4037; 
+  color: #ffcdd2; 
+}
+/* クリスマスのテーマカラー */
+body.event-christmas{
+  --bg-color:#0f3024;
+  --text-color:#e8f5e9;
+}
+body.event-christmas .tile{
+  border-color:#d32f2f;
+}
+body.event-christmas .key { 
+  background-color: #1b4d3e; 
+  color: #e8f5e9; 
+}
+/* ひなまつりのテーマカラー */
+body.event-hinamatsuri{
+  --bg-color:#fff0f5;
+  --text-color:#c2185b;
+}
+body.event-hinamatsuri .tile{
+  border-color:#f48fb1;
+}
+body.event-hinamatsuri .key { 
+  background-color: #f8bbd0; 
+  color: #c2185b; 
+}
+/* 子どもの日のテーマカラー */
+body.event-kodomo{
+  --bg-color:#f1f8e9;
+  --text-color:#33691e;
+}
+body.event-kodomo .tile{
+  border-color:#aed581;
+}
+body.event-kodomo .key { 
+  background-color: #dcedc8; 
+  color: #33691e; 
+}
+/* 七夕のテーマカラー */
+body.event-tanabata{
+  --bg-color:#0d1b2a;
+  --text-color:#fff9c4;
+}
+body.event-tanabata .tile{
+  border-color:#415a77;
+}
+body.event-tanabata .key{
+  background-color:#1b263b;
+  color:#e0e1dd;
+}
 
 /* 元旦・お正月用のテーマカラー */
 body.event-newyear {
