@@ -74,8 +74,17 @@ position: absolute; top: 30%; background-color: var(--correct-color); color: whi
 }
 .hidden { display: none !important; }
 .modal-content {
-position: relative;
-background-color: white; padding: 20px 15px; border-radius: 8px; text-align: center; width: 95%; max-width: 350px;
+  position: relative;
+  background-color: white;
+  
+  /* 行事日の明るい文字色が引き継がれて白と同化するのを防ぐため、文字色を黒（#333）に固定します */
+  color: #333;
+  
+  padding: 20px 15px;
+  border-radius: 8px;
+  text-align: center;
+  width: 95%;
+  max-width: 350px;
 }
 .wiki-link {
 display: inline-block; padding: 5px 15px; background-color: #eee; border-radius: 20px; text-decoration: none; color: #333; font-size: 12px;
