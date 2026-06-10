@@ -120,24 +120,27 @@ body.theme-purple .key{background-color:#e1bee7;color:#4a148c;}
 #event-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden;}
 .particle{position:absolute;top:-20px;animation:fall linear 1 forwards;}
 @keyframes fall{to{transform:translateY(110vh) rotate(360deg);}}
-body.event-halloween{background-color:#2c1b18;color:#ff9800;}
+
+/* 直接背景色を変えるのではなく、テーマ変数を上書きすることでダイアログとも色を連動させます */
+body.event-halloween{--bg-color:#2c1b18;--text-color:#ff9800;}
 body.event-halloween .tile{border-color:#ff9800;}
-body.event-valentine{background-color:#3e2723;color:#ffcdd2;}
+body.event-valentine{--bg-color:#3e2723;--text-color:#ffcdd2;}
 body.event-valentine .tile{border-color:#ffcdd2;}
-body.event-christmas{background-color:#0f3024;color:#e8f5e9;}
+body.event-christmas{--bg-color:#0f3024;--text-color:#e8f5e9;}
 body.event-christmas .tile{border-color:#d32f2f;}
-body.event-hinamatsuri{background-color:#fff0f5;color:#c2185b;}
+body.event-hinamatsuri{--bg-color:#fff0f5;--text-color:#c2185b;}
 body.event-hinamatsuri .tile{border-color:#f48fb1;}
-body.event-kodomo{background-color:#f1f8e9;color:#33691e;}
+body.event-kodomo{--bg-color:#f1f8e9;--text-color:#33691e;}
 body.event-kodomo .tile{border-color:#aed581;}
-body.event-tanabata{background-color:#0d1b2a;color:#fff9c4;}
+body.event-tanabata{--bg-color:#0d1b2a;--text-color:#fff9c4;}
 body.event-tanabata .tile{border-color:#415a77;}
 body.event-tanabata .key{background-color:#1b263b;color:#e0e1dd;}
 body.event-aprilfool h1{transform:rotate(180deg);transition:transform 0.5s;}
+
 /* 元旦・お正月用のテーマカラー */
 body.event-newyear {
-  background-color: #fffaf0; /* ほんのり温かみのある白 */
-  color: #b71c1c; /* おめでたい深い赤 */
+  --bg-color: #fffaf0; /* ほんのり温かみのある白 */
+  --text-color: #b71c1c; /* おめでたい深い赤 */
 }
 body.event-newyear .tile {
   border-color: #e53935;
@@ -148,16 +151,13 @@ body.event-newyear .key {
 }
 
 /* 大晦日用の特別なプレミアムテーマカラー */
-/* 除夜の鐘が響く大晦日の静寂と、境内の灯火をイメージした厳かな色彩です */
 body.event-nye {
-  background-color: #161219;
-  color: #d1c7bd;
+  --bg-color: #161219;
+  --text-color: #d1c7bd;
 }
-
 body.event-nye .tile {
   border-color: #36303d;
 }
-
 body.event-nye .key {
   background-color: #25202b;
   color: #d1c7bd;
