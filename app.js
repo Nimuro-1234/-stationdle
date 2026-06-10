@@ -956,25 +956,26 @@ function showResultModal(isWin,isRestore){
   let rakutenUrl=`https://af.moshimo.com/af/c/click?a_id=5616621&p_id=55&pc_id=55&pl_id=624&url=https%3A%2F%2Fkw.travel.rakuten.co.jp%2Fkeyword%2FSearch.do%3Fcharset%3Dutf-8%26f_max%3D30%26l-id%3DtopC_search_keyword%26f_query%3D${rakutenKeyword}`;
   let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  // 2段目：通常のお取り寄せ
-  let yahooGiftKw = encodeURIComponent(muniMuni + " 特産品");
-  let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${yahooGiftKw}/0/?area=13&first=1&ss_first=1&ts=1780965121&mcr=a50de90c7f9059dfb652acb37a54e919&tab_ex=commerce&sretry=1&sc_i=shopping-pc-web-result-suggest-h_srch-srchbtn-sgstfrom-result-item-h_srch-srchbox`;
-  let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
-  let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
-  
-  let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " 特産品")}/`;
-  let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
-  let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  // 2段目：通常のお取り寄せ（楽天側もご提示いただいた半角プラス区切りへ修正）
+let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/0/?area=13&first=1&ss_first=1&sretry=0&tab_ex=commerce`;
+let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
+let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  // 3段目：ふるさと納税
-  let satofullDest = `https://www.satofull.jp/products/list.php?q=${encodeURIComponent(muniMuni)}&utm_source=a8&utm_medium=affiliate`;
-  let satofullUrl = `https://px.a8.net/svt/ejp?a8mat=4B5NW1+DE94S2+4ZCO+BW8O2&a8ejpredirect=${encodeURIComponent(satofullDest)}`;
+let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/`;
+let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
+let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni + " ふるさと納税")}/`;
-  let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
+// 3段目：ふるさと納税（こちらも同様に半角プラス区切りへ統一）
+let yahooFurusatoDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/0/?first=1&ss_first=1&sretry=0&tab_ex=commerce`;
+let yahooFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooFurusatoDest)}`;
+let yahooFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-  // 結果画面のHTML書き換え
-  document.getElementById("wiki-link-container").innerHTML=`
+let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/`;
+let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
+let rakutenFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+
+// 結果画面のHTML書き換え
+document.getElementById("wiki-link-container").innerHTML=`
 <div style="margin-bottom:12px;">
 <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
 </div>
@@ -982,7 +983,7 @@ function showResultModal(isWin,isRestore){
 <div style="text-align:center; margin-bottom:8px;">
 <span style="display:inline-block; border:1px solid #aaa; border-radius:4px; padding:1px 6px; font-size:10px; color:#aaa; font-weight:bold;">PR</span>
 </div>
-<div style="font-size:11px; font-weight:bold; color:#e65100; margin-bottom:8px;">${prText}</div>
+<div style="font-size:11px; font-weight:bold; color:#e65100; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prText}</div>
 <div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
 <a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
 <img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
@@ -1000,9 +1001,8 @@ function showResultModal(isWin,isRestore){
 </a>
 <div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
 <div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🗾 地域を応援して名産品を貰う（ふるさと納税）</div>
-<a href="${satofullUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; background-color:#ffffff; border:none; border-radius:4px; width:45%; height:32px; overflow:hidden; position:relative; text-decoration:none;">
-<span style="font-size:11px; font-weight:bold; color:#33aaff;">さとふるで探す</span>
-<img src="./satofuru.jpg" alt="さとふる" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background-color:#ffffff; border:none;" onerror="this.style.display='none';">
+<a href="${yahooFurusatoUrl}" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+<img src="./yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ふるさと納税
 </a>
 <a href="${rakutenFurusatoUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#7a0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
 楽天ふるさと納税
@@ -1013,6 +1013,8 @@ ${rakutenImp}
 ${yahooImp}
 ${rakutenMarketImp}
 ${yahooShoppingImp}
+${yahooFurusatoImp}
+${rakutenFurusatoImp}
 `;
 document.getElementById("stat-played").textContent=st.played;
 let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
