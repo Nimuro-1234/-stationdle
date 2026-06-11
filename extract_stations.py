@@ -222,7 +222,7 @@ def fetch_station_details(url):
         "muni_url": "",            # 自治体ページのURL
         "platforms": 0,            # 面数
         "tracks": 0,               # 線路数
-        "min_km": float('inf'),    # 最小営業キロ
+        "min_km": None        ,    # 最小営業キロ
         "open_year": None,         # 開業年
         "open_month": None,        # 開業月
         "open_day": None,          # 開業日
@@ -774,7 +774,7 @@ def extract_and_count_stations():
             # 【追加】完全データ保護ロジック（一括復元）
             # =========================================================================
             # 距離がエラー値であり、かつ住所も空っぽなら「明らかな通信エラー」と判定する
-            is_fetch_failed = (v["min_km"] == 999999 and not v["address"])
+            is_fetch_failed = (v["min_km"] is None and not v["address"])
 
             if is_fetch_failed:
                 # 取得失敗時は、新しい空っぽのデータ(v)を捨てて、過去のデータ(old_item)をそのまま残す
