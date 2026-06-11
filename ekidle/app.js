@@ -840,7 +840,7 @@ if(keyBtn){ keyBtn.classList.remove("correct","present","diacritic","absent"); k
 //今回のヒント（色の結果）を元に、全国の駅名リストをシミュレーションして残り候補駅数を計算・表示
 function filterAvailableStations(guess,actualColors,isRestore){
   // 【追加】画面の切り替え（復元）処理のときは、無駄な絞り込み計算をスキップして動作を軽くする
-  if(isRestore){
+  if(isRestore || guess === todayStation.yomi){
     return;
   }
 availableStations=availableStations.filter(s=>{
