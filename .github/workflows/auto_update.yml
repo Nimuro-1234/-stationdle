@@ -3,8 +3,8 @@ name: Daily Station Extraction
 on:
   schedule:
     # 日本時間(JST)の深夜3時は、協定世界時(UTC)の前日18時です
-    # 設定時刻より3～5時間遅れるので、更新時刻を22時に設定
-    - cron: '0 13 * * *'
+    # 設定時刻より3～5時間遅れるので、更新時刻を14時に設定
+    - cron: '0 5 * * *'
   # 手動でもボタンから実行できるようにする設定
   workflow_dispatch: 
 
