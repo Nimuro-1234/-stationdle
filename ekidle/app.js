@@ -790,7 +790,14 @@ function updateZukan(yomi, status){
 function submitGuess(isRestore=false){
   // 【修正前】const isValid=stations.filter(s=>s.yomi.length===currentMode).some(s=>s.yomi===currentGuess);
   // 【修正後】無駄なリスト作りをやめ、見つかった瞬間に検索を終えるスマートな書き方に変更します
-  const isValid=stations.some(s=> s.yomi.length===currentMode && s.yomi===currentGuess);
+  // 【修正】廃止から40日間の「入力猶予期間（グレースピリオド）」を設ける
+  const isValid = stations.some(s => 
+    s.yomi.length === currentMode && 
+    s.yomi === currentGuess && 
+    (s.startDay === undefined || s.startDay <= currentDayIndex) && 
+    // 【ここがポイント】今日から32日引いた日よりも「後」に廃止された駅なら入力を許す
+    (s.endDay === undefined || s.endDay > (currentDayIndex - 32) || s.endDay === 999999)
+  );
   if(!isValid){ if(!isRestore)showMessage("実在しない駅名です"); return; }
   
   // ランダムモード（周年モード）でもハードモードの縛りを適用する。
