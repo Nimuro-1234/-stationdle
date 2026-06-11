@@ -180,9 +180,8 @@ try{
         isRecovered = true;
 
         // 【追加】画面上部に「バックアップ起動中」の警告バナーを動的に表示する
-        const header = document.querySelector(".game-header");
-        if (header && !document.getElementById("offline-warning-banner")) {
-          header.insertAdjacentHTML("afterend", `
+        if (!document.getElementById("offline-warning-banner")) {
+          document.body.insertAdjacentHTML("afterbegin", `
             <div id="offline-warning-banner" style="background-color: #fff3e0; color: #e65100; font-size: 11px; font-weight: bold; text-align: center; padding: 6px; border-bottom: 1px solid #ffcc80; width: 100%; box-sizing: border-box;">
               ⚠️ バックアップデータで運行中。通常の出題と答えが異なる場合があります。
             </div>
