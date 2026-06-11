@@ -520,17 +520,21 @@ async function selectTodayStation(){
     };
 
     // 4. 駅リストの中から、読み（yomi）をハッシュ化して合致する駅を逆引き検索する
-    let foundStation = null;
-    for (const s of modeStations) {
+    
+    // modeStationsにあるすべての駅のハッシュ計算を「同時」に開始する
+    const hashPromises = modeStations.map(async (s) => {
       const sHash = await calcSha256(SECRET_SALT + s.yomi);
-      if (sHash === targetHash) {
-        foundStation = s;
-        break;
-      }
-    }
+      return { station: s, hash: sHash };
+    });
 
-    if (foundStation) {
-      todayStation = foundStation;
+    // 並列処理されたすべての駅の計算結果が出そろうまで一括で待機する
+    const hashedStations = await Promise.all(hashPromises);
+
+    // 計算済みのリストの中から、ターゲットのハッシュと一致する駅を一瞬で探し出す
+    const foundItem = hashedStations.find(item => item.hash === targetHash);
+
+    if (foundItem) {
+      todayStation = foundItem.station;
     } else {
       throw new Error("ハッシュが一致する駅がDB内に見つかりません");
     }
