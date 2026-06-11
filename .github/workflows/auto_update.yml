@@ -39,23 +39,32 @@ jobs:
       - name: Run extraction script
         run: python extract_stations.py
 
+        # 【ここを追加】駅データが完成した直後に、そのデータを使って答えを生成する
+      - name: Generate daily answer
+        run: python generate_answer.py
+
       - name: 取得したデータをコミットしてプッシュする
         run: |
           # 誰が更新したかを記録するためのGitの初期設定です
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # stations.jsonの変更内容を記録対象にします
-          git add stations.json
+          # 変更（追加や修正）があったファイルを自動で安全にすべて選択します
+          # これにより、特定のフォルダに差分がない日でもエラーにならなくなります
+          git add -A
           
-          # 変更がある場合のみコミット（保存）し、リポジトリへプッシュ（反映）します
-          git commit -m "Auto-update stations.json" || echo "No changes to commit"
-
-          # プッシュする前にGitHub側の最新データをダウンロードして合流させる
-          git pull origin main --rebase
-          
-          # 最後にリポジトリへプッシュ（反映）します
-          git push origin main
+          # 画面裏で本当にファイルに変更（差分）があるかチェックします
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "データの変更を検知したため、更新処理を行います。"
+            git commit -m "Auto-update stations & generated answers"
+            
+            # 最新の状態を反映させてから安全にプッシュします
+            git fetch origin main
+            git rebase origin/main || git rebase --abort
+            git push origin main
+          else
+            echo "変更されたデータはありませんでした。処理を正常終了します。"
+          fi
 
           # 【ここから追加】作成された最新データをdevelopmentにも同期する
       - name: Sync stations.json to development
@@ -65,6 +74,7 @@ jobs:
           
           # mainブランチにある最新のstations.jsonだけを引っ張ってくる
           git checkout main -- stations.json
+          git checkout main -- ekidle/answer
           
           # developmentブランチへコミットしてプッシュする
           git commit -m "Sync stations.json from main" || echo "No changes to sync"
