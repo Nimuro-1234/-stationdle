@@ -503,8 +503,8 @@ async function selectTodayStation(){
   }
 
   try {
-    // 2. 事前生成された今年の答えJSON（例: /answers/2026.json）を読み込む
-    const res = await fetch(`/answers/${yearStr}.json`, { cache: "no-store" });
+    // 2. 事前生成された今年の答えJSON（例: answers/2026.json）を読み込む
+    const res = await fetch(`answers/${yearStr}.json`, { cache: "no-store" });
     if (!res.ok) throw new Error("答えファイルの取得に失敗");
     const answersData = await res.json();
 
