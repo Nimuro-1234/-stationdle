@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 【修正1】全ブランチのデータをダウンロードする（別ブランチへの同期に必須）
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,7 +41,7 @@ jobs:
       - name: Run extraction script
         run: python extract_stations.py
 
-        # 【ここを追加】駅データが完成した直後に、そのデータを使って答えを生成する
+      # 駅データが完成した直後に、そのデータを使って答えを生成する
       - name: Generate daily answer
         run: python generate_answer.py
 
@@ -50,7 +52,6 @@ jobs:
           git config --local user.name "GitHub Action"
           
           # 変更（追加や修正）があったファイルを自動で安全にすべて選択します
-          # これにより、特定のフォルダに差分がない日でもエラーにならなくなります
           git add -A
           
           # 画面裏で本当にファイルに変更（差分）があるかチェックします
@@ -66,15 +67,16 @@ jobs:
             echo "変更されたデータはありませんでした。処理を正常終了します。"
           fi
 
-          # 【ここから追加】作成された最新データをdevelopmentにも同期する
-      - name: Sync stations.json to development
+      # 作成された最新データをdevelopmentにも同期する
+      - name: Sync data to development
         run: |
           git fetch origin development
           git checkout development
           
-          # mainブランチにある最新のstations.jsonだけを引っ張ってくる
-          git checkout main -- stations.json
+          # 【修正2】mainブランチにある「最新の駅データ」と「答えのデータ」の2つを引っ張ってくる
+          # ※もし答えのファイル名が違う場合は「daily_answer.json」の部分を書き換えてください
+          git checkout main -- stations.json answers/ answers_admin/
           
           # developmentブランチへコミットしてプッシュする
-          git commit -m "Sync stations.json from main" || echo "No changes to sync"
+          git commit -m "Sync stations and answers from main" || echo "No changes to sync"
           git push origin development
