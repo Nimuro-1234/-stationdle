@@ -236,7 +236,7 @@ else showMessage("ゲームクリア後に見ることができます");
 });
 //「4文字」「5文字」「6文字」の切り替えボタンが押されたときの処理
 [4,5,6].forEach(num=>{
-document.getElementById(`mode-${num}`).addEventListener("click",()=>{
+document.getElementById(`mode-${num}`).addEventListener("click", async ()=>{
   isPlayingRandom = false; 
   isAprilFoolMode = false; // 【追加】エイプリルフールフラグを解除する
   
@@ -248,7 +248,7 @@ document.getElementById(`mode-${num}`).addEventListener("click",()=>{
   document.getElementById(`mode-${num}`).classList.add("active");
   currentMode=num; rowLength=num; maxGuesses=(num===4)?8:6;
   document.getElementById("game-board").style.setProperty("--row-length",num);
-  selectTodayStation(); restoreBoard();
+  await selectTodayStation(); restoreBoard();
   });
 });
 //結果ウィンドウにある各種SNSへのシェアボタンやコピーボタンの動作
@@ -333,8 +333,8 @@ hardSwitch.addEventListener("change", (e) => {
   localStorage.setItem("ekiSettings", JSON.stringify(ekiSettings));
   updateHelpContent();
 });
-//最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
-selectTodayStation(); restoreBoard(); checkSpecialEvent();
+  //最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
+  await selectTodayStation(); restoreBoard(); checkSpecialEvent();
 }catch(e){ console.error("データエラー:",e); }
 }
 
@@ -404,7 +404,10 @@ localStorage.setItem("ekiPuzzleArchiveV1",JSON.stringify(dailyArchive));
 function loadGameState(dayIdx){
   const savedLog=localStorage.getItem("ekiPuzzleStateV1_Log");
   let logData=savedLog?JSON.parse(savedLog):{};
-  let todayStr=new Date().toISOString().split('T')[0];
+  //let todayStr=new Date().toISOString().split('T')[0];
+  // 【修正後】端末のローカル時計で「YYYY-MM-DD」を作成する
+  const d = new Date();
+  let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
   let meta=JSON.parse(localStorage.getItem("ekiZukanMeta")||'{"totalLogins":0,"lastLoginDate":"","firstPlayDate":""}');
   
   if(!meta.firstPlayDate) meta.firstPlayDate=todayStr;
@@ -462,75 +465,126 @@ function saveGameState() {
 // ==========================================
 
 //今日出題する駅を、日付をもとにした乱数シードにより1つ決定
-function selectTodayStation(){
+async function selectTodayStation(){
   const modeStations = stations.filter(s => s.yomi.length === currentMode);
   if(modeStations.length === 0){
     alert(`エラー: ${currentMode}文字の駅データが見つかりません。`);
     todayStation = {kanji:"えらー", yomi:"えらー"}; 
     return;
   }
-  
-  //2024年1月1日を基準に、世界中どこからアクセスしても強制的に「日本時間（JST）」で今日が何日目かを決定する
-  const t=new Date();
+
+  // Python側と完全に一致させる秘密の合言葉（ソルト）
+  const SECRET_SALT = "EkiDoru_Secret_2026!";
+
+  // 1. 日本時間（JST）ベースの今日の日付と、今年の西暦（ファイル名用）を取得
+  const t = new Date();
   const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
   const jstObj = new Date(jstMs);
+  const yearStr = jstObj.getFullYear(); // 例: 2026
+  let todayStr = jstObj.getFullYear() + "-" + String(jstObj.getMonth() + 1).padStart(2, '0') + "-" + String(jstObj.getDate()).padStart(2, '0'); // 例: "2026-06-11"
+
+  // 従来のセーブデータ管理（何日目のパズルか）のためにインデックスは計算しておく
   const todayUTC = Date.UTC(jstObj.getFullYear(), jstObj.getMonth(), jstObj.getDate());
-  const baseUTC = Date.UTC(2024, 0, 1);
-  currentDayIndex=Math.round((todayUTC - baseUTC) / 86400000)+debugOffset;
+  const baseUTC = Date.UTC(2024, 0, 1);      //2024年1月1日を基準とする
+  currentDayIndex = Math.round((todayUTC - baseUTC) / 86400000) + debugOffset;
+
+  // デバッグ機能で日付がずらされている場合は、検索する日付文字列も再計算
+  if (debugOffset !== 0) {
+    const debugDate = new Date(baseUTC + currentDayIndex * 86400000);
+    todayStr = debugDate.getUTCFullYear() + "-" + String(debugDate.getUTCMonth() + 1).padStart(2, '0') + "-" + String(debugDate.getUTCDate()).padStart(2, '0');
+  }
+  
   loadGameState(currentDayIndex);
 
-  // ↓ここから追加（安全なキャッシュ確認）
-  // すでに記憶があり、かつ記憶した「日にち」が「今日」と同じ場合のみキャッシュを使う
+  // すでにキャッシュがあり、かつ記憶した「日にち」が「今日」と同じ場合のみキャッシュを使う（文字数切り替え時の負荷軽減）
   if (todayStationCache[currentMode] && todayStationCache[currentMode].dayIndex === currentDayIndex) {
     todayStation = todayStationCache[currentMode].station;
-    return; // 計算をサボって終了する
-  }
-  // ↑ここまで追加
-  
-  let uniqueYomiCount = new Set(modeStations.map(s => s.yomi)).size;
-  let lookback = Math.min(1000, Math.floor(uniqueYomiCount * 0.7));
-  
-  // 各駅の「次回出禁解除日」を記録する箱
-  let nextAvailableDay = {}; 
-  
-  for(let d = 0; d <= currentDayIndex; d++){
-    
-    // その日（d）時点で、すでに登場しており、かつまだ廃止されていない駅を絞り込む
-    let activeStations = modeStations.filter(s => 
-      s.startDay !== undefined && s.startDay <= d && (s.endDay === undefined || s.endDay > d || s.endDay === 999999)
-    );
-    
-    //【超安全装置】もしその日の現役駅が0件なら、データ未設定とみなして全駅を対象にする！
-    if (activeStations.length === 0) {
-      activeStations = modeStations;
-    }
-    
-    // その日現役の駅の中から、さらに「ロック期間中ではない駅」を絞り込んでプールを作る
-    let pool = activeStations.filter(s => !nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d);
-    
-    // 万が一プールが空になった場合の安全装置も、その日現役の駅にする
-    if(pool.length === 0) pool = activeStations; 
-    
-    let seed = d * 12345 + currentMode * 6789;
-    let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
-    hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
-    hash = (hash ^ (hash >>> 16)) >>> 0;
-    
-    let candidate = pool[hash % pool.length];
-    
-    nextAvailableDay[candidate.yomi] = d + lookback + 1;
-    
-    if(d === currentDayIndex) todayStation = candidate;
+    return; 
   }
 
-  // ↓ここから追加
+  try {
+    // 2. 事前生成された今年の答えJSON（例: answers/2026.json）を読み込む
+    const res = await fetch(`answers/${yearStr}.json`, { cache: "no-store" });
+    if (!res.ok) throw new Error("答えファイルの取得に失敗");
+    const answersData = await res.json();
+
+    // 3. 今日・この文字数モードに対応する「正解のハッシュ値」を取得
+    const targetHash = answersData[todayStr]?.[currentMode];
+    if (!targetHash) throw new Error("本日の答えデータがファイル内にありません");
+
+    // JS側で文字を暗号化（SHA-256）するためのヘルパー処理
+    const calcSha256 = async (str) => {
+      const buf = new TextEncoder().encode(str);
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
+    // 4. 駅リストの中から、読み（yomi）をハッシュ化して合致する駅を逆引き検索する
+    
+    // modeStationsにあるすべての駅のハッシュ計算を「同時」に開始する
+    const hashPromises = modeStations.map(async (s) => {
+      const sHash = await calcSha256(SECRET_SALT + s.yomi);
+      return { station: s, hash: sHash };
+    });
+
+    // 並列処理されたすべての駅の計算結果が出そろうまで一括で待機する
+    const hashedStations = await Promise.all(hashPromises);
+
+    // 計算済みのリストの中から、ターゲットのハッシュと一致する駅を一瞬で探し出す
+    const foundItem = hashedStations.find(item => item.hash === targetHash);
+
+    if (foundItem) {
+      todayStation = foundItem.station;
+    } else {
+      throw new Error("ハッシュが一致する駅がDB内に見つかりません");
+    }
+
+  } catch (err) {
+    console.warn("⚠️ サーバーの答えファイル読み込み失敗。従来のロジックで自動計算します:", err);
+
+    // 【安全装置】万が一通信エラーやJSON破損があった場合は、ゲームが止まらないよう元の計算ロジックで動かす
+    let uniqueYomiCount = new Set(modeStations.map(s => s.yomi)).size;
+    let lookback = Math.min(1000, Math.floor(uniqueYomiCount * 0.7));
+  
+    // 各駅の「次回出禁解除日」を記録する箱
+    let nextAvailableDay = {}; 
+  
+    for(let d = 0; d <= currentDayIndex; d++){
+    
+      // その日（d）時点で、すでに登場しており、かつまだ廃止されていない駅を絞り込む
+      let activeStations = modeStations.filter(s => 
+        s.startDay !== undefined && s.startDay <= d && (s.endDay === undefined || s.endDay > d || s.endDay === 999999)
+      );
+    
+      //【超安全装置】もしその日の現役駅が0件なら、データ未設定とみなして全駅を対象にする！
+      if (activeStations.length === 0) {
+        activeStations = modeStations;
+      }
+    
+      // その日現役の駅の中から、さらに「ロック期間中ではない駅」を絞り込んでプールを作る
+      let pool = activeStations.filter(s => !nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d);
+    
+      // 万が一プールが空になった場合の安全装置も、その日現役の駅にする
+      if(pool.length === 0) pool = activeStations; 
+    
+      let seed = d * 12345 + currentMode * 6789;
+      let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
+      hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+      hash = (hash ^ (hash >>> 16)) >>> 0;
+    
+      let candidate = pool[hash % pool.length];
+    
+      nextAvailableDay[candidate.yomi] = d + lookback + 1;
+    
+      if(d === currentDayIndex) todayStation = candidate;
+    } 
+  }
+
   // 計算し終わった駅データと、その日のインデックス（日数）をセットで記憶させる
   todayStationCache[currentMode] = {
     station: todayStation,
     dayIndex: currentDayIndex
-  };
-  // ↑ここまで追加
-  
+  };  
   //公開時には絶対消す！！
   //console.log(`※${currentMode}文字の答え:`, todayStation.kanji, todayStation.yomi);
 }
@@ -713,15 +767,18 @@ return results;
 //==========================================
 //駅の読みがなと状態（1=遭遇、2=的中）を受け取ってパソコンに記録する
 function updateZukan(yomi, status){
-const savedZukan=localStorage.getItem("ekiZukanData");
-let zukan=savedZukan?JSON.parse(savedZukan):{};
-let todayStr=new Date().toISOString().split('T')[0];
-let currentStatus=zukan[yomi]?zukan[yomi].status:0;
-//以前より良い状態（未発見→遭遇、遭遇→的中）になった場合のみ上書き保存する
-if(status>currentStatus){
-zukan[yomi]={status:status, date:todayStr};
-localStorage.setItem("ekiZukanData",JSON.stringify(zukan));
-}
+  const savedZukan=localStorage.getItem("ekiZukanData");
+  let zukan=savedZukan?JSON.parse(savedZukan):{};
+  // let todayStr=new Date().toISOString().split('T')[0];
+  // 【修正後】端末のローカル時計で「YYYY-MM-DD」を作成する
+  const d = new Date();
+  let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+  let currentStatus=zukan[yomi]?zukan[yomi].status:0;
+  //以前より良い状態（未発見→遭遇、遭遇→的中）になった場合のみ上書き保存する
+  if(status>currentStatus){
+    zukan[yomi]={status:status, date:todayStr};
+    localStorage.setItem("ekiZukanData",JSON.stringify(zukan));
+  }
 }
 
 
@@ -733,7 +790,14 @@ localStorage.setItem("ekiZukanData",JSON.stringify(zukan));
 function submitGuess(isRestore=false){
   // 【修正前】const isValid=stations.filter(s=>s.yomi.length===currentMode).some(s=>s.yomi===currentGuess);
   // 【修正後】無駄なリスト作りをやめ、見つかった瞬間に検索を終えるスマートな書き方に変更します
-  const isValid=stations.some(s=> s.yomi.length===currentMode && s.yomi===currentGuess);
+  // 【修正】廃止から40日間の「入力猶予期間（グレースピリオド）」を設ける
+  const isValid = stations.some(s => 
+    s.yomi.length === currentMode && 
+    s.yomi === currentGuess && 
+    (s.startDay === undefined || s.startDay <= currentDayIndex) && 
+    // 【ここがポイント】今日から32日引いた日よりも「後」に廃止された駅なら入力を許す
+    (s.endDay === undefined || s.endDay > (currentDayIndex - 32) || s.endDay === 999999)
+  );
   if(!isValid){ if(!isRestore)showMessage("実在しない駅名です"); return; }
   
   // ランダムモード（周年モード）でもハードモードの縛りを適用する。
@@ -1423,12 +1487,16 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
   ach.counters.totalSubmitCount += actualGuesses; 
   
   // --- 5. 通算連勝（1日3回クリアに対応する日付スタンプ判定） ---
-  const todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0');
-  // 最後にクリアした日が「今日」以外の場合のみ、連勝の計算を行います
+  // 【修正】端末の現在時刻ではなく、出題された問題の「日数（currentDayIndex）」を基準に日付を計算します
+  const baseDate = new Date(Date.UTC(2024, 0, 1));
+  const logicalDate = new Date(baseDate.getTime() + currentDayIndex * 86400000);
+  const todayStr = logicalDate.getUTCFullYear() + "-" + String(logicalDate.getUTCMonth() + 1).padStart(2, '0') + "-" + String(logicalDate.getUTCDate()).padStart(2, '0');
+  
+  // 最後にクリアした日が「論理的な今日」以外の場合のみ、連勝の計算を行います
   if (ach.winStreak.lastClearedDate !== todayStr) {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.getFullYear() + "-" + String(yesterday.getMonth() + 1).padStart(2, '0') + "-" + String(yesterday.getDate()).padStart(2, '0');
+    // 問題ベースの「昨日」の日付を計算します
+    const logicalYesterday = new Date(logicalDate.getTime() - 86400000);
+    const yesterdayStr = logicalYesterday.getUTCFullYear() + "-" + String(logicalYesterday.getUTCMonth() + 1).padStart(2, '0') + "-" + String(logicalYesterday.getUTCDate()).padStart(2, '0');
     
     // 最後にクリアした日が「昨日」であれば連勝を伸ばし、それ以外なら1日にリセットします
     if (ach.winStreak.lastClearedDate === yesterdayStr) {
@@ -1441,7 +1509,7 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
     if (ach.winStreak.currentStreak > ach.winStreak.maxStreak) {
       ach.winStreak.maxStreak = ach.winStreak.currentStreak;
     }
-    ach.winStreak.lastClearedDate = todayStr; // 最終クリア日を今日に更新します
+    ach.winStreak.lastClearedDate = todayStr; // 最終クリア日を更新します
   }
   
   // --- 6. コレクション要素（都道府県・事業者・路線・駅名・月日）の集計 ---
@@ -1488,9 +1556,10 @@ function incrementClearAchievements(actualGuesses, clearTimeMs) {
   // 【ここまで追加】
   
   // 毎月1日や周年記念などの判定用に、月日のスタンプ（例：06-05）を保存します
-  const monthDayStr = String(now.getMonth() + 1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0');
+  // 【修正】ここでも、カレンダーの今日ではなく「問題の今日」の日付を使います
+  const monthDayStr = String(logicalDate.getUTCMonth() + 1).padStart(2, '0') + "-" + String(logicalDate.getUTCDate()).padStart(2, '0');
   if (!ach.unlockedSets.clearedMonthDays.includes(monthDayStr)) {
-    ach.unlockedSets.clearedMonthDays.push(monthDayStr); 
+    ach.unlockedSets.clearedMonthDays.push(monthDayStr);
   }
   
   // --- 7. 行事日イベント名の集計 ---
