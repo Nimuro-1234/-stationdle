@@ -236,7 +236,7 @@ else showMessage("ゲームクリア後に見ることができます");
 });
 //「4文字」「5文字」「6文字」の切り替えボタンが押されたときの処理
 [4,5,6].forEach(num=>{
-document.getElementById(`mode-${num}`).addEventListener("click",()=>{
+document.getElementById(`mode-${num}`).addEventListener("click", async ()=>{
   isPlayingRandom = false; 
   isAprilFoolMode = false; // 【追加】エイプリルフールフラグを解除する
   
@@ -248,7 +248,7 @@ document.getElementById(`mode-${num}`).addEventListener("click",()=>{
   document.getElementById(`mode-${num}`).classList.add("active");
   currentMode=num; rowLength=num; maxGuesses=(num===4)?8:6;
   document.getElementById("game-board").style.setProperty("--row-length",num);
-  selectTodayStation(); restoreBoard();
+  await selectTodayStation(); restoreBoard();
   });
 });
 //結果ウィンドウにある各種SNSへのシェアボタンやコピーボタンの動作
@@ -333,8 +333,8 @@ hardSwitch.addEventListener("change", (e) => {
   localStorage.setItem("ekiSettings", JSON.stringify(ekiSettings));
   updateHelpContent();
 });
-//最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
-selectTodayStation(); restoreBoard(); checkSpecialEvent();
+  //最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
+  await selectTodayStation(); restoreBoard(); checkSpecialEvent();
 }catch(e){ console.error("データエラー:",e); }
 }
 
@@ -465,13 +465,16 @@ function saveGameState() {
 // ==========================================
 
 //今日出題する駅を、日付をもとにした乱数シードにより1つ決定
-function selectTodayStation(){
+async function selectTodayStation(){
   const modeStations = stations.filter(s => s.yomi.length === currentMode);
   if(modeStations.length === 0){
     alert(`エラー: ${currentMode}文字の駅データが見つかりません。`);
     todayStation = {kanji:"えらー", yomi:"えらー"}; 
     return;
   }
+
+  // Python側と完全に一致させる秘密の合言葉（ソルト）
+  const SECRET_SALT = "EkiDoru_Secret_2026!";
 
   // 1. 日本時間（JST）ベースの今日の日付と、今年の西暦（ファイル名用）を取得
   const t = new Date();
@@ -519,7 +522,7 @@ function selectTodayStation(){
     // 4. 駅リストの中から、読み（yomi）をハッシュ化して合致する駅を逆引き検索する
     let foundStation = null;
     for (const s of modeStations) {
-      const sHash = await calcSha256(s.yomi);
+      const sHash = await calcSha256(SECRET_SALT + s.yomi);
       if (sHash === targetHash) {
         foundStation = s;
         break;
