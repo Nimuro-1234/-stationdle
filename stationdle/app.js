@@ -155,7 +155,7 @@ try{
   let raw = [];
   try {
     // 常に最新を取りに行く
-    const res = await fetch('stations.json', { cache: "no-store" });
+    const res = await fetch('/stations.json', { cache: "no-store" });
     if (!res.ok) throw new Error("ネットワークエラー");
     
     // 【重要】レスポンスの中身（2MB）は1回しか読めないため、バックアップ用にコピー（clone）を作る
