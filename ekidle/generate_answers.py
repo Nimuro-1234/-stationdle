@@ -33,6 +33,11 @@ def generate_answers():
         companies = s.get('companies', [])
         if companies and len(companies) == 1 and companies[0] == "日本貨物鉄道":
             continue
+            
+        # 【強化版フィルター】都道府県、事業者、住所、営業キロのいずれかが欠けているゴースト駅を除外
+        if not s.get('pref') or not companies or not s.get('address') or s.get('min_km') is None:
+            continue
+            
         stations.append(s)
     
     base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
