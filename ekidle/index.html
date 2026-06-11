@@ -8,12 +8,12 @@
 <meta name="description" content="実在する日本の鉄道駅名を推理して当てるWordle風パズルゲーム「駅ドル」。毎日の頭の体操や地理の教育・学習、旅行や鉄道巡りのきっかけにも最適です。タイルの色をヒントに今日の駅を当てよう！">
 <meta name="theme-color" content="#6aaa64">
 <link rel="canonical" href="https://stationdle.pages.dev/">
-<link rel="icon" href="main_logo.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="main_logo_512.png">
+<link rel="icon" href="/ekidle-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/ekidle-icon.png">
 <meta property="og:title" content="駅ドル - Wordle風駅名推理パズル">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://stationdle.pages.dev/">
-<meta property="og:image" content="https://stationdle.pages.dev/main_logo.png">
+<meta property="og:image" content="https://stationdle.pages.dev/ekidle-icon.png">
 <meta property="og:site_name" content="駅ドル">
 <meta property="og:description" content="実在する日本の鉄道駅名を推理して当てるWordle風パズルゲーム「駅ドル」。毎日の頭の体操や地理の教育・学習、旅行や鉄道巡りのきっかけにも最適です。タイルの色をヒントに今日の駅を当てよう！">
 <meta name="twitter:card" content="summary">
@@ -31,14 +31,8 @@
 <button id="menu-btn" class="btn" style="width:32px; height:32px; font-size:16px; font-weight:bold; padding:0; display:flex; justify-content:center; align-items:center;">☰</button>
 </div>
 </div>
-<!--
-<div id="ad-top" class="ad-space">【ここに上部広告が表示されます】</div>
--->
-<h1 style="display: flex; justify-content: center; align-items: center;">
-<svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
-<rect width="40" height="40" rx="8" fill="#ffffff" stroke="#6aaa64" stroke-width="4"/>
-<text x="20" y="29" font-family="sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle">駅</text>
-</svg>
+<h1 style="display: flex; justify-content: center; align-items: center; margin-top: 10px; margin-bottom: 10px;">
+<img src="/ekidle-icon.svg" alt="駅ドルロゴ" style="width: 36px; height: 36px; margin-right: 10px; border-radius: 8px;">
 駅ドル
 </h1>
 <div style="font-size: 14px; font-weight: bold; color: #666; margin-top: -5px; margin-bottom: 15px; text-align: center;">Wordle風駅名推理パズル</div>
@@ -62,9 +56,6 @@
 </div>
 <div id="keyboard"></div>
 </main>
-<!--
-<div id="ad-bottom" class="ad-space">【ここに下部広告が表示されます】</div>
--->
 <div id="message-box" class="hidden" style="position:fixed; top:45%; left:50%; transform:translate(-50%, -50%); background-color:rgba(0,0,0,0.85); color:#fff; padding:15px 30px; border-radius:12px; font-weight:bold; font-size:18px; z-index:9999; text-align:center; white-space:nowrap; box-shadow:0 8px 16px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.2);"></div>
 <div id="help-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200;">
 <div class="modal-content" style="text-align:left; font-size:14px; max-width:350px; overflow-y:auto; max-height:90vh;">
@@ -161,22 +152,14 @@ Inspired by Wordle<br>
 <ul style="list-style:none; padding:0; margin:0; line-height:3; font-size:14px; font-weight:bold;">
 <li style="border-bottom:1px solid #eee;"><a href="#" style="text-decoration:none; color:#333;" onclick="alert('鋭意開発中です！お楽しみに。'); return false;">🔰 練習モード（準備中）</a></li>
 <li style="border-bottom:1px solid #eee;"><a href="#" style="text-decoration:none; color:#333;" onclick="alert('鋭意開発中です！お楽しみに。'); return false;">🏆 実績（準備中）</a></li>
-<!--
-<li style="border-bottom:1px solid #eee;"><a href="#" style="text-decoration:none; color:#333;" onclick="alert('鋭意開発中です！お楽しみに。'); return false;">📖 駅名図鑑（準備中）</a></li>
--->
 <li style="border-bottom:1px solid #eee;"><a href="#" style="text-decoration:none; color:#333;" onclick="alert('鋭意開発中です！お楽しみに。'); return false;">🗓 過去問プレイ（準備中）</a></li>
 <li style="border-bottom:1px solid #eee;"><a href="#" style="text-decoration:none; color:#03a9f4;" id="export-data-btn">📤 引き継ぎコードを発行する</a></li>
 <li style="border-bottom:1px solid #eee;"><a href="#" style="text-decoration:none; color:#4caf50;" id="import-data-btn">📥 データを復活させる</a></li>
 <li style="border-bottom:1px solid #eee;"><a href="https://forms.gle/Lx7FSbLxLa4B6o5n7" target="_blank" style="text-decoration:none; color:#333;">✉️ お問い合わせ</a></li>
 <li style="border-bottom:1px solid #eee;"><a href="https://buymeacoffee.com/nimuro_stationdle" target="_blank" style="text-decoration:none; color:#ff813f;">☕ コーヒーをおごる</a></li>
-<!-- 初期化リンク
-<li style="text-align: center; margin-top: 20px;">
-<a href="?emergency_reset=true" style="text-decoration: none; color: #aaa; font-size: 11px;" onclick="return confirm('すべてのプレイ実績と設定が消去されます。本当に初期化しますか？');">⚠️ 動作不具合時のデータ初期化はこちら</a>
--->
 </li>
 </ul>
 </div>
-<!-- 開発者用コード -->
 <script>
 const urlParams=new URLSearchParams(window.location.search);
 if(urlParams.get('mode')==='admin'&&window.location.hostname.startsWith('development.')){
