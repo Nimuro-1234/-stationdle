@@ -74,7 +74,6 @@ jobs:
           
           # mainブランチにある最新のstations.jsonだけを引っ張ってくる
           git checkout main -- stations.json
-          git checkout main -- ekidle/answer
           
           # developmentブランチへコミットしてプッシュする
           git commit -m "Sync stations.json from main" || echo "No changes to sync"
