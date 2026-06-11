@@ -2,7 +2,7 @@ name: Monitor and Trigger Update
 
 on:
   schedule:
-    - cron: '5 * * * *' # 毎時5分に監視を実行
+    - cron: '9 * * * *' # 毎時9分に監視を実行
   workflow_dispatch:
 
 jobs:
