@@ -1,4 +1,4 @@
-name: Daily Station Extraction
+name: Daily Station Extraction & Generating Answers
 
 on:
   schedule:
@@ -43,7 +43,8 @@ jobs:
 
       # 駅データが完成した直後に、そのデータを使って答えを生成する
       - name: Generate daily answer
-        run: python generate_answer.py
+        working-directory: ./ekidle
+        run: python generate_answers.py
 
       - name: 取得したデータをコミットしてプッシュする
         run: |
@@ -75,7 +76,7 @@ jobs:
           
           # 【修正2】mainブランチにある「最新の駅データ」と「答えのデータ」の2つを引っ張ってくる
           # ※もし答えのファイル名が違う場合は「daily_answer.json」の部分を書き換えてください
-          git checkout main -- stations.json answers/ answers_admin/
+          git checkout main -- stations.json ekidle/answers/ ekidle/answers_admin/
           
           # developmentブランチへコミットしてプッシュする
           git commit -m "Sync stations and answers from main" || echo "No changes to sync"
