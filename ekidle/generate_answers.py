@@ -62,7 +62,7 @@ def generate_answers():
         next_available_day = {}
 
         # 0日目から、今日＋35日後までを通してループさせる
-        for d in range(0, today_index + 35):
+        for d in range(0, today_index + 43):
             
             # 【完全再現2】startDay / endDay の未定義（None）判定をJSの挙動と厳密に合わせる
             active_stations = []
@@ -122,7 +122,7 @@ def generate_answers():
     # 最後に、生成された33日分のデータを各ファイルに書き込む処理
     # ---------------------------------------------------------
     # ファイルへの書き込み処理
-    for d in range(today_index, today_index + 33):
+    for d in range(today_index, today_index + 36):
         target_date = base_date + timedelta(days=d)
         year_str = str(target_date.year)
         date_str = target_date.strftime('%Y-%m-%d')
