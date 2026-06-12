@@ -119,10 +119,10 @@ def generate_answers():
                 }
 
     # ---------------------------------------------------------
-    # 最後に、生成された15日分のデータを各ファイルに書き込む処理
+    # 最後に、生成された33日分のデータを各ファイルに書き込む処理
     # ---------------------------------------------------------
     # ファイルへの書き込み処理
-    for d in range(today_index, today_index + 15):
+    for d in range(today_index, today_index + 33):
         target_date = base_date + timedelta(days=d)
         year_str = str(target_date.year)
         date_str = target_date.strftime('%Y-%m-%d')
