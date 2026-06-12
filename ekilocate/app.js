@@ -810,7 +810,7 @@ function restoreLocaGameState() {
 // ==========================================
 async function initLocaGame() {
   try {
-    // 1. 日本時間（JST）ベースの日付インデックスを計算
+    // 1. 日本時間（JST）ベースの日付インデックスを計算します
     const t = new Date();
     const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
     const jstObj = new Date(jstMs);
@@ -818,10 +818,66 @@ async function initLocaGame() {
     const baseUTC = Date.UTC(2024, 0, 1);
     currentDayIndex = Math.round((todayUTC - baseUTC) / 86400000);
 
-    // 駅データを読み込む
-    const res = await fetch('/stations.json');
-    const rawStations = await res.json();
-    
+    // 2. 駅データの読み込み（Cache APIによる大容量バックアップ機能付き）
+    let rawStations = [];
+    try {
+      // 常に最新を取りに行く（ルートフォルダを指定します）
+      const res = await fetch('/stations.json', { cache: "no-store" });
+      if (!res.ok) throw new Error("ネットワークエラー");
+
+      // エラーページ（HTML）などを誤って読み込んでいないか、一度テキストとして確認します
+      const textData = await res.text();
+      if (textData.trim().startsWith("<")) {
+        throw new Error("/stations.json の代わりに HTML が読み込まれました。");
+      }
+
+      // 問題がなければデータ（JSON）として変換します
+      rawStations = JSON.parse(textData);
+
+      // Cache APIを使って、ブラウザの専用金庫に非同期で安全に保存します（13MBでもフリーズしません）
+      if ('caches' in window) {
+        const cache = await caches.open('ekilocate-backup-v1');
+        // 一度 textData として読み取ってしまったため、キャッシュ保存用に新しい Response オブジェクトを作り直して金庫に入れます
+        const resToCache = new Response(textData, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        cache.put('../stations.json', resToCache).catch(e => console.warn("キャッシュ保存スキップ:", e));
+      }
+    } catch (err) {
+      console.warn("最新データの取得に失敗。Cache APIのバックアップを使用します。", err);
+
+      let isRecovered = false;
+      // 通信エラー時は、Cache APIの金庫から過去のデータを引っ張り出します
+      if ('caches' in window) {
+        const cache = await caches.open('ekilocate-backup-v1');
+        const cachedRes = await cache.match('../stations.json');
+        if (cachedRes) {
+          rawStations = await cachedRes.json();
+          isRecovered = true;
+
+          // 画面上部に「バックアップ起動中」の警告バナーを動的に表示します
+          if (!document.getElementById("offline-warning-banner")) {
+            document.body.insertAdjacentHTML("afterbegin", `
+              <div id="offline-warning-banner" style="background-color: #fff3e0; color: #e65100; font-size: 11px; font-weight: bold; text-align: center; padding: 6px; border-bottom: 1px solid #ffcc80; width: 100%; box-sizing: border-box;">
+                ⚠️ バックアップデータで運行中。最新の駅情報と異なる場合があります。
+              </div>
+            `);
+          }
+        }
+      }
+
+      // バックアップすら無い（完全な初回プレイで通信エラー）場合の致命的エラー画面です
+      if (!isRecovered) {
+        document.body.innerHTML = `
+          <div style="text-align:center; padding:50px; font-family:sans-serif;">
+            <h3 style="color:#e53935;">駅データの読み込みに失敗しました</h3>
+            <p style="font-size:14px; color:#555;">通信環境の良いところで、もう一度お試しください。</p>
+            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; font-size:16px; font-weight:bold; background:#3498db; color:#fff; border:none; border-radius:5px;">再読み込み</button>
+          </div>`;
+        return; // ゲームの起動処理を完全に止めます
+      }
+    }
+
     // 計算済みの currentDayIndex を使って、未来の駅や古い廃止駅を省きます
     locaStations = rawStations.filter(s => {
       const isFreight = s.companies && s.companies.length === 1 && s.companies[0] === "日本貨物鉄道";
@@ -829,20 +885,20 @@ async function initLocaGame() {
       const isAbolishedOld = s.endDay !== undefined && s.endDay !== 999999 && s.endDay <= currentDayIndex - 33;
       return !isFreight && !isFuture && !isAbolishedOld;
     });
-    
-    // サジェスト機能を有効化
+
+    // サジェスト機能を有効化します
     setupSuggest();
 
-    // 【原因2の修正】正解駅の計算・通信が終わるのをしっかり「待つ（await）」ようにします
+    // 正解駅の計算・通信が終わるのをしっかり「待つ（await）」ようにします
     await selectTodayLocaStation();
-    
+
     restoreLocaGameState();
 
     // UIボタンの有効化とイベント判定の呼び出し
     setupUI();
     checkLocaEvent();
 
-    // 【原因1の修正】誤って消去してしまっていた「送信ボタン」と「Enterキー」のスイッチを復活させます
+    // 「送信ボタン」と「Enterキー」のスイッチを有効化します
     const submitBtn = document.getElementById("submit-guess-btn");
     const searchInput = document.getElementById("station-search-input");
     if (submitBtn) submitBtn.addEventListener("click", submitLocaGuess);
@@ -853,8 +909,8 @@ async function initLocaGame() {
     }
 
   } catch (e) {
-    console.error("データの読み込みに失敗しました:", e);
-    alert("駅データの読み込みに失敗しました。");
+    console.error("予期せぬエラーが発生しました:", e);
+    alert("ゲームの起動に失敗しました。");
   }
 }
 
