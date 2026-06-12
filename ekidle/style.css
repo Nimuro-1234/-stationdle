@@ -317,7 +317,7 @@ body.event-nye .key {
   left: 0%;
   font-size: 24px;
   transition: left 0.4s ease-out; /* 前に進むなめらかな動き */
-  animation: gatagoto 0.35s infinite; /* 常にガタゴト揺れるアニメーションを実行 */
+  animation: gatagoto 0.4s infinite; /* 常にガタゴト揺れるアニメーションを実行 */
 }
 
 /* ガタゴト動くアニメーションの設計図（上下の揺れとわずかな傾き） */
