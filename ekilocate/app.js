@@ -1,4 +1,26 @@
 // ==========================================
+// 駅ロケ専用の共通変数とセーブデータ
+// ==========================================
+let currentDayIndex = 0;
+let locaStats = JSON.parse(localStorage.getItem("ekiLocateStats") || '{"played":0,"won":0,"currentStreak":0,"maxStreak":0,"dist":[0,0,0,0,0,0,0,0,0,0,0]}');
+let locaSavedState = JSON.parse(localStorage.getItem("ekiLocateState") || '{"date":-1,"guessesCount":0,"history":[],"difficulty":"normal","isOver":false}');
+
+// エラー対策：HTMLから直接呼び出される関数は、必ず一番外側（グローバル）に配置します
+function startGame(difficulty) {
+  currentDifficulty = difficulty;
+  locaGridHistory = [];
+  locaGuessesCount = 0;
+  
+  // 開始時に設定を保存します
+  saveLocaGameState();
+
+  document.getElementById('difficulty-screen').style.display = 'none';
+  document.getElementById('main-game-screen').style.display = 'block';
+  updateRemainingGuesses();
+}
+
+
+// ==========================================
 // 距離と方角の計算ロジック（ハバサイン公式）
 // ==========================================
 
@@ -82,8 +104,7 @@ function setupSuggest() {
       return;
     }
 
-    // 絞り込み処理（for文で高速に回す）
-    const results = [];
+    
     // 絞り込み処理（スコア制で駅名の一致を最優先にする）
     let results = [];
     for (let i = 0; i < locaStations.length; i++) {
@@ -309,12 +330,16 @@ function submitLocaGuess() {
   
   // 入力欄をリセット
   // 過去の回答の色の結果を、シェア用に記憶しておく
+  // 過去の回答の色の結果を、シェアと復元用に記憶しておく
   locaGridHistory.push({
+    guess: guess,
     distance: isWin ? "🎯" : distance + "km",
+    distanceNum: distance,
     direction: isWin ? "🎯" : direction,
     region: regionStatus,
     comp: compStatus,
-    line: lineStatus
+    line: lineStatus,
+    isWin: isWin
   });
 
   locaGuessesCount++;
@@ -488,13 +513,14 @@ function triggerLocaEvent(ev) {
   const titleEl = document.getElementById("game-title");
   const iconHtml = '<img src="/ekilocate-icon.svg" alt="駅ロケアイコン" style="width:36px; height:36px; margin-right:10px; border-radius:8px;">';
   
-  if (ev === "christmas") {
-    titleEl.innerHTML = iconHtml + "駅ロケ 🎄 メリークリスマス！";
-  } else if (ev === "halloween") {
-    titleEl.innerHTML = iconHtml + "駅ロケ 🎃 ハッピーハロウィン！";
-  } else if (ev === "newyear") {
-    titleEl.innerHTML = iconHtml + "駅ロケ 🎍 謹賀新年！";
-  }
+  if (ev === "newyear") titleEl.innerHTML = iconHtml + "駅ロケ 🎍 謹賀新年！";
+  else if (ev === "valentine") titleEl.innerHTML = iconHtml + "駅ロケ 🍫 ハッピーバレンタイン！";
+  else if (ev === "hinamatsuri") titleEl.innerHTML = iconHtml + "駅ロケ 🌸 楽しいひなまつり！";
+  else if (ev === "kodomo") titleEl.innerHTML = iconHtml + "駅ロケ 🎏 こどもの日！";
+  else if (ev === "tanabata") titleEl.innerHTML = iconHtml + "駅ロケ 🎋 七夕まつり！";
+  else if (ev === "halloween") titleEl.innerHTML = iconHtml + "駅ロケ 🎃 ハッピーハロウィン！";
+  else if (ev === "christmas") titleEl.innerHTML = iconHtml + "駅ロケ 🎄 メリークリスマス！";
+  else if (ev === "nye") titleEl.innerHTML = iconHtml + "駅ロケ 🔔 良いお年を！";
 }
 
 function checkLocaEvent() {
@@ -502,9 +528,105 @@ function checkLocaEvent() {
   let ev = "";
   if (m === 1 && day <= 3) ev = "newyear";
   else if (m === 2 && day === 14) ev = "valentine";
+  else if (m === 3 && day === 3) ev = "hinamatsuri";
+  else if (m === 5 && day === 5) ev = "kodomo";
+  else if (m === 7 && day === 7) ev = "tanabata";
   else if (m === 10 && day === 31) ev = "halloween";
   else if (m === 12 && (day === 24 || day === 25)) ev = "christmas";
+  else if (m === 12 && day === 31) ev = "nye";
   triggerLocaEvent(ev);
+}
+
+
+// ==========================================
+// 毎日の正解駅を生成するロジック
+// ==========================================
+function selectTodayLocaStation() {
+  // JST基準で現在の日付インデックス（2024年1月1日を0とする）を計算します
+  const t = new Date();
+  const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
+  const jstObj = new Date(jstMs);
+  const todayUTC = Date.UTC(jstObj.getFullYear(), jstObj.getMonth(), jstObj.getDate());
+  const baseUTC = Date.UTC(2024, 0, 1);
+  currentDayIndex = Math.round((todayUTC - baseUTC) / 86400000);
+
+  // 駅ドルと同じ条件で、出題可能な駅だけを絞り込みます（文字数制限は除外）
+  const validStations = locaStations.filter(s => 
+    s.pref !== "" && 
+    s.address !== "" && 
+    s.min_km !== null &&
+    s.companies && s.companies.length > 0 &&
+    !(s.companies.length === 1 && s.companies[0] === "日本貨物鉄道") &&
+    (s.startDay === undefined || s.startDay <= currentDayIndex) && 
+    (s.endDay === undefined || s.endDay > (currentDayIndex - 32) || s.endDay === 999999)
+  );
+
+  // 駅ロケ専用のシード値を使って、毎日異なる駅をランダムに1つ選びます
+  let seed = currentDayIndex * 77777 + 12345;
+  let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
+  hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+  hash = (hash ^ (hash >>> 16)) >>> 0;
+
+  todayLocaStation = validStations[hash % validStations.length];
+}
+
+
+// ==========================================
+// セーブデータの保存と復元、戦績集計
+// ==========================================
+function saveLocaGameState() {
+  locaSavedState = {
+    date: currentDayIndex,
+    guessesCount: locaGuessesCount,
+    history: locaGridHistory,
+    difficulty: currentDifficulty,
+    isOver: locaGuessesCount >= MAX_LOCA_GUESSES || (locaGridHistory.length > 0 && locaGridHistory[locaGridHistory.length - 1].region === "cell-correct")
+  };
+  localStorage.setItem("ekiLocateState", JSON.stringify(locaSavedState));
+}
+
+function saveLocaStats(isWin) {
+  locaStats.played++;
+  if (isWin) {
+    locaStats.won++;
+    locaStats.currentStreak++;
+    if (locaStats.currentStreak > locaStats.maxStreak) locaStats.maxStreak = locaStats.currentStreak;
+    locaStats.dist[locaGuessesCount] = (locaStats.dist[locaGuessesCount] || 0) + 1;
+  } else {
+    locaStats.currentStreak = 0;
+  }
+  localStorage.setItem("ekiLocateStats", JSON.stringify(locaStats));
+}
+
+function restoreLocaGameState() {
+  // 日付が変わっている場合はセーブデータを初期化します
+  if (locaSavedState.date !== currentDayIndex) {
+    locaSavedState = {date: currentDayIndex, guessesCount: 0, history: [], difficulty: "normal", isOver: false};
+    localStorage.setItem("ekiLocateState", JSON.stringify(locaSavedState));
+    return;
+  }
+
+  // 過去のプレイ履歴がある場合は画面を復元します
+  if (locaSavedState.guessesCount > 0) {
+    currentDifficulty = locaSavedState.difficulty;
+    locaGuessesCount = locaSavedState.guessesCount;
+    locaGridHistory = locaSavedState.history;
+    
+    // 難易度選択画面を飛ばしてメイン画面を出します
+    document.getElementById('difficulty-screen').style.display = 'none';
+    document.getElementById('main-game-screen').style.display = 'block';
+    updateRemainingGuesses();
+
+    // テーブルの行を復元します（履歴の中身を描画）
+    locaGridHistory.forEach(h => {
+      renderResultRow(h.guess, h.distanceNum, h.direction, h.region, h.comp, h.line, h.isWin);
+    });
+
+    if (locaSavedState.isOver) {
+      document.getElementById("submit-guess-btn").disabled = true;
+      document.getElementById("station-search-input").disabled = true;
+    }
+  }
 }
 
 
@@ -523,13 +645,17 @@ async function initLocaGame() {
     // サジェスト機能を有効化
     setupSuggest();
 
+    // 正解駅の生成と状態の復元
+    selectTodayLocaStation();
+    restoreLocaGameState();
+
     // UIボタンの有効化とイベント判定の呼び出しを追加
     setupUI();
     checkLocaEvent();
 
     // 【仮】とりあえず今はランダムで正解駅を1つ決める（後で日付ベースのロジックに差し替えます）
-    todayLocaStation = locaStations[Math.floor(Math.random() * locaStations.length)];
-    console.log("【デバッグ用】今日の正解駅:", todayLocaStation.kanji); // F12ツールで答えを確認できます
+    //todayLocaStation = locaStations[Math.floor(Math.random() * locaStations.length)];
+    //console.log("【デバッグ用】今日の正解駅:", todayLocaStation.kanji); // F12ツールで答えを確認できます
 
     // 送信ボタンにイベントを紐付け
     document.getElementById("submit-guess-btn").addEventListener("click", submitLocaGuess);
