@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>駅ロケ - 距離と方角で駅を当てるゲーム</title>
+<link rel="stylesheet" href="loca_style.css">
+</head>
+<body>
+<div class="game-container">
+<header>
+<h1>駅ロケ 🗺️</h1>
+<p class="game-description">全国の駅から「今日の正解駅」を推理しよう！<br>入力すると、正解駅までの距離・方角・各種属性のヒントが表示されます。</p>
+</header>
+<main>
+<div class="search-area">
+<div class="input-wrapper">
+<input type="text" id="station-search-input" placeholder="駅名を入力（ひらがな・漢字）" autocomplete="off">
+<ul id="suggest-list">
+</ul>
+</div>
+<button id="submit-guess-btn">送信</button>
+</div>
+<div class="results-container">
+<table class="results-table">
+<thead>
+<tr>
+<th style="width: 22%;">入力した駅</th>
+<th style="width: 15%;">距離</th>
+<th style="width: 13%;">方角</th>
+<th style="width: 18%;">地域</th>
+<th style="width: 17%;">事業者</th>
+<th style="width: 17%;">路線</th>
+</tr>
+</thead>
+<tbody id="results-tbody">
+<tr>
+<td class="cell-station-name">新宿駅</td>
+<td class="cell-distance">12.5 km</td>
+<td class="cell-direction">↘️</td>
+<td class="cell-present">東京都<br><span style="font-size:10px;font-weight:normal;">新宿区</span></td>
+<td class="cell-correct">JR東日本</td>
+<td class="cell-absent">共通なし</td>
+</tr>
+<tr>
+<td class="cell-station-name">梅田駅</td>
+<td class="cell-distance">402.1 km</td>
+<td class="cell-direction">⬇️</td>
+<td class="cell-absent">大阪府<br><span style="font-size:10px;font-weight:normal;">大阪市</span></td>
+<td class="cell-present">他社共通あり</td>
+<td class="cell-correct">共通路線あり</td>
+</tr>
+</tbody>
+</table>
+</div>
+</main>
+</div>
+<script src="loca_app.js"></script>
+</body>
+</html>
