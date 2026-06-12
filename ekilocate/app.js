@@ -136,18 +136,26 @@ function startGame(difficulty) {
   locaGridHistory = state.history || [];
   locaGuessesCount = state.guessesCount || 0;
   
-  // 画面をゲーム画面に切り替え、戻るボタンを表示します
-  document.getElementById('difficulty-screen').style.display = 'none';
-  document.getElementById('main-game-screen').style.display = 'block';
-  document.getElementById('back-to-diff-btn').style.display = 'block';
-  
-  updateRemainingGuesses();
-
-  // 画面に残っている古い表をまっさらにしてから、履歴を描画し直して完全に復元します
+  // 画面に残っている表と入力欄を綺麗にします
   document.getElementById("results-tbody").innerHTML = "";
+  document.getElementById("station-search-input").value = "";
+
+  // 過去の送信回答を完全に盤面へ描き戻します
   locaGridHistory.forEach(h => {
     renderResultRow(h.guess, h.distanceNum, h.direction, h.region, h.comp, h.line, h.isWin);
   });
+
+  // 開始状態をセーブデータに保存
+  saveLocaGameState();
+
+  document.getElementById('difficulty-screen').style.display = 'none';
+  document.getElementById('main-game-screen').style.display = 'block';
+  
+  // ゲーム画面上部の「モード選択に戻る」ボタンを確実に表示させます
+  const backBtn = document.getElementById('back-to-diff-btn');
+  if (backBtn) backBtn.style.display = 'block';
+  
+  updateRemainingGuesses();
 
   // すでにゲームが終わっている場合は、ボタン等の入力を無効化します
   if (state.isOver) {
@@ -897,7 +905,7 @@ function restoreLocaGameState() {
     locaSavedState = {
       date: currentDayIndex,
       normal: {guessesCount: 0, history: [], isOver: false},
-      hard: {guessesCount: 0, history: [], isOver: false}, // ← 【重要】このカンマが消えるとエラーになります
+      hard: {guessesCount: 0, history: [], isOver: false},
       lastPlayed: null
     };
     localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
@@ -906,10 +914,10 @@ function restoreLocaGameState() {
   // 最後に遊んでいたモードの履歴があれば、選択画面を飛ばして直接ゲーム画面を復元します
   const last = locaSavedState.lastPlayed;
   
-  if (last && locaSavedState[last].guessesCount > 0) {
+  // 【バグ修正】回答数が0回であっても、最後に選択していたモードがあれば確実に画面を復元して開くように条件を修正しました
+  if (last) {
      startGame(last);
   } else {
-     // まだ1回も遊んでいない場合は、通常通り難易度選択画面を出します
      document.getElementById('difficulty-screen').style.display = 'block';
      document.getElementById('main-game-screen').style.display = 'none';
      document.getElementById('back-to-diff-btn').style.display = 'none';
