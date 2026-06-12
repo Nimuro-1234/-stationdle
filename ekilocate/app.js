@@ -1,7 +1,7 @@
 // ==========================================
 // 駅ロケ専用の共通変数とセーブデータ
 // ==========================================
-let currentDayIndex = 0;
+let currentDayIndex = 0; // 今日が基準日から何日目かを全関数で共有する箱
 let todayLocaStationNormal = null; // 通常モード用の正解駅
 let todayLocaStationHard = null;   // ハードモード用の正解駅
 
@@ -621,87 +621,140 @@ function checkLocaEvent() {
 
 
 // ==========================================
-// 毎日の正解駅を生成するロジック（通常・ハード共通の被り防止機能）
+// 毎日の正解駅を生成するロジック（サーバー通信＆キャッシュ付き）
 // ==========================================
-function selectTodayLocaStation() {
-  // 正解候補となる駅を大まかに絞り込みます（貨物駅は除外）
+async function selectTodayLocaStation() {
+  // Pythonの生成コードと完全に一致させるための暗号化キー
+  const SECRET_SALT = "EkiLocate_Secret_2026!";
+
+  // 1. 日本時間（JST）ベースの日付インデックスを1回だけ計算して共有します
+  // すでに initLocaGame で計算された currentDayIndex をそのまま使用します
+  
+  // 2. 【最優先】キャッシュ確認（計算・通信・フィルター前に実施して動作を最速にします）
+  const cacheStr = localStorage.getItem("ekiLocateAnswerCache");
+  if (cacheStr) {
+    const cache = JSON.parse(cacheStr);
+    if (cache.date === currentDayIndex) {
+      todayLocaStationNormal = cache.normal;
+      todayLocaStationHard = cache.hard;
+      return; // キャッシュがあればここで処理を完了します
+    }
+  }
+
+  // 3. 【共通】Pythonと完全一致する「安全な駅プール」の作成
   const validStations = locaStations.filter(s => 
     s.pref !== "" && 
     s.address !== "" && 
     s.min_km !== null &&
     s.companies && s.companies.length > 0 &&
-    !(s.companies.length === 1 && s.companies[0] === "日本貨物鉄道") 
+    !(s.companies.length === 1 && s.companies[0] === "日本貨物鉄道")
   );
 
-  let lookback = 1000; // 共通で1000日間は同じ座標の駅を出題しません
-  let nextAvailableDay = {}; // 共通のクールダウン記憶箱
-  let targetNormal = null;
-  let targetHard = null;
-  
-  // 座標から同一駅判定用のキーを作ります
-  const getCoordKey = (s) => (s.latitude && s.longitude) ? `${s.latitude},${s.longitude}` : s.url;
-
-  // 基準日（Day 0）から今日まで、1つの時間軸でシミュレーションを進めます
-  for (let d = 0; d <= currentDayIndex; d++) {
-    
-    // その日時点で現役の駅を抽出します
-    let activeStations = validStations.filter(s => 
-      (s.startDay === undefined || s.startDay <= d) && 
-      (s.endDay === undefined || s.endDay > d || s.endDay === 999999)
-    );
-    if (activeStations.length === 0) activeStations = validStations;
-
-    // ----------------------------------------------------
-    // ① まず、通常モードの駅を抽選します
-    // ----------------------------------------------------
-    let poolNormal = activeStations.filter(s => {
-      const key = getCoordKey(s);
-      return !nextAvailableDay[key] || nextAvailableDay[key] <= d;
-    });
-    if (poolNormal.length === 0) poolNormal = activeStations; // 枯渇時の安全装置
-
-    // 通常モード専用の計算の種で抽選します
-    let seedN = d * 33333 + 54321;
-    let hashN = Math.imul(seedN ^ (seedN >>> 15), 2246822507);
-    hashN = Math.imul(hashN ^ (hashN >>> 13), 3266489909);
-    hashN = (hashN ^ (hashN >>> 16)) >>> 0;
-
-    let candidateNormal = poolNormal[hashN % poolNormal.length];
-    
-    // 通常モードで選ばれた駅を、即座にクールダウンに登録します
-    nextAvailableDay[getCoordKey(candidateNormal)] = d + lookback + 1;
-
-    // ----------------------------------------------------
-    // ② 次に、ハードモードの駅を抽選します
-    // ----------------------------------------------------
-    // たった今「通常モード」で選ばれたばかりの駅が省かれるよう、候補を再確認します
-    let poolHard = activeStations.filter(s => {
-      const key = getCoordKey(s);
-      return !nextAvailableDay[key] || nextAvailableDay[key] <= d;
-    });
-    if (poolHard.length === 0) poolHard = activeStations; // 枯渇時の安全装置
-
-    // ハードモード専用の計算の種で抽選します
-    let seedH = d * 33333 + 99999;
-    let hashH = Math.imul(seedH ^ (seedH >>> 15), 2246822507);
-    hashH = Math.imul(hashH ^ (hashH >>> 13), 3266489909);
-    hashH = (hashH ^ (hashH >>> 16)) >>> 0;
-
-    let candidateHard = poolHard[hashH % poolHard.length];
-    
-    // ハードモードで選ばれた駅も、クールダウンに登録します
-    nextAvailableDay[getCoordKey(candidateHard)] = d + lookback + 1;
-
-    // シミュレーションが「今日」に到達したら、それぞれの答えとして記憶します
-    if (d === currentDayIndex) {
-      targetNormal = candidateNormal;
-      targetHard = candidateHard;
-    }
+  if (validStations.length === 0) {
+    alert("エラー: 有効な駅データが見つかりません。");
+    return;
   }
 
-  // 決定した駅をゲーム用の変数にセットします
-  todayLocaStationNormal = targetNormal;
-  todayLocaStationHard = targetHard;
+  // 4. 【メインルート】answersフォルダからのJSON取得と逆引き
+  try {
+    const res = await fetch(`answers/${yearStr}.json`, { cache: "no-store" });
+    if (!res.ok) throw new Error("答えファイルの取得に失敗しました");
+    const answersData = await res.json();
+
+    const targetHashNormal = answersData[todayStr]?.normal;
+    const targetHashHard = answersData[todayStr]?.hard;
+
+    if (!targetHashNormal || !targetHashHard) throw new Error("本日の答えデータがファイル内にありません");
+
+    // 文字列をSHA-256でハッシュ化（暗号化）する関数
+    const calcSha256 = async (str) => {
+      const buf = new TextEncoder().encode(str);
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
+    // プール内の全駅の「漢字名（kanji）」をハッシュ化し、答えと一致するか総当たりで探します
+    const hashPromises = validStations.map(async (s) => {
+      const sHash = await calcSha256(SECRET_SALT + s.kanji);
+      return { station: s, hash: sHash };
+    });
+
+    const hashedStations = await Promise.all(hashPromises);
+    const foundNormal = hashedStations.find(item => item.hash === targetHashNormal);
+    const foundHard = hashedStations.find(item => item.hash === targetHashHard);
+
+    if (foundNormal && foundHard) {
+      todayLocaStationNormal = foundNormal.station;
+      todayLocaStationHard = foundHard.station;
+    } else {
+      throw new Error("ハッシュが一致する駅が見つかりません");
+    }
+
+  // 5. 【フォールバックルート】通信エラー時はJS側でシミュレーション計算
+  } catch (err) {
+    console.warn("⚠️ サーバーの答えファイル読み込み失敗。自力でシミュレーション計算します:", err);
+
+    let lookback = 1000;
+    let nextAvailableDay = {};
+    let targetNormal = null;
+    let targetHard = null;
+    
+    // 同一駅判定用のキー作成関数
+    const getCoordKey = (s) => (s.latitude && s.longitude) ? `${s.latitude},${s.longitude}` : s.url;
+
+    // Day 0から今日まで、歴史をシミュレーションします
+    for (let d = 0; d <= currentDayIndex; d++) {
+      let activeStations = validStations.filter(s => 
+        (s.startDay === undefined || s.startDay <= d) && 
+        (s.endDay === undefined || s.endDay > d || s.endDay === 999999)
+      );
+      if (activeStations.length === 0) activeStations = validStations;
+
+      // --- ① 通常モードの抽選 ---
+      let poolNormal = activeStations.filter(s => {
+        const key = getCoordKey(s);
+        return !nextAvailableDay[key] || nextAvailableDay[key] <= d;
+      });
+      if (poolNormal.length === 0) poolNormal = activeStations;
+
+      let seedN = d * 33333 + 54321;
+      let hashN = Math.imul(seedN ^ (seedN >>> 15), 2246822507);
+      hashN = Math.imul(hashN ^ (hashN >>> 13), 3266489909);
+      hashN = (hashN ^ (hashN >>> 16)) >>> 0;
+
+      let candidateNormal = poolNormal[hashN % poolNormal.length];
+      nextAvailableDay[getCoordKey(candidateNormal)] = d + lookback + 1;
+
+      // --- ② ハードモードの抽選 ---
+      let poolHard = activeStations.filter(s => {
+        const key = getCoordKey(s);
+        return !nextAvailableDay[key] || nextAvailableDay[key] <= d;
+      });
+      if (poolHard.length === 0) poolHard = activeStations;
+
+      let seedH = d * 33333 + 99999;
+      let hashH = Math.imul(seedH ^ (seedH >>> 15), 2246822507);
+      hashH = Math.imul(hashH ^ (hashH >>> 13), 3266489909);
+      hashH = (hashH ^ (hashH >>> 16)) >>> 0;
+
+      let candidateHard = poolHard[hashH % poolHard.length];
+      nextAvailableDay[getCoordKey(candidateHard)] = d + lookback + 1;
+
+      if (d === currentDayIndex) {
+        targetNormal = candidateNormal;
+        targetHard = candidateHard;
+      }
+    }
+    todayLocaStationNormal = targetNormal;
+    todayLocaStationHard = targetHard;
+  }
+
+  // 6. 計算結果をキャッシュに保存して次回以降の読み込みを高速化します
+  localStorage.setItem("ekiLocateAnswerCache", JSON.stringify({
+    date: currentDayIndex,
+    normal: todayLocaStationNormal,
+    hard: todayLocaStationHard
+  }));
 }
 
 
