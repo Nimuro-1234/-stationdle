@@ -249,3 +249,80 @@ body.event-nye .key {
   /* つまみ自体の角も丸めることで、枠線との干渉を完全に無くします */
   border-radius: 10px;
 }
+
+
+/* ==========================================
+結果ウィンドウのスクロールバーはみ出し対策
+========================================== */
+/* 画面全体を覆うクリーンな背景 */
+#loading-screen {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background-color: #f4f7f6; /* 少しグレーがかった目に優しい白 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease, visibility 0.5s;
+}
+
+/* 非表示にする時のクラス */
+#loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-content {
+  width: 80%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.loading-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 25px;
+  letter-spacing: 2px;
+}
+
+/* 線路（背景のバー） */
+.track-container {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+/* 伸びる進捗バー */
+#progress-bar {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: 0%; /* JSでパーセンテージを操作します */
+  background-color: #3498db;
+  border-radius: 4px;
+  transition: width 0.4s ease-out; /* なめらかに伸びるアニメーション */
+}
+
+/* 走る電車のアイコン */
+#train-icon {
+  position: absolute;
+  top: -28px; /* 線路の上に乗せる */
+  left: 0%; /* JSでバーと同じパーセンテージを操作します */
+  font-size: 24px;
+  transform: translateX(-50%); /* アイコンの中心をバーの先端に合わせる */
+  transition: left 0.4s ease-out;
+}
+
+/* 状況を知らせるテキスト */
+#loading-text {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: bold;
+}
