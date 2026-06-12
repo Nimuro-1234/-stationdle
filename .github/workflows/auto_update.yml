@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0  # 【修正1】全ブランチのデータをダウンロードする（別ブランチへの同期に必須）
 
-      - name: Set up Python
+      - name: Python環境のセットアップ
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -38,13 +38,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: Run extraction script
+      - name: stations.jsonの更新
         run: python extract_stations.py
 
       # 駅データが完成した直後に、そのデータを使って答えを生成する
-      - name: Generate daily answer
+      - name: 駅ドル 答え生成
         working-directory: ./ekidle
-        run: python generate_answers.py
+        run: python loca_generate_answers.py
+
+        # ③ekilocateフォルダに移動して駅ロケの答えを生成
+      - name: 駅ロケ 答え生成
+        working-directory: ./ekilocate
+        run: python loca_generate_answers.py
 
       - name: 取得したデータをコミットしてプッシュする
         run: |
@@ -69,14 +74,14 @@ jobs:
           fi
 
       # 作成された最新データをdevelopmentにも同期する
-      - name: Sync data to development
+      - name: データをdevelopmentへ同期する
         run: |
           git fetch origin development
           git checkout development
           
           # 【修正2】mainブランチにある「最新の駅データ」と「答えのデータ」の2つを引っ張ってくる
           # ※もし答えのファイル名が違う場合は「daily_answer.json」の部分を書き換えてください
-          git checkout main -- stations.json ekidle/answers/ ekidle/answers_admin/
+          git checkout main -- stations.json ekidle/answers/ ekidle/answers_admin/ ekilocate/answers ekilocate/answers_admin
           
           # developmentブランチへコミットしてプッシュする
           git commit -m "Sync stations and answers from main" || echo "No changes to sync"
