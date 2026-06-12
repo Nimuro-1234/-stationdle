@@ -810,11 +810,7 @@ function restoreLocaGameState() {
 // ==========================================
 async function initLocaGame() {
   try {
-    // 駅データを読み込む
-    const res = await fetch('../stations.json'); // ルートのJSONファイルを読み込みます
-    const rawStations = await res.json();
-    
-    // JST基準で現在の日付インデックス（2024年1月1日を0とする）を計算します
+    // 1. 日本時間（JST）ベースの日付インデックスを計算
     const t = new Date();
     const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
     const jstObj = new Date(jstMs);
@@ -822,7 +818,11 @@ async function initLocaGame() {
     const baseUTC = Date.UTC(2024, 0, 1);
     currentDayIndex = Math.round((todayUTC - baseUTC) / 86400000);
 
-    // 貨物駅、未来の駅（未開業）、廃止から33日以上経過した駅を除外してデータプールにセットします
+    // 駅データを読み込む
+    const res = await fetch('stations.json');
+    const rawStations = await res.json();
+    
+    // 計算済みの currentDayIndex を使って、未来の駅や古い廃止駅を省きます
     locaStations = rawStations.filter(s => {
       const isFreight = s.companies && s.companies.length === 1 && s.companies[0] === "日本貨物鉄道";
       const isFuture = s.startDay !== undefined && s.startDay > currentDayIndex;
@@ -833,23 +833,24 @@ async function initLocaGame() {
     // サジェスト機能を有効化
     setupSuggest();
 
-    // 正解駅の生成と状態の復元
-    selectTodayLocaStation();
+    // 【原因2の修正】正解駅の計算・通信が終わるのをしっかり「待つ（await）」ようにします
+    await selectTodayLocaStation();
+    
     restoreLocaGameState();
 
-    // UIボタンの有効化とイベント判定の呼び出しを追加
+    // UIボタンの有効化とイベント判定の呼び出し
     setupUI();
     checkLocaEvent();
 
-    // 【仮】とりあえず今はランダムで正解駅を1つ決める（後で日付ベースのロジックに差し替えます）
-    //todayLocaStation = locaStations[Math.floor(Math.random() * locaStations.length)];
-    //console.log("【デバッグ用】今日の正解駅:", todayLocaStation.kanji); // F12ツールで答えを確認できます
-
-    // 送信ボタンにイベントを紐付け
-    //document.getElementById("submit-guess-btn").addEventListener("click", submitLocaGuess);
-    
-    // サンプル行（HTMLにあったモック）を消去する
-    //document.getElementById("results-tbody").innerHTML = "";
+    // 【原因1の修正】誤って消去してしまっていた「送信ボタン」と「Enterキー」のスイッチを復活させます
+    const submitBtn = document.getElementById("submit-guess-btn");
+    const searchInput = document.getElementById("station-search-input");
+    if (submitBtn) submitBtn.addEventListener("click", submitLocaGuess);
+    if (searchInput) {
+      searchInput.addEventListener("keypress", function(e) {
+        if (e.key === "Enter") submitLocaGuess();
+      });
+    }
 
   } catch (e) {
     console.error("データの読み込みに失敗しました:", e);
