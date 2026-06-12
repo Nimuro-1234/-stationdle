@@ -206,7 +206,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    # return ["ち-て"], weekday
+    return ["ち-て"], weekday
 
     return chunks[weekday], weekday
 
@@ -607,27 +607,37 @@ def extract_and_count_stations():
                         inner_text = match.group(1)
 
                         # ▼▼▼ ここから差し替え ▼▼▼
-                        # 1. WikipediaのURLから記事名部分を抽出し、URLデコード（人間が読める文字に変換）する
-                        # 例: ".../wiki/%E4%BD%8F%E5%90%89%E9%A7%85_(JR..." -> "住吉駅_(JR西日本・神戸新交通)"
+                        # 1. 【URL側の検証】曖昧さ回避の「_(...)」を消した純粋な記事名から「・」を数える
                         page_title = urllib.parse.unquote(href.split("/wiki/")[-1])
+                        url_clean_name = page_title.split("_(")[0]
+                        url_dots = url_clean_name.count('・')
                         
-                        # 2. Wikipediaの曖昧さ回避ルールである「_ (半角カッコ)」の手前を切り出す
-                        # これにより、カッコ内の補足情報（と、そこに含まれる「・」）を100%完全に除外した純粋な駅名が得られます
-                        pure_station_name = page_title.split("_(")[0]
+                        # 2. 【表示名側の検証】「 (JR...)」のような半角カッコ（曖昧さ回避）だけを消去して「・」を数える
+                        # ※正規表現 \s*\(.*?\) は半角カッコのみを消すため、五福末広町などの全角カッコ「（）」は安全に保護されます
+                        display_clean_name = re.sub(r'\s*\(.*?\)', '', display_name)
+                        display_dots = display_clean_name.count('・')
                         
-                        # 3. 純粋な駅名本体に含まれる「・」の数を正確に数える
-                        dot_count = pure_station_name.count('・')
+                        # 3. URLと表示名、どちらか「・」が多い方を採用する（Wikipediaのリンクのサボりを強制補完）
+                        dot_count = max(url_dots, display_dots)
                         
                         # 4. カッコの中身（読み）を「・」で分割する
                         parts = inner_text.split('・')
                         
-                        # 5. 純粋な駅名に含まれる「・」の数 ＋ 1 個分のパーツだけを採用する
+                        # 5. 「・」の数 ＋ 1 個分のパーツを取得する（構造的な上限）
                         valid_parts = parts[:dot_count + 1]
                         
-                        # 6. 採用したパーツを再び「・」で繋ぐ
-                        yomi_raw = "・".join(valid_parts)
+                        # 6. 【ユーザー考案の最強防壁】漢字を含むパーツ（路線名など）を確実に除外する
+                        # これにより、万が一「dot_count」が多すぎても、無関係な路線名が結合されるのを防ぎます
+                        filtered_parts = [p for p in valid_parts if not re.search(r'[一-龠]', p)]
                         
-                        # 7. 最後に末尾の「えき」等を削除
+                        # 万が一すべて除外された場合の保険
+                        if not filtered_parts:
+                            filtered_parts = [parts[0]]
+                        
+                        # 7. 採用したパーツを再び「・」で繋ぐ
+                        yomi_raw = "・".join(filtered_parts)
+                        
+                        # 8. 最後に末尾の「えき」等を削除
                         yomi_raw = re.sub(r"(えき|ていりゅうじょう|しんごうじょう|停留場)$", "", yomi_raw)
                         # ▲▲▲ ここまで差し替え ▲▲▲
 
