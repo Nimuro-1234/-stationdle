@@ -763,13 +763,14 @@ async function selectTodayLocaStation() {
 // セーブデータの保存と復元
 // ==========================================
 function saveLocaGameState() {
-  // 現在遊んでいる難易度のデータだけをピンポイントで上書き保存します
+  // 現在遊んでいる難易度のデータを保存
   locaSavedState[currentDifficulty] = {
     guessesCount: locaGuessesCount,
     history: locaGridHistory,
-    isOver: locaGuessesCount >= MAX_LOCA_GUESSES || (locaGridHistory.length > 0 && locaGridHistory[locaGridHistory.length - 1].region === "cell-correct")
+    isOver: locaGuessesCount >= MAX_LOCA_GUESSES || (locaGridHistory.length > 0 && locaGridHistory[locaGridHistory.length - 1].isWin)
   };
   locaSavedState.date = currentDayIndex;
+  locaSavedState.lastPlayed = currentDifficulty; // 最後に遊んだモードを記憶します
   localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
 }
 
@@ -793,15 +794,20 @@ function restoreLocaGameState() {
       date: currentDayIndex, 
       normal: {guessesCount: 0, history: [], isOver: false}, 
       hard: {guessesCount: 0, history: [], isOver: false}
+      lastPlayed: null
     };
     localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
   }
-  // 【重要】画面をリロードした際は、必ず「難易度選択画面」を初期表示させます。
-  // ユーザーが「通常」か「ハード」を押すことで startGame() が実行され、
-  // 正しい正解駅が割り当てられた状態で盤面が復元されます。
-  document.getElementById('difficulty-screen').style.display = 'block';
-  document.getElementById('main-game-screen').style.display = 'none';
-  document.getElementById('back-to-diff-btn').style.display = 'none';
+  // 最後に遊んでいたモードの履歴があれば、選択画面を飛ばして直接ゲーム画面を復元します
+  const last = locaSavedState.lastPlayed;
+  if (last && locaSavedState[last].guessesCount > 0) {
+     startGame(last);
+  } else {
+     // まだ1回も遊んでいない場合は、通常通り難易度選択画面を出します
+     document.getElementById('difficulty-screen').style.display = 'block';
+     document.getElementById('main-game-screen').style.display = 'none';
+     document.getElementById('back-to-diff-btn').style.display = 'none';
+  }
 }
 
 
