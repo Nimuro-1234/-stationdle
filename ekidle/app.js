@@ -75,33 +75,35 @@ function showNextEventPopup() {
 function updateLoginStreak() {
   let streakData = JSON.parse(localStorage.getItem("ekiLoginStreak") || '{"currentStreak":0,"maxStreak":0,"lastLoginDate":""}');
   
-  // 今日の日付を「YYYY-MM-DD」の形式で取得します
+  // 共通関数を使って「今日（JST）」を取得
   const todayStr = getJSTDateString();
   
-  // 今日すでにログインして処理が終わっていれば、何もせずに終了します
+  // 今日すでにログインして処理が終わっていれば終了
   if (streakData.lastLoginDate === todayStr) {
     return;
   }
   
-  // 比較のために「昨日」の日付を計算します
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.getFullYear() + "-" + String(yesterday.getMonth() + 1).padStart(2, '0') + "-" + String(yesterday.getDate()).padStart(2, '0');
+  // 「昨日（JST）」の日付を正確に計算する
+  const t = new Date();
+  // 今の日本時間から、ちょうど24時間（86400000ミリ秒）前を計算
+  const jstYesterdayMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000) - 86400000;
+  const yObj = new Date(jstYesterdayMs);
+  const yesterdayStr = yObj.getFullYear() + "-" + String(yObj.getMonth() + 1).padStart(2, '0') + "-" + String(yObj.getDate()).padStart(2, '0');
   
-  // 最後にログインした日が「昨日」であれば、連続ログイン日数を1日増やします
+  // 最後にログインした日が「昨日」であれば、連続ログイン日数を1日増やす
   if (streakData.lastLoginDate === yesterdayStr) {
     streakData.currentStreak++;
   } else {
-    // 最後にログインした日が「一昨日以前」、または「初めてのプレイ」の場合は1日にリセットします
+    // 最後にログインした日が「一昨日以前」などの場合は1日にリセット
     streakData.currentStreak = 1;
   }
   
-  // 現在の連続日数が過去の最高記録（最大連勝）を上回った場合、最高記録を塗り替えます
+  // 最高記録の更新チェック
   if (streakData.currentStreak > streakData.maxStreak) {
     streakData.maxStreak = streakData.currentStreak;
   }
   
-  // 最終ログイン日を「今日」に書き換えて、ローカルファイルに保存します
+  // 最終ログイン日を今日に更新して保存
   streakData.lastLoginDate = todayStr;
   localStorage.setItem("ekiLoginStreak", JSON.stringify(streakData));
 }
