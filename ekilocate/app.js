@@ -321,6 +321,11 @@ function submitLocaGuess() {
     return;
   }
 
+  // 【安全装置】万が一正解駅がセットされていない場合は、ここで強制的にセットします
+  if (!todayLocaStation) {
+    todayLocaStation = currentDifficulty === 'hard' ? todayLocaStationHard : todayLocaStationNormal;
+  }
+
   const guess = currentSelectedStation;
   const target = todayLocaStation;
 
@@ -691,8 +696,12 @@ function restoreLocaGameState() {
     };
     localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
   }
-  // 初回読み込み時は必ず難易度選択画面を見せるため、ここでは画面の切り替えを行いません。
-  // ユーザーがボタンを押した時点で startGame() が呼ばれ、復元処理が走ります。
+  // 【重要】画面をリロードした際は、必ず「難易度選択画面」を初期表示させます。
+  // ユーザーが「通常」か「ハード」を押すことで startGame() が実行され、
+  // 正しい正解駅が割り当てられた状態で盤面が復元されます。
+  document.getElementById('difficulty-screen').style.display = 'block';
+  document.getElementById('main-game-screen').style.display = 'none';
+  document.getElementById('back-to-diff-btn').style.display = 'none';
 }
 
 
