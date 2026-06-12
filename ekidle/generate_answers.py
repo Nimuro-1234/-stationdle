@@ -154,7 +154,7 @@ def generate_answers():
             with open(filepath_admin, 'r', encoding='utf-8') as f:
                 existing_admin = json.load(f)
                 
-        if d <= today_index:
+        if d <= today_index + 3:
             if date_str not in existing_admin:
                 existing_admin[date_str] = generated_admin[date_str]
         else:
