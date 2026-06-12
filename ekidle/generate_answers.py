@@ -61,8 +61,8 @@ def generate_answers():
         lookback = min(1000, int(unique_yomi_count * 0.7))
         next_available_day = {}
 
-        # 0日目から、今日＋14日後までを通してループさせる
-        for d in range(0, today_index + 15):
+        # 0日目から、今日＋35日後までを通してループさせる
+        for d in range(0, today_index + 35):
             
             # 【完全再現2】startDay / endDay の未定義（None）判定をJSの挙動と厳密に合わせる
             active_stations = []
