@@ -819,7 +819,7 @@ async function initLocaGame() {
     currentDayIndex = Math.round((todayUTC - baseUTC) / 86400000);
 
     // 駅データを読み込む
-    const res = await fetch('stations.json');
+    const res = await fetch('/stations.json');
     const rawStations = await res.json();
     
     // 計算済みの currentDayIndex を使って、未来の駅や古い廃止駅を省きます
