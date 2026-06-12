@@ -1,5 +1,5 @@
 //1.共通変数の定義　
-const SITE_OPEN_DATE = "2025-06-15";　 // 【設定】サイトを公開した日（周年記念の基準日）
+const SITE_OPEN_DATE = "2025-06-25";　 // 【設定】サイトを公開した日（周年記念の基準日）
 let stations=[];　　　　　　　//すべての駅データの入れる箱
 let availableStations=[];　　//選択文字数に一致する駅を入れる箱
 let todayStation=null;　　　 //今日の正解駅
