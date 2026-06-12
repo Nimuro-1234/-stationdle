@@ -20,15 +20,17 @@
 <div style="display:flex; gap:5px;">
 <button id="help-btn" class="btn">？</button>
 <button id="theme-btn" class="btn">🎨</button>
+<button id="stats-btn" class="btn">📊</button>
 </div>
 <button id="menu-btn" class="btn">☰</button>
 </div>
 <h1 id="game-title" style="display: flex; justify-content: center; align-items: center; margin-bottom: 5px;">
 <img src="/ekilocate-icon.svg" alt="駅ロケアイコン" style="width: 36px; height: 36px; margin-right: 10px; border-radius: 8px;">
-駅ロケ 🗺️
+駅ロケ
 </h1>
 <p class="game-description">全国の駅から「今日の正解駅」を推理しよう！</p>
 <div id="remaining-guesses-display" style="font-weight:bold; color:#e74c3c; margin-top:10px; font-size:16px;">残り回答可能数：10 回</div>
+<button id="back-to-diff-btn" class="btn" style="margin-top:10px; display:none;">← 難易度選択へ戻る</button>
 </header>
 <main>
 <div class="search-area">
@@ -76,7 +78,7 @@
 </div>
 <script src="app.js"></script>
 <div id="help-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200;">
-<div class="modal-content" style="background:#fff; padding:20px; border-radius:8px; max-width:350px; position:relative;">
+<div class="modal-content" style="background:#fff; padding:20px; border-radius:8px; max-width:350px; max-height:80vh; overflow-y:auto; position:relative;">
 <span id="close-help-btn" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px;">&times;</span>
 <h2 style="text-align:center; margin-top:0;">遊び方</h2>
 <p style="font-size:14px;">距離と方角のヒントから、今日の「正解駅」を推理してください。</p>
@@ -86,6 +88,19 @@
 <li><strong style="color:#787c7e;">⬛ 灰（不一致）</strong>：共通する要素がありません。</li>
 </ul>
 <p style="font-size:12px; color:#666;">※ハードモードでは、完全正解するまで事業者と路線のヒントが隠されます。</p>
+<hr style="margin:15px 0; border:none; border-top:1px solid #ccc;">
+<p style="font-weight:bold; font-size:14px; text-align:center;">具体例：正解が「横浜駅」の場合</p>
+<div style="font-size:12px; text-align:left; line-height:1.5;">
+<strong>▶ 仙台駅と入力</strong><br>
+【地域 ⬛】【事業者 🟨】【路線 ⬛】<br>
+地域と路線は共通なし。事業者は「JR東日本」が一部共通するため🟨。<br><br>
+<strong>▶ 静岡駅と入力</strong><br>
+【地域 ⬛】【事業者 ⬛】【路線 🟨】<br>
+事業者はJR東日本とJR東海で不一致。路線は「東海道本線」が一部共通するため🟨。<br><br>
+<strong>▶ 新横浜駅と入力</strong><br>
+【地域 🟩】【事業者 🟨】【路線 🟨】<br>
+神奈川県横浜市で完全一致（🟩）。事業者と路線は、一部が共通しているため🟨。
+</div>
 </div>
 </div>
 <div id="result-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:200;">
@@ -95,8 +110,10 @@
 <p id="modal-desc" style="text-align:center; font-size:18px; font-weight:bold;"></p>
 <div id="affiliate-container" style="text-align:center; margin-bottom:15px;"></div>
 <div id="modal-grid" style="text-align:center; letter-spacing:2px; line-height:1.4; margin:15px 0; font-size:16px;"></div>
-<div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:15px;">
 <button id="share-btn" class="btn" style="background:#000; color:#fff;">Xでシェア</button>
+<button id="line-btn" class="btn" style="background:#06C755; color:#fff;">LINE</button>
+<button id="fb-btn" class="btn" style="background:#1877F2; color:#fff;">Facebook</button>
 <button id="copy-btn" class="btn" style="background:#ccc; color:#333;">コピー</button>
 </div>
 </div>
