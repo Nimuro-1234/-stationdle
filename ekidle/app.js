@@ -138,6 +138,8 @@ function toHiragana(str){ return str.replace(/[ァ-ン]/g,m=>String.fromCharCode
 //画面読み込み時に最初に実行され、データ準備やボタン登録などを行う
 async function initGame(){
 try{
+  // 【ここを追加：① 最初のシステム起動】
+  updateLoadingProgress(10, "システムを起動中...");
   // 現在のデータ構造のバージョンを記録（将来のバグ防止用）
   if (!localStorage.getItem("ekiSystemVersion")) localStorage.setItem("ekiSystemVersion", "1.0");
   // URLの末尾に「?emergency_reset=true」がついている場合の処理
@@ -151,6 +153,9 @@ try{
   }
   loadStats();
   updateLoginStreak();
+
+  // 【ここを追加：② データのダウンロード開始】
+  updateLoadingProgress(30, "駅データをダウンロード中...");
 
   // 【究極版】データ取得失敗時の安全装置（Cache APIを使った非同期の大容量バックアップ）
   let raw = [];
@@ -206,15 +211,19 @@ try{
   //貨物専用駅を除外し、駅名の読みを全てひらがなに整えて保存
   stations=raw.filter(s=>!(s.companies&&s.companies.length===1&&s.companies[0]==="日本貨物鉄道")).map(s=>({...s,yomi:toHiragana(s.yomi)}));
   if(stations.length===0)return;
-//画面下部の「回答」「1字消す」「全削除」ボタンの動作
-document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
-document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
-document.getElementById("clear-btn").addEventListener("click",()=>handleKeyPress("CLEAR"));
-//メニューの三本線が押されたときにサイドメニューを出す
-document.getElementById("menu-btn").addEventListener("click",()=>{
-document.getElementById("side-menu-overlay").style.display="block";
-setTimeout(()=>document.getElementById("side-menu").style.right="0",10);
-});
+
+  // 【ここを追加：③ 画面UIの構築準備】
+  updateLoadingProgress(60, "今日の答えを準備中...");
+  
+  //画面下部の「回答」「1字消す」「全削除」ボタンの動作
+  document.getElementById("enter-btn").addEventListener("click",()=>handleKeyPress("ENTER"));
+  document.getElementById("back-btn").addEventListener("click",()=>handleKeyPress("BACK"));
+  document.getElementById("clear-btn").addEventListener("click",()=>handleKeyPress("CLEAR"));
+  //メニューの三本線が押されたときにサイドメニューを出す
+  document.getElementById("menu-btn").addEventListener("click",()=>{
+  document.getElementById("side-menu-overlay").style.display="block";
+  setTimeout(()=>document.getElementById("side-menu").style.right="0",10);
+  });
 //メニューの外側や閉じるボタンが押されたらメニューを右側に隠す
 const closeSideMenu=()=>{
 document.getElementById("side-menu").style.right="-250px";
@@ -298,23 +307,23 @@ document.getElementById("theme-btn").addEventListener("click",()=>{
   localStorage.setItem("ekiSettings",JSON.stringify(ekiSettings));
   // もし元がエイプリルフールだったなら、クラスを消された直後に強制的に再付与
   if (isAF) document.body.classList.add("event-aprilfool");
-});
-// ハードモード切り替えスイッチの制御ロジック
-const hardSwitch = document.getElementById("hardmode-switch");
-if (ekiSettings.hardMode) {
-  hardSwitch.checked = true;
-}
+  });
+  // ハードモード切り替えスイッチの制御ロジック
+  const hardSwitch = document.getElementById("hardmode-switch");
+  if (ekiSettings.hardMode) {
+    hardSwitch.checked = true;
+  }
 updateHelpContent(); // 起動時に説明文を現在の設定に合わせる
 
-hardSwitch.addEventListener("change", (e) => {
-  let st = savedState[isPlayingRandom ? "random" : currentMode];
+  hardSwitch.addEventListener("change", (e) => {
+    let st = savedState[isPlayingRandom ? "random" : currentMode];
 
-  // 【追加】すでにゲームクリア・ゲームオーバーになっている場合は変更をブロック
-  if (st && st.isOver) {
-    e.target.checked = !e.target.checked; // スイッチの見た目を強制的に戻す
-    showMessage("ゲーム終了後は変更できません");
-    return;
-}
+    // 【追加】すでにゲームクリア・ゲームオーバーになっている場合は変更をブロック
+    if (st && st.isOver) {
+      e.target.checked = !e.target.checked; // スイッチの見た目を強制的に戻す
+      showMessage("ゲーム終了後は変更できません");
+      return;
+  }
 
   // プレイ途中（1手以上入力済み）に「通常→ハード」へ変更しようとした場合はブロック
   if (e.target.checked && st && st.guesses && st.guesses.length > 0) {
@@ -332,9 +341,18 @@ hardSwitch.addEventListener("change", (e) => {
 
   localStorage.setItem("ekiSettings", JSON.stringify(ekiSettings));
   updateHelpContent();
-});
+  });
+  
+  // 【ここを追加：④ 最終準備】
+  updateLoadingProgress(80, "ゲーム盤を構築中...");
+  
   //最後に、今日の正解駅を選び、ゲーム盤を作り、行事日かどうかを調べる
   await selectTodayStation(); restoreBoard(); checkSpecialEvent();
+
+  // 【ここを追加：⑤ 完了・画面を閉じる】
+  updateLoadingProgress(100, "出発進行！");
+  setTimeout(hideLoadingScreen, 600); // 100%を見せるために0.6秒待ってから消す
+  
 }catch(e){ console.error("データエラー:",e); }
 }
 
