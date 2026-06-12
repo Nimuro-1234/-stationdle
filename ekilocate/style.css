@@ -1,0 +1,202 @@
+/* 駅ロケ専用スタイルシート */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: #f5f7fa;
+    color: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 28px;
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    letter-spacing: 2px;
+}
+
+.game-description {
+    font-size: 13px;
+    color: #7f8c8d;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* 検索入力・サジェストエリア */
+.search-area {
+    position: relative;
+    margin-bottom: 25px;
+    display: flex;
+    gap: 8px;
+}
+
+.input-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+#station-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#station-search-input:focus {
+    border-color: #3498db;
+}
+
+#submit-guess-btn {
+    padding: 0 24px;
+    font-size: 16px;
+    font-weight: bold;
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#submit-guess-btn:hover {
+    background-color: #2980b9;
+}
+
+/* サジェストのドロップダウンリスト */
+#suggest-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    display: none; /* 通常は非表示。JSで制御します */
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#suggest-list li {
+    padding: 12px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+}
+
+#suggest-list li:last-child {
+    border-bottom: none;
+}
+
+#suggest-list li:hover, #suggest-list li.selected {
+    background-color: #f1f5f9;
+}
+
+.suggest-sub {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* 結果表示テーブル */
+.results-container {
+    width: 100%;
+    overflow-x: auto;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px;
+    font-size: 12px;
+    text-align: center;
+    min-width: 500px; /* 横スクロールを維持するための最小幅 */
+}
+
+.results-table th {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-weight: bold;
+    padding: 10px 4px;
+    border-radius: 4px;
+}
+
+.results-table td {
+    padding: 12px 4px;
+    font-weight: bold;
+    color: #ffffff;
+    border-radius: 4px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 各判定用セルの色定義（Wordle互換） */
+.cell-station-name {
+    background-color: #475569; /* 駅名はシックなグレーで統一 */
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cell-distance {
+    background-color: #475569;
+}
+
+.cell-direction {
+    background-color: #475569;
+    font-size: 16px;
+}
+
+/* 🟩 完全一致 */
+.cell-correct {
+    background-color: #6aaa64;
+}
+
+/* 🟨 部分一致 */
+.cell-present {
+    background-color: #c9b458;
+}
+
+/* ⬛ 不一致 */
+.cell-absent {
+    background-color: #787c7e;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 480px) {
+    .game-container {
+        padding: 10px;
+    }
+    h1 {
+        font-size: 24px;
+    }
+}
