@@ -8,6 +8,13 @@
 </head>
 <body>
 <div class="game-container">
+<div id="difficulty-screen" class="difficulty-screen">
+<h2>難易度を選択してください</h2>
+<button onclick="startGame('easy')">初級（15回）</button>
+<button onclick="startGame('normal')">中級（10回）</button>
+<button onclick="startGame('hard')">上級（5回）</button>
+</div>
+<div id="main-game-screen" style="display: none;">
 <header>
 <h1>駅ロケ 🗺️</h1>
 <p class="game-description">全国の駅から「今日の正解駅」を推理しよう！<br>入力すると、正解駅までの距離・方角・各種属性のヒントが表示されます。</p>
@@ -54,6 +61,7 @@
 </table>
 </div>
 </main>
+</div>
 </div>
 <script src="app.js"></script>
 </body>
