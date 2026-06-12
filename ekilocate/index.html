@@ -84,22 +84,22 @@
 <p style="font-size:14px;">距離と方角のヒントから、今日の「正解駅」を推理してください。</p>
 <ul style="padding-left:20px; font-size:13px; line-height:1.6; text-align:left;">
 <li><strong style="color:#6aaa64;">🟩 緑（完全一致）</strong>：地域（市区町村まで）、事業者、路線が完全に一致しています。</li>
-<li><strong style="color:#c9b458;">🟨 黄（部分一致）</strong>：都道府県が同じ、または複数の事業者・路線のうち一部が共通しています。</li>
+<li><strong style="color:#c9b458;">🟨 黄（部分一致）</strong>：都道府県だけが同じ場合や、駅に乗り入れる複数の事業者・路線のうち「一部だけ」が共通している場合です（例：入力駅が「JR・私鉄」、正解駅が「JR・地下鉄」なら、JRが共通するため黄色になります）。</li>
 <li><strong style="color:#787c7e;">⬛ 灰（不一致）</strong>：共通する要素がありません。</li>
 </ul>
 <p style="font-size:12px; color:#666;">※ハードモードでは、完全正解するまで事業者と路線のヒントが隠されます。</p>
 <hr style="margin:15px 0; border:none; border-top:1px solid #ccc;">
-<p style="font-weight:bold; font-size:14px; text-align:center;">具体例：正解が「横浜駅」の場合</p>
+<p style="font-weight:bold; font-size:14px; text-align:center;">具体例：正解が「<span style="color:#6aaa64;">横浜駅</span>」の場合</p>
 <div style="font-size:12px; text-align:left; line-height:1.5;">
 <strong>▶ 仙台駅と入力</strong><br>
 【地域 ⬛】【事業者 🟨】【路線 ⬛】<br>
 地域と路線は共通なし。事業者は「JR東日本」が一部共通するため🟨。<br><br>
-<strong>▶ 静岡駅と入力</strong><br>
-【地域 ⬛】【事業者 ⬛】【路線 🟨】<br>
-事業者はJR東日本とJR東海で不一致。路線は「東海道本線」が一部共通するため🟨。<br><br>
 <strong>▶ 新横浜駅と入力</strong><br>
 【地域 🟩】【事業者 🟨】【路線 🟨】<br>
-神奈川県横浜市で完全一致（🟩）。事業者と路線は、一部が共通しているため🟨。
+神奈川県横浜市で完全一致（🟩）。新横浜駅の事業者（JR東海、JR東日本、横浜市交通局など）と路線のうち、「JR東日本」と「横浜線」が正解の横浜駅と【一部だけ共通】しているため、事業者と路線は🟨。<br><br>
+<strong>▶ 片瀬江ノ島駅と入力</strong><br>
+【地域 🟨】【事業者 ⬛】【路線 ⬛】<br>
+神奈川県藤沢市なので、都道府県（神奈川県）だけが一致するため地域は🟨。事業者（小田急電鉄）と路線は共通なし（⬛）。
 </div>
 </div>
 </div>
