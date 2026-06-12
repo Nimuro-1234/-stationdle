@@ -33,6 +33,18 @@ let dailyArchive={};
 let eventPopupQueue = [];
 let isPopupRunning = false;
 
+// ==========================================
+// 共通ユーティリティ処理
+// ==========================================
+// 端末の時計や場所に依存せず、確実に「日本時間（JST）」のYYYY-MM-DD文字列を返す関数
+function getJSTDateString() {
+  const t = new Date();
+  const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
+  const jstObj = new Date(jstMs);
+  return jstObj.getFullYear() + "-" + String(jstObj.getMonth() + 1).padStart(2, '0') + "-" + String(jstObj.getDate()).padStart(2, '0');
+}
+
+
 // priority(数値)が小さい順に表示されます。
 // 基準： 10(サイト周年), 20(エイプリル), 30(ユーザー周年), 99(将来のその他用)
 function registerEventPopup(priority, actionFunc) {
@@ -64,8 +76,7 @@ function updateLoginStreak() {
   let streakData = JSON.parse(localStorage.getItem("ekiLoginStreak") || '{"currentStreak":0,"maxStreak":0,"lastLoginDate":""}');
   
   // 今日の日付を「YYYY-MM-DD」の形式で取得します
-  const today = new Date();
-  const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
+  const todayStr = getJSTDateString();
   
   // 今日すでにログインして処理が終わっていれば、何もせずに終了します
   if (streakData.lastLoginDate === todayStr) {
@@ -454,8 +465,8 @@ function loadGameState(dayIdx){
   let logData=savedLog?JSON.parse(savedLog):{};
   //let todayStr=new Date().toISOString().split('T')[0];
   // 【修正後】端末のローカル時計で「YYYY-MM-DD」を作成する
-  const d = new Date();
-  let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+  let todayStr = getJSTDateString();
+  
   let meta=JSON.parse(localStorage.getItem("ekiZukanMeta")||'{"totalLogins":0,"lastLoginDate":"","firstPlayDate":""}');
   
   if(!meta.firstPlayDate) meta.firstPlayDate=todayStr;
@@ -516,17 +527,21 @@ function saveGameState() {
 async function selectTodayStation() {
   const SECRET_SALT = "EkiDoru_Secret_2026!";
 
-  // 1. 日付とインデックスの計算（全ルートで必須）
+  // 1. 日本時間（JST）ベースの日付とインデックスの計算
   const t = new Date();
   const jstMs = t.getTime() + (t.getTimezoneOffset() * 60000) + (9 * 3600000);
-  const jstObj = new Date(jstMs);
-  const yearStr = jstObj.getFullYear();
-  let todayStr = jstObj.getFullYear() + "-" + String(jstObj.getMonth() + 1).padStart(2, '0') + "-" + String(jstObj.getDate()).padStart(2, '0');
+  const jstObj = new Date(jstMs); // 後続の計算で使い回すため、この行は残します
+  const yearStr = jstObj.getFullYear(); // 今年の西暦を取得
+  
+  // 先ほど作成した共通関数をここで安全に適用します
+  let todayStr = getJSTDateString();
 
+  // 基準日（2024年1月1日）から数えて今日が何日目かを計算
   const todayUTC = Date.UTC(jstObj.getFullYear(), jstObj.getMonth(), jstObj.getDate());
   const baseUTC = Date.UTC(2024, 0, 1);
   currentDayIndex = Math.round((todayUTC - baseUTC) / 86400000) + debugOffset;
 
+  // デバッグ機能で日付がずらされている場合の処理
   if (debugOffset !== 0) {
     const debugDate = new Date(baseUTC + currentDayIndex * 86400000);
     todayStr = debugDate.getUTCFullYear() + "-" + String(debugDate.getUTCMonth() + 1).padStart(2, '0') + "-" + String(debugDate.getUTCDate()).padStart(2, '0');
@@ -767,9 +782,11 @@ function updateTiles(){
 // 文字の色判定処理
 // ==========================================
 //入力された駅名と正解の駅名を比較し、どのマスが「緑・黄・紫・黒」になるかを詳しく計算する
-function evaluateGuess(guess,target){
+function evaluateGuess(guess,target, preSplitGuess = null){
 let results=new Array(rowLength).fill("absent");
-let targetArr=target.split(""); let guessArr=guess.split(""); let targetCounts={};
+let targetArr=target.split(""); 
+let guessArr = preSplitGuess || guess.split("");      // 分割済みの配列が渡されていればそれを使い、なければ分割する
+let targetCounts={};
 for(let c of targetArr)targetCounts[c]=(targetCounts[c]||0)+1;
 //【ステップ1】場所も文字もぴったり合っているマスを「correct（緑）」にする
 for(let i=0;i<rowLength;i++){
@@ -805,8 +822,8 @@ function updateZukan(yomi, status){
   let zukan=savedZukan?JSON.parse(savedZukan):{};
   // let todayStr=new Date().toISOString().split('T')[0];
   // 【修正後】端末のローカル時計で「YYYY-MM-DD」を作成する
-  const d = new Date();
-  let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+  let todayStr = getJSTDateString();
+  
   let currentStatus=zukan[yomi]?zukan[yomi].status:0;
   //以前より良い状態（未発見→遭遇、遭遇→的中）になった場合のみ上書き保存する
   if(status>currentStatus){
@@ -826,10 +843,10 @@ function submitGuess(isRestore=false){
   // 【修正後】無駄なリスト作りをやめ、見つかった瞬間に検索を終えるスマートな書き方に変更します
   // 【修正】廃止から40日間の「入力猶予期間（グレースピリオド）」を設ける
   const isValid = stations.some(s => 
-    s.yomi.length === currentMode && 
     s.yomi === currentGuess && 
+    s.yomi.length === currentMode && 
     (s.startDay === undefined || s.startDay <= currentDayIndex) && 
-    // 【ここがポイント】今日から32日引いた日よりも「後」に廃止された駅なら入力を許す
+    // 【ここがポイント】今日から32日引いた日よりも「後」に廃止された駅なら入力を許す（=過去32日以内に廃止された駅は入力を受け付ける）
     (s.endDay === undefined || s.endDay > (currentDayIndex - 32) || s.endDay === 999999)
   );
   if(!isValid){ if(!isRestore)showMessage("実在しない駅名です"); return; }
@@ -960,22 +977,27 @@ function filterAvailableStations(guess,actualColors,isRestore){
   if(isRestore || guess === todayStation.yomi){
     return;
   }
-availableStations=availableStations.filter(s=>{
-let simColors=evaluateGuess(guess,s.yomi);
-for(let i=0;i<rowLength;i++){ if(simColors[i]!==actualColors[i])return false; }
-return true;
-});
-if(guess!==todayStation.yomi && !isRestore){
-let count=availableStations.length;
-let htmlMsg=`<div style="display:flex; justify-content:center; align-items:center; font-weight:bold; color:#333;">
-<div style="width:110px; height:110px; border-radius:50%; background-color:#fff; border:4px solid #6aaa64; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-<div style="font-size:11px; letter-spacing:1px;">残り候補</div>
-<div style="color:#e53935; font-size:32px; font-weight:900; line-height:1.2;">${count}</div>
-<div style="font-size:11px; letter-spacing:1px;">駅</div>
-</div>
-</div>`;
-showMessage(htmlMsg,"transparent","none","none");
-}
+
+  // 【ここに追加】ループに入る「前」に、1回だけ配列に分割しておく
+  const guessArr = guess.split("");
+  availableStations = availableStations.filter(s => {
+    // 【変更】第3引数として分割済みの配列を渡す
+    let simColors = evaluateGuess(guess, s.yomi, guessArr);
+    for(let i=0; i<rowLength; i++){ if(simColors[i] !== actualColors[i]) return false; }
+    return true;
+  });
+  
+  if(guess!==todayStation.yomi && !isRestore){
+    let count=availableStations.length;
+    let htmlMsg=`<div style="display:flex; justify-content:center; align-items:center; font-weight:bold; color:#333;">
+      <div style="width:110px; height:110px; border-radius:50%; background-color:#fff; border:4px solid #6aaa64; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+      <div style="font-size:11px; letter-spacing:1px;">残り候補</div>
+      <div style="color:#e53935; font-size:32px; font-weight:900; line-height:1.2;">${count}</div>
+      <div style="font-size:11px; letter-spacing:1px;">駅</div>
+      </div>
+      </div>`;
+    showMessage(htmlMsg,"transparent","none","none");
+  }
 }
 
 
