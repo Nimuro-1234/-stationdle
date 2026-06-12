@@ -323,9 +323,9 @@ body.event-nye .key {
 /* ガタゴト動くアニメーションの設計図（上下の揺れとわずかな傾き） */
 @keyframes gatagoto {
   0% { transform: translateX(-50%) translateY(0) rotate(0deg); }
-  25% { transform: translateX(-50%) translateY(-1px) rotate(2deg); }
-  50% { transform: translateX(-50%) translateY(1px) rotate(-1deg); }
-  75% { transform: translateX(-50%) translateY(-1px) rotate(-3deg); }
+  25% { transform: translateX(-50%) translateY(-1px) rotate(1deg); }
+  50% { transform: translateX(-50%) translateY(0.5px) rotate(-0.5deg); }
+  75% { transform: translateX(-50%) translateY(-0.5px) rotate(-1deg); }
   100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
 }
 
