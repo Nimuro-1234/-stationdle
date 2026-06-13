@@ -646,7 +646,7 @@ function renderResultRow(guess, distance, direction, regionStatus, compStatus, l
   // 🎯を真ん中にし、距離のテキストは左寄せを維持するHTMLの出し分け
   const distHtml = isWin 
     ? `🎯` 
-    : `<span style="display:inline-block; width:55px; text-align:left;">${distanceNum} km</span>`;
+    : `<span style="display:inline-block; width:55px; text-align:left;">${distance} km</span>`;
 
   tr.innerHTML = `
     <td class="${nameClass}">${guess.kanji}</td>
