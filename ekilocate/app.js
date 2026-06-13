@@ -15,18 +15,30 @@ let locaSavedState = JSON.parse(localStorage.getItem("ekiLocateStateV2") || '{"d
 // ==========================================
 
 
-// ローディング画面の円形バーとテキストの進捗率を書き換える関数
-function updateLocaLoadingProgress(percent, text) {
+// プログレスバーを滑らかに進めるための変数と関数
+let currentLoadingProgress = 0;
+function updateLocaLoadingProgress(targetPercent, text) {
   const bar = document.getElementById("circular-progress-bar");
   const textEl = document.getElementById("loading-text");
   const percentEl = document.getElementById("loading-percentage");
   
-  if (bar) {
-    // conic-gradientの割合を0〜360度に換算して円を描かせます
-    bar.style.background = `conic-gradient(#3498db ${percent}%, #e2e8f0 ${percent}%)`;
-  }
   if (textEl && text) textEl.textContent = text;
-  if (percentEl) percentEl.textContent = `${percent}%`;
+  
+  // 目標の数値までアニメーションで徐々に引き上げる
+  const step = () => {
+    if (currentLoadingProgress < targetPercent) {
+      currentLoadingProgress += 2; // 2%ずつ増加
+      if (currentLoadingProgress > targetPercent) currentLoadingProgress = targetPercent;
+      
+      if (bar) bar.style.background = `conic-gradient(#3498db ${currentLoadingProgress}%, #e2e8f0 ${currentLoadingProgress}%)`;
+      if (percentEl) percentEl.textContent = `${Math.floor(currentLoadingProgress)}%`;
+      
+      if (currentLoadingProgress < targetPercent) {
+        requestAnimationFrame(step);
+      }
+    }
+  };
+  requestAnimationFrame(step);
 }
 
 
@@ -178,7 +190,13 @@ function startGame(difficulty) {
 
   // 過去の送信回答を完全に盤面へ描き戻します
   locaGridHistory.forEach(h => {
-    renderResultRow(h.guess, h.distanceNum, h.direction, h.region, h.comp, h.line, h.isWin);
+    // 過去のデータに距離の数値が含まれていない場合、ここで再計算して補完します
+    let distNum = h.distanceNum;
+    if (distNum === undefined && h.guess && todayLocaStation) {
+      distNum = calculateDistance(h.guess.latitude, h.guess.longitude, todayLocaStation.latitude, todayLocaStation.longitude);
+      h.distanceNum = distNum; // ついでにデータに保存しておく
+    }
+    renderResultRow(h.guess, distNum, h.direction, h.region, h.comp, h.line, h.isWin);
   });
 
   // 開始状態をセーブデータに保存
@@ -622,11 +640,18 @@ function renderResultRow(guess, distance, direction, regionStatus, compStatus, l
     }
   }
 
-  // セルのHTMLを組み立てる
+  // 駅名セルを正解時に緑色にするためのクラス
+  const nameClass = isWin ? "cell-station-name cell-correct" : "cell-station-name";
+
+  // 🎯を真ん中にし、距離のテキストは左寄せを維持するHTMLの出し分け
+  const distHtml = isWin 
+    ? `🎯` 
+    : `<span style="display:inline-block; width:55px; text-align:left;">${distanceNum} km</span>`;
+
   tr.innerHTML = `
-    <td class="cell-station-name">${guess.kanji}</td>
-    <td class="${isWin ? 'cell-correct' : 'cell-distance'}">
-      <span style="display:inline-block; width:55px; text-align:left;">${isWin ? '🎯' : distance + ' km'}</span>
+    <td class="${nameClass}">${guess.kanji}</td>
+    <td class="${isWin ? 'cell-correct' : distClass}" style="${isWin ? 'text-align:center;' : ''}">
+      ${distHtml}
     </td>
     <td class="${isWin ? 'cell-correct' : 'cell-direction'}">${isWin ? '🎯' : direction}</td>
     <td class="${regionStatus}">${guess.pref}<br><span style="font-size:10px;font-weight:normal;">${guess.municipality}</span></td>
@@ -669,8 +694,11 @@ function setupUI() {
 
   // グラフ（戦績）ボタンの機能
   document.getElementById("stats-btn").addEventListener("click", () => {
-    if (locaSavedState && locaSavedState.isOver) {
-      const isWin = locaSavedState.history.length > 0 && locaSavedState.history[locaSavedState.history.length - 1].isWin;
+    // 最後に遊んだモード、または現在のモードの状態を確認する
+    let targetDiff = currentDifficulty || locaSavedState.lastPlayed;
+    if (targetDiff && locaSavedState[targetDiff] && locaSavedState[targetDiff].isOver) {
+      const hist = locaSavedState[targetDiff].history;
+      const isWin = hist.length > 0 && hist[hist.length - 1].isWin;
       showLocaResultModal(isWin);
     } else {
       alert("ゲームクリア後に見ることができます");
