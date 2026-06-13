@@ -1331,11 +1331,16 @@ function drawNextEndlessStation() {
       let s = locaStations[i];
       
       // selectTodayLocaStation と完全に一致させた厳格なフィルター
-      const isValid = s.pref !== "" && 
-                      s.address !== "" && 
-                      s.min_km !== null &&
-                      s.companies && s.companies.length > 0 &&
-                      !(s.companies.length === 1 && s.companies[0] === "日本貨物鉄道");
+      const isValid = 
+          s.latitude !== undefined && s.latitude !== null &&     // 緯度がある
+          s.longitude !== undefined && s.longitude !== null &&   // 経度がある
+          s.pref !== "" &&                                       // 都道府県名がある
+          s.address !== "" &&                                    // 住所がある
+          s.min_km !== null &&                                   // 営業キロがある
+          s.companies && s.companies.length > 0 &&               // 事業者が登録されている
+          !(s.companies.length === 1 && s.companies[0] === "日本貨物鉄道") && // 貨物専用駅ではない
+          (s.startDay === undefined || s.startDay <= currentDayIndex) &&    // まだ開業していない未来の駅ではない
+          (s.endDay === undefined || s.endDay > currentDayIndex || s.endDay === 999999); // すでに廃止された駅ではない
                       
       if (!isValid) continue; // 条件を満たさない駅は山札に入れない
 
@@ -1398,6 +1403,30 @@ function getEndlessComboMultiplier(combo) {
   // 101連勝以降は2.5倍で固定
   return 2.5; 
 }
+
+
+// ==========================================
+// エンドレスモード：手数に応じた回復量の計算
+// ==========================================
+function getEndlessRecoveryAmount(guesses) {
+  if (guesses <= 3) return 3;
+  if (guesses <= 6) return 2;
+  if (guesses <= 10) return 1;
+  return 0; // 11手以上かかった場合は回復なし
+}
+
+// ------------------------------------------
+// 【メモ】この関数は、プレイヤーが正解した時に以下のように呼び出して使います。
+// （※後ほどエンドレス用の正誤判定処理を組み立てる際に組み込みます）
+//
+// let recovery = getEndlessRecoveryAmount(locaGuessesCount);
+// locaEndlessState.remainingGuesses += recovery;
+//
+// // 上限突破を防止（最大15回まで）
+// if (locaEndlessState.remainingGuesses > 15) {
+//   locaEndlessState.remainingGuesses = 15;
+// }
+// ------------------------------------------
 
 
 // ==========================================
