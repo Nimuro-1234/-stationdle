@@ -652,9 +652,19 @@ function submitLocaGuess() {
     }
   }
 
-  if (locaGuessesCount >= MAX_LOCA_GUESSES) {
-    alert("すでに規定の回数に達しています！");
-    return;
+  // エンドレスモードと通常モードで、制限に引っかかる条件を分けます
+  if (currentDifficulty === 'endless') {
+    // エンドレスモードの場合は、全体の手数が0以下の時だけブロックします
+    if (locaEndlessState.remainingGuesses <= 0) {
+      alert("すでに規定の回数に達しています！");
+      return;
+    }
+  } else {
+    // 通常・ハードモードの場合は、1問あたりの回答回数（MAX_LOCA_GUESSES）でブロックします
+    if (locaGuessesCount >= MAX_LOCA_GUESSES) {
+      alert("すでに規定の回数に達しています！");
+      return;
+    }
   }
 
   // 【安全装置】万が一正解駅がセットされていない場合は、ここで強制的にセットします
@@ -1628,11 +1638,13 @@ function startNextEndlessRound() {
     // 画面に描画（locaGuessesCount は増えないため、15回の制限枠は減りません）
     renderResultRow(prev, dist, dir, regionStatus, compStatus, lineStatus, false);
     
-    // 【追加】引いた駅と履歴をセーブデータに同期する
+  }
+
+    // 問題がセットされたら、それが1問目であっても必ず現在の駅と履歴を保存します
+    // （これにより、途中で画面を離れても盤面が消えなくなります）
     locaEndlessState.currentStation = todayLocaStation;
     locaEndlessState.history = locaGridHistory;
     localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
-  }
 
   // 画面表示等のリセット処理
   document.getElementById("station-search-input").value = "";
