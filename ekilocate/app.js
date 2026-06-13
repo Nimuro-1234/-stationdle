@@ -378,12 +378,58 @@ function toHiragana(str) {
   return str.replace(/[ァ-ン]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
 }
 
+
 // ==========================================
 // 入力サジェスト（候補リスト）機能の設定
+// ==========================================
+// 検索時に新字体と旧字体の揺れを吸収し、統一して比較するための変換関数
+function normalizeKanjiForSearch(str) {
+  if (!str) return "";
+  return str.replace(/俱/g, "倶")
+            .replace(/澤/g, "沢")
+            .replace(/濱/g, "浜")
+            .replace(/櫻/g, "桜")
+            .replace(/眞/g, "真")
+            .replace(/鐵/g, "鉄")
+            .replace(/ヶ/g, "ケ")
+            .replace(/驛/g, "駅");
+}
+
+
+// ==========================================
+// サジェスト処理
 // ==========================================
 function setupSuggest() {
   const input = document.getElementById("station-search-input");
   const list = document.getElementById("suggest-list");
+
+  // 手打ちされた文字の末尾に「駅」が付いていたら、裏でこっそり消す（横浜駅 → 横浜）
+  //if (inputVal.endsWith("駅") && inputVal.length > 1) {
+  //  inputVal = inputVal.slice(0, -1);
+  //}
+
+  // サジェストをクリックせずに手打ちのまま送信ボタン（Enter）を押した場合の救済処理
+  if (!currentSelectedStation) {
+    // 辞書の中から、漢字かひらがなが完全に一致する駅を探し出す
+    const exactMatches = locaStations.filter(s => s.kanji === inputVal || (s.hiragana && s.hiragana === inputVal));
+    
+    if (exactMatches.length === 1) {
+      // 候補が1つだけなら、プレイヤーがサジェストをクリックしたのと同じ扱いにする
+      currentSelectedStation = exactMatches[0];
+    } else if (exactMatches.length > 1) {
+      // 例：「福島駅」（福島県と大阪府）のように複数ある場合は、選ばせる
+      alert("同名の駅が複数存在します。サジェストリストから該当する地域のものを選んでください。");
+      return;
+    } else {
+      alert("駅が見つかりません。リストから選択するか、正しい駅名を入力してください。");
+      return;
+    }
+  }
+
+  // 入力欄の文字を正式な駅名に綺麗に書き換える
+  inputEl.value = currentSelectedStation.kanji;
+  
+  const guess = currentSelectedStation;
 
   // 【1】文字が入力されるたびに実行される処理
   input.addEventListener("input", (e) => {
@@ -406,6 +452,9 @@ function setupSuggest() {
       let score = 0;
 
       // エラー防止のため、データがない場合は空文字を代入して安全に比較する
+      // 【双方向対応】辞書側の駅名データも、検索の判定時だけ新字体に変換して比較する
+      const originalKanji = s.kanji || "";
+      const kanji = normalizeKanjiForSearch(originalKanji);
       const kanji = s.kanji || "";
       const yomi = s.yomi || s.hiragana || ""; 
       const pref = s.pref || "";
