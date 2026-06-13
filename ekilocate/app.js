@@ -400,15 +400,46 @@ function updateRemainingGuesses() {
   if (display) display.textContent = `残り回答可能数：${remain} 回`;
 }
 
-// 難易度ボタンが押された時に実行される関数
+
+// ==========================================
+// ゲーム開始と再開の処理（チラつき防止・バッジ連動）
+// ==========================================
 function startGame(difficulty) {
   currentDifficulty = difficulty;
-  locaGridHistory = []; // 履歴をリセット
+  todayLocaStation = currentDifficulty === 'hard' ? todayLocaStationHard : todayLocaStationNormal;
+
+  const state = locaSavedState[currentDifficulty];
+  locaGridHistory = state.history || [];
+  locaGuessesCount = state.guessesCount || 0;
   
+  document.getElementById("results-tbody").innerHTML = "";
+  document.getElementById("station-search-input").value = "";
+
+  locaGridHistory.forEach(h => {
+    renderResultRow(h.guess, h.distanceNum, h.direction, h.region, h.comp, h.line, h.isWin);
+  });
+
+  saveLocaGameState();
+
+  // 画面の切り替え
   document.getElementById('difficulty-screen').style.display = 'none';
   document.getElementById('main-game-screen').style.display = 'block';
   
-  updateRemainingGuesses(); // 開始時に残り回数を表示
+  // ハードモードバッジの表示制御
+  const badge = document.getElementById("hard-mode-badge");
+  if (badge) {
+      badge.style.display = currentDifficulty === 'hard' ? 'inline-block' : 'none';
+  }
+  
+  updateRemainingGuesses();
+
+  if (state.isOver) {
+    document.getElementById("submit-guess-btn").disabled = true;
+    document.getElementById("station-search-input").disabled = true;
+  } else {
+    document.getElementById("submit-guess-btn").disabled = false;
+    document.getElementById("station-search-input").disabled = false;
+  }
 }
 
 
@@ -565,12 +596,25 @@ function setupUI() {
   document.getElementById("help-btn").addEventListener("click", () => document.getElementById("help-modal").style.display = "flex");
   document.getElementById("close-help-btn").addEventListener("click", () => document.getElementById("help-modal").style.display = "none");
 
-  // 戻るボタンの機能
-  document.getElementById("back-to-diff-btn").addEventListener("click", () => {
-    document.getElementById("main-game-screen").style.display = "none";
-    document.getElementById("difficulty-screen").style.display = "block";
-    document.getElementById("back-to-diff-btn").style.display = "none";
-  });
+  // メイン画面の「モード選択に戻る」ボタンの機能
+  const backBtn = document.getElementById("back-to-diff-btn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      document.getElementById("main-game-screen").style.display = "none";
+      document.getElementById("difficulty-screen").style.display = "block";
+    });
+  }
+
+  // サイドメニュー内の「モード選択に戻る」ボタンの機能
+  const sideBackBtn = document.getElementById("side-back-to-diff-btn");
+  if (sideBackBtn) {
+    sideBackBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeSideMenu(); // メニューを閉じる
+      document.getElementById("main-game-screen").style.display = "none";
+      document.getElementById("difficulty-screen").style.display = "block";
+    });
+  }
 
   // グラフ（戦績）ボタンの機能
   document.getElementById("stats-btn").addEventListener("click", () => {
@@ -948,9 +992,8 @@ function saveLocaGameState() {
   localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
 }
 
+
 function restoreLocaGameState() {
-  
-  // 古いデータや日付が変わっている場合は初期化します
   if (locaSavedState.date !== currentDayIndex || !locaSavedState.normal) {
     locaSavedState = {
       date: currentDayIndex,
@@ -961,16 +1004,16 @@ function restoreLocaGameState() {
     localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
   }
 
-  // 最後に遊んでいたモードの履歴があれば、選択画面を飛ばして直接ゲーム画面を復元します
+  //最後に遊んでいたモードがあれば、モード選択画面を飛ばしてゲーム画面を表示させる
   const last = locaSavedState.lastPlayed;
   
-  // 【バグ修正】回答数が0回であっても、最後に選択していたモードがあれば確実に画面を復元して開くように条件を修正しました
+  // 初期画面のHTML側を display:none で隠しておき、ここで初めて block にすることで
+  // 「一瞬画面が見えてから切り替わる」という不自然なチラつきが完全に消滅します。
   if (last) {
      startGame(last);
   } else {
      document.getElementById('difficulty-screen').style.display = 'block';
      document.getElementById('main-game-screen').style.display = 'none';
-     document.getElementById('back-to-diff-btn').style.display = 'none';
   }
 }
 
