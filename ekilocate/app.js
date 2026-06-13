@@ -219,9 +219,20 @@ async function initLocaGame() {
     if (submitBtn) submitBtn.addEventListener("click", submitLocaGuess);
     
     if (searchInput) {
-      // 【追加】入力窓が選択されたらタイマーをスタート（すでに始まっていれば無視）
+      // 入力窓が選択されたらタイマーをスタートする処理
       searchInput.addEventListener("focus", () => {
-        if (!locaPlayStartTime && !locaSavedState[currentDifficulty].isOver) {
+        // エンドレスモードと通常モードで、ゲーム終了の判定先を分けます
+        let isOver = false;
+        if (currentDifficulty === 'endless') {
+           // エンドレスモードは残り回数が0以下なら終了扱い
+           isOver = (locaEndlessState.remainingGuesses <= 0);
+        } else if (locaSavedState[currentDifficulty]) {
+           // 通常モードは既存のセーブデータを確認
+           isOver = locaSavedState[currentDifficulty].isOver;
+        }
+        
+        // タイマーがまだ動いておらず、かつゲームオーバーでなければ計測開始
+        if (!locaPlayStartTime && !isOver) {
           locaPlayStartTime = Date.now();
         }
       });
@@ -806,11 +817,19 @@ function submitLocaGuess() {
        document.getElementById("submit-guess-btn").disabled = true;
        document.getElementById("station-search-input").disabled = true;
 
+      // ボーナスの内訳を1つのオブジェクト（箱）にまとめます
+       const breakdown = { 
+           base: baseScore, 
+           guess: guessBonus, 
+           time: timeBonus, 
+           mult: multiplier.toFixed(1) 
+       };
+
       // 内訳をまとめたオブジェクトを渡すように変更
        const breakdown = { base: baseScore, guess: guessBonus, time: timeBonus, mult: multiplier.toFixed(1) };
       
-       // 邪魔なウィンドウを出さず、2秒間のポップアップを呼び出して自動で次へ進む
-       showEndlessWinPopup(earnedScore, locaEndlessState.combo, recovery);
+       // まとめた内訳（breakdown）を4つ目の引数として確実に渡します
+       showEndlessWinPopup(earnedScore, locaEndlessState.combo, recovery, breakdown);
        
     } else {
        // 【通常・ハードモードの正解処理（既存）】
