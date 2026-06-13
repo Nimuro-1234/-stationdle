@@ -604,3 +604,27 @@ td.cell-station-name.cell-correct {
     filter: brightness(0.85);
 }
 
+/* ==========================================
+   シェアボタン群の立体化 ＆ 駅ドル風デザイン統一
+========================================== */
+.flat-share-cluster .btn {
+    font-weight: bold !important;       /* 【修正】文字を太くする（駅ドルと同じ） */
+    font-size: 14px !important;         /* 【修正】文字サイズを14pxに戻す */
+    padding: 8px 4px !important;        /* 【修正】上下の分厚い余白をスッキリさせる */
+    
+    border-radius: 8px !important;      /* 角の丸みを駅ドルと同じにする */
+    border-bottom: 4px solid rgba(0,0,0,0.2) !important; /* 立体感（厚み） */
+    box-shadow: none !important;
+    
+    flex: 1;                            /* 4つのボタンの横幅を均等に揃える */
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;                /* 文字の折り返しを防ぐ */
+}
+
+/* 押した時に下に沈む動き（駅ドルと統一） */
+.flat-share-cluster .btn:active {
+    border-bottom-width: 0px !important;
+    transform: translateY(4px) !important;
+}
