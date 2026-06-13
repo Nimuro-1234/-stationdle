@@ -81,7 +81,7 @@
     <h2 id="diff-title" style="font-size:18px; text-align:center; margin-top:0;">モードを選択してください</h2>
     <button class="diff-btn" onclick="startGame('normal')" style="background-color:#3498db; border-bottom-color:#2980b9;">通常モード</button>
     <button class="diff-btn" onclick="startGame('hard')" style="background-color:#e74c3c; border-bottom-color:#c0392b;">ハードモード<br>（事業者・路線ヒントなし）</button>
-    <button class="diff-btn" onclick="alert('エンドレスモードは現在ロジックを鋭意構築中です！')" style="background-color:#2ecc71; border-bottom-color:#27ae60;">エンドレスモード</button>
+    <button class="diff-btn" onclick="openEndlessIntroModal()" style="background-color:#2ecc71; border-bottom-color:#27ae60;">エンドレスモード</button>
     <button class="diff-btn" disabled style="background-color:#bdc3c7; color:#fff; border-bottom-color:#95a5a6; cursor:not-allowed;">新モード（開発中）</button>
 </div>
 
@@ -207,5 +207,25 @@ Inspired by Wordle<br>
   <li style="border-bottom:1px solid #eee;"><a href="https://buymeacoffee.com/nimuro_stationdle" target="_blank" style="text-decoration:none; color:#ff813f;">☕ コーヒーをおごる</a></li>
 </ul>
 </div>
+
+
+  <div id="endless-intro-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:300;">
+        <div class="modal-content" style="background:#fff; padding:20px; border-radius:8px; max-width:350px; border:3px solid #2ecc71 !important;">
+            <h2 style="text-align:center; color:#2ecc71; margin-top:0;">🔄 エンドレスモードへようこそ！</h2>
+            <div style="font-size:13px; line-height:1.6; color:#334155; margin-bottom:15px; text-align:left;">
+                全国の駅をどこまで進めるか挑戦するサバイバルモードです！<br><br>
+                ・持ち回答数は<b>最大15回</b>からスタート<br>
+                ・1駅正解するごとに、かかった手数に応じて<b>回答数が回復します。</b><br>
+                ・前の問題の正解駅が、次の問題の<b>0手目（手数消費なし）</b>として自動入力されます。<br>
+                ・回答数が0になるとゲームオーバーです。
+            </div>
+            <button class="btn" onclick="closeEndlessIntroAndStart()" style="background-color:#2ecc71; color:#fff; width:100%; padding:12px;">出発進行！(ゲーム開始)</button>
+        </div>
+    </div>
+
+    <div id="endless-highscore-toast" style="display:none; position:fixed; top:15%; left:50%; transform:translateX(-50%); background:linear-gradient(135deg, #ffca28, #ffa726); color:#fff; padding:10px 20px; border-radius:20px; font-weight:bold; font-size:16px; z-index:1500; box-shadow:0 4px 15px rgba(0,0,0,0.2); animation: proximityGlow 1s infinite alternate; text-align:center;">
+        ✨ 👑 HIGHSCORE UPDATED! 👑 ✨
+    </div>
+  
 </body>
 </html>
