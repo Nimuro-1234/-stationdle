@@ -1100,17 +1100,17 @@ function showResultModal(isWin,isRestore){
   let safePref = todayStation.pref || "富山県";
   let searchMuni = todayStation.municipality || "富山市";
   let searchWard = todayStation.ward || "";
-  let muniMuni = safePref + searchMuni + searchWard; // 例：「島根県江津市」
+  let muniMuni = searchMuni // + searchWard; // 例：「島根県江津市」
 
   // トラベル用の都会・田舎のキーワード分岐（宿泊施設の件数0を回避するためトラベル側のみ維持）
-  let isRural = todayStation.muni_type === "町" || todayStation.muni_type === "村" || todayStation.population < 30000;
+  let isRural = todayStation.muni_type === "町" || todayStation.muni_type === "村" || todayStation.population < 2000;
   let areaKeyword = isRural ? safePref : muniMuni;
   let searchKw = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode ? safePref : areaKeyword;
   
   // ポップアップ内のPR用バナー文言（トラベル用に修正）
   let prText = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode 
     ? `＼ 聖地のある「${safePref}」へ巡礼して指の疲れを癒やす ／` 
-    : `＼ この駅のある「${muniMuni}」へ聖地巡礼に行こう！ ／`;
+    : `＼ この駅のある「${isRural ? safePref : safePref + muniMuni}」へ聖地巡礼に行こう！ ／`;
 
   // 1段目：宿・ホテル予約（既存のトラベルURL）
   let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(searchKw)));
