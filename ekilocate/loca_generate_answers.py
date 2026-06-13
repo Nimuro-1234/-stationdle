@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 # JS側と完全に一致させるための暗号化キー
 SECRET_SALT = "EkiLocate_Secret_2026!"
 
-# JavaScriptの Math.imul と全く同じビット演算を行う関数（運命の計算式）
+# JavaScriptの Math.imul と全く同じビット演算を行う関数
 def math_imul(a, b):
     return ((a & 0xffffffff) * (b & 0xffffffff)) & 0xffffffff
 
@@ -29,17 +29,6 @@ def generate_answers():
         print(f"駅データの取得に失敗しました: {e}")
         return
 
-    # JSの自力計算と同じく、貨物駅を除外し必須項目を満たす駅だけを抽出
-    valid_stations = []
-    for s in raw_stations:
-        companies = s.get('companies', [])
-        if not s.get('pref') or not s.get('address') or s.get('min_km') is None or not companies:
-            continue
-        if len(companies) == 1 and companies[0] == "日本貨物鉄道":
-            continue
-        valid_stations.append(s)
-
-    # 基準日（Day 0）と今日の日付インデックスの計算
     base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     now_jst = datetime.now(timezone(timedelta(hours=9)))
     today_index = (now_jst.date() - base_date.date()).days
@@ -50,97 +39,103 @@ def generate_answers():
     generated_hashes = {}
     generated_admin = {}
 
-    lookback = 1000
-    next_available_day = {}
-
     # ==============================================================
-    # JSの自力計算（フォールバック）と1ミリも違わない歴史シミュレーション
+    # 修正版：未来の「その日（target_d）」のJS環境を完全に再現するシミュレーション
     # ==============================================================
-    for d in range(0, today_index + 43):
-        pool_normal = []
-        pool_hard = []
+    # 今日から36日分（約1ヶ月後まで）の答えを生成します
+    for target_d in range(today_index, today_index + 36):
         
-        # 1. その日(d)の時点で現役であり、かつクールダウンが終わっている駅を箱に入れる
-        for s in valid_stations:
-            s_start = s.get('startDay')
-            s_end = s.get('endDay')
-            c_key = get_coord_key(s)
+        # 1. ターゲット日（その日）の視点で、JSの locaStations と validStations を作る
+        valid_stations = []
+        for s in raw_stations:
+            companies = s.get('companies', [])
             
-            if s_start is not None and s_start > d:
+            # initLocaGame と同等のフィルタ
+            if s.get('latitude') is None or s.get('longitude') is None:
                 continue
-            if s_end is not None and s_end <= d and s_end != 999999:
+            if len(companies) == 1 and companies[0] == "日本貨物鉄道":
                 continue
-            if next_available_day.get(c_key, 0) > d:
+            if s.get('startDay') is not None and s.get('startDay') > target_d:
                 continue
-            
-            pool_normal.append(s)
-            pool_hard.append(s)
-            
-        # 安全装置（万が一箱が空になったら全駅を復活させる）
-        if not pool_normal:
-            pool_normal = list(valid_stations)
-            pool_hard = list(valid_stations)
+            if s.get('endDay') is not None and s.get('endDay') != 999999 and s.get('endDay') <= target_d - 33:
+                continue
+                
+            # selectTodayLocaStation と同等のフィルタ
+            if not s.get('pref') or not s.get('address') or s.get('min_km') is None or not companies:
+                continue
+                
+            valid_stations.append(s)
 
-        # --------------------------------------------------
-        # ① 通常モードの抽選
-        # --------------------------------------------------
-        seed_n = d * 33333 + 54321
-        hash_n = math_imul(seed_n ^ zero_fill_right_shift(seed_n, 15), 2246822507)
-        hash_n = math_imul(hash_n ^ zero_fill_right_shift(hash_n, 13), 3266489909)
-        hash_n = zero_fill_right_shift(hash_n ^ zero_fill_right_shift(hash_n, 16), 0)
+        lookback = 1000
+        next_available_day = {}
+        candidate_normal = None
+        candidate_hard = None
 
-        candidate_normal = pool_normal[hash_n % len(pool_normal)]
+        # 2. ターゲット日の配列を使って、0日からターゲット日まで歴史をシミュレーション
+        for d in range(0, target_d + 1):
+            pool_normal = []
+            pool_hard = []
+            
+            for s in valid_stations:
+                if s.get('startDay') is not None and s.get('startDay') > d:
+                    continue
+                if s.get('endDay') is not None and s.get('endDay') <= d and s.get('endDay') != 999999:
+                    continue
+                
+                c_key = get_coord_key(s)
+                if next_available_day.get(c_key, 0) > d:
+                    continue
+                
+                pool_normal.append(s)
+                pool_hard.append(s)
+                
+            if not pool_normal:
+                pool_normal = list(valid_stations)
+                pool_hard = list(valid_stations)
+
+            # 通常モードの抽選
+            seed_n = d * 33333 + 54321
+            hash_n = math_imul(seed_n ^ zero_fill_right_shift(seed_n, 15), 2246822507)
+            hash_n = math_imul(hash_n ^ zero_fill_right_shift(hash_n, 13), 3266489909)
+            hash_n = zero_fill_right_shift(hash_n ^ zero_fill_right_shift(hash_n, 16), 0)
+
+            candidate_normal = pool_normal[hash_n % len(pool_normal)]
+            next_available_day[get_coord_key(candidate_normal)] = d + lookback + 1
+
+            # ハードモードの抽選
+            normal_key = get_coord_key(candidate_normal)
+            pool_hard = [s for s in pool_hard if get_coord_key(s) != normal_key]
+            
+            if not pool_hard:
+                pool_hard = list(valid_stations)
+
+            seed_h = d * 33333 + 99999
+            hash_h = math_imul(seed_h ^ zero_fill_right_shift(seed_h, 15), 2246822507)
+            hash_h = math_imul(hash_h ^ zero_fill_right_shift(hash_h, 13), 3266489909)
+            hash_h = zero_fill_right_shift(hash_h ^ zero_fill_right_shift(hash_h, 16), 0)
+
+            candidate_hard = pool_hard[hash_h % len(pool_hard)]
+            next_available_day[get_coord_key(candidate_hard)] = d + lookback + 1
+            
+            # シミュレーションがターゲット日に到達したら結果を確定
+            if d == target_d:
+                final_normal = candidate_normal
+                final_hard = candidate_hard
+
+        # 3. 確定した結果を記録
+        target_date = base_date + timedelta(days=target_d)
+        date_str = target_date.strftime('%Y-%m-%d')
         
-        # 選ばれたらスケジュール帳を更新（1000日間出勤禁止）
-        next_available_day[get_coord_key(candidate_normal)] = d + lookback + 1
-
-        # --------------------------------------------------
-        # ② ハードモードの抽選
-        # --------------------------------------------------
-        # JSと完全一致：たった今通常モードで選ばれた駅をハードの箱から抜く（同日被り防止）
-        normal_key = get_coord_key(candidate_normal)
-        pool_hard = [s for s in pool_hard if get_coord_key(s) != normal_key]
+        n_hashed = hashlib.sha256((SECRET_SALT + final_normal['kanji']).encode('utf-8')).hexdigest()
+        h_hashed = hashlib.sha256((SECRET_SALT + final_hard['kanji']).encode('utf-8')).hexdigest()
         
-        if not pool_hard:
-            pool_hard = list(valid_stations)
+        generated_hashes[date_str] = {'normal': n_hashed, 'hard': h_hashed}
+        generated_admin[date_str] = {
+            'normal': {"kanji": final_normal['kanji'], "pref": final_normal['pref'], "municipality": final_normal['municipality']},
+            'hard': {"kanji": final_hard['kanji'], "pref": final_hard['pref'], "municipality": final_hard['municipality']}
+        }
 
-        seed_h = d * 33333 + 99999
-        hash_h = math_imul(seed_h ^ zero_fill_right_shift(seed_h, 15), 2246822507)
-        hash_h = math_imul(hash_h ^ zero_fill_right_shift(hash_h, 13), 3266489909)
-        hash_h = zero_fill_right_shift(hash_h ^ zero_fill_right_shift(hash_h, 16), 0)
-
-        candidate_hard = pool_hard[hash_h % len(pool_hard)]
-        next_available_day[get_coord_key(candidate_hard)] = d + lookback + 1
-
-        # ==============================================================
-        # 以降は出力ファイルの生成（今日以降のデータのみをファイルに書き込む）
-        # ==============================================================
-        if d >= today_index:
-            target_date = base_date + timedelta(days=d)
-            date_str = target_date.strftime('%Y-%m-%d')
-            
-            if date_str not in generated_hashes:
-                generated_hashes[date_str] = {}
-                generated_admin[date_str] = {}
-            
-            # JSの calcSha256 と完全一致するハッシュ化
-            n_hashed = hashlib.sha256((SECRET_SALT + candidate_normal['kanji']).encode('utf-8')).hexdigest()
-            h_hashed = hashlib.sha256((SECRET_SALT + candidate_hard['kanji']).encode('utf-8')).hexdigest()
-            
-            generated_hashes[date_str]['normal'] = n_hashed
-            generated_hashes[date_str]['hard'] = h_hashed
-            
-            # 管理者用の平文確認データ
-            generated_admin[date_str]['normal'] = {
-                "kanji": candidate_normal['kanji'], "yomi": candidate_normal['yomi'],
-                "pref": candidate_normal['pref'], "municipality": candidate_normal['municipality']
-            }
-            generated_admin[date_str]['hard'] = {
-                "kanji": candidate_hard['kanji'], "yomi": candidate_hard['yomi'],
-                "pref": candidate_hard['pref'], "municipality": candidate_hard['municipality']
-            }
-
-    # 4. JSONファイルへの書き込み（直近3日間は上書きしない安全仕様）
+    # 4. JSONファイルへの書き込み（本番用と管理者用）
     for d in range(today_index, today_index + 36):
         target_date = base_date + timedelta(days=d)
         year_str = str(target_date.year)
@@ -155,11 +150,7 @@ def generate_answers():
             with open(filepath_hash, 'r', encoding='utf-8') as f:
                 existing_hashes = json.load(f)
                 
-        if d <= today_index + 3:
-            if date_str not in existing_hashes:
-                existing_hashes[date_str] = generated_hashes[date_str]
-        else:
-            existing_hashes[date_str] = generated_hashes[date_str]
+        existing_hashes[date_str] = generated_hashes[date_str]
 
         with open(filepath_hash, 'w', encoding='utf-8') as f:
             json.dump(existing_hashes, f, ensure_ascii=False, separators=(',', ':'))
@@ -170,11 +161,7 @@ def generate_answers():
             with open(filepath_admin, 'r', encoding='utf-8') as f:
                 existing_admin = json.load(f)
                 
-        if d <= today_index + 3:
-            if date_str not in existing_admin:
-                existing_admin[date_str] = generated_admin[date_str]
-        else:
-            existing_admin[date_str] = generated_admin[date_str]
+        existing_admin[date_str] = generated_admin[date_str]
 
         with open(filepath_admin, 'w', encoding='utf-8') as f:
             json.dump(existing_admin, f, ensure_ascii=False, indent=4)
