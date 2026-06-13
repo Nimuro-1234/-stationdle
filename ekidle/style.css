@@ -336,3 +336,40 @@ body.event-nye .key {
   margin: 0;
   font-weight: bold;
 }
+
+
+/* ==========================================
+   駅ロケ風：押し込める立体ボタンデザイン（駅ドル用）
+========================================== */
+.btn {
+    border-radius: 8px !important;
+    font-weight: bold;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.1s ease, border-bottom-width 0.1s ease !important;
+    outline: none !important;
+    border: none !important; /* HTMLに直接書かれている枠線を上書き消去します */
+    border-bottom: 4px solid rgba(0,0,0,0.2) !important;
+}
+
+/* ボタンを押した瞬間に影をなくして下に沈ませる */
+.btn:active:not([disabled]) {
+    transform: translateY(4px);
+    border-bottom-width: 0px !important;
+}
+
+/* ------------------------------------------
+   特定ボタンの影色（厚み部分）の個別調整
+------------------------------------------ */
+/* メイン画面の操作ボタン */
+#clear-btn, #back-btn {
+    border-bottom: 4px solid #c0392b !important;
+}
+#enter-btn {
+    border-bottom: 4px solid #0288d1 !important;
+}
+
+/* 結果画面のシェアボタン群 */
+#share-btn { border-bottom: 4px solid #333333 !important; }
+#line-btn { border-bottom: 4px solid #04a044 !important; }
+#fb-btn { border-bottom: 4px solid #135cbe !important; }
