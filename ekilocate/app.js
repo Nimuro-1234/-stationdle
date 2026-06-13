@@ -387,7 +387,7 @@ function setupSuggest() {
 
   // 【1】文字が入力されるたびに実行される処理
   input.addEventListener("input", (e) => {
-    // 【バグ修正】全角・半角スペースを全て取り除き、ひらがなに統一する（検索ヒット率を上げるため）
+    // 全角・半角スペースを全て取り除き、ひらがなに統一する
     const query = toHiragana(e.target.value.replace(/[\s ]+/g, ""));
     selectedSuggestIndex = -1; 
     currentSelectedStation = null;
@@ -455,15 +455,15 @@ function setupSuggest() {
     results.sort((a, b) => b.score - a.score);
     results = results.slice(0, 50); // 上位50件のみ表示してメモリを節約
 
-    // 【バグ修正】結果が0件の時はリストを隠し、1件以上ある時は「確実に再表示」させる
+    // 結果が0件の時はリストを隠し、1件以上ある時は確実に再表示させる
     if (results.length === 0) {
       list.style.display = "none";
     } else {
       list.style.display = "block";
       renderSuggestList(results);
     }
-  });
-}
+  }); 
+  // 【修正】ここに誤って書かれていた `}` を一番下へ移動しました
 
   // 【2】キーボード操作（上下キーとエンター）の処理
   input.addEventListener("keydown", (e) => {
@@ -497,6 +497,7 @@ function setupSuggest() {
       list.style.display = "none";
     }
   });
+} // 【修正】関数の正しい終わりはここです
 
 
 // 絞り込んだ結果をHTML（ドロップダウンリスト）として描画する関数
