@@ -492,7 +492,7 @@ function setupSuggest() {
       list.style.display = "none";
     }
   });
-}
+
 
 // 絞り込んだ結果をHTML（ドロップダウンリスト）として描画する関数
 function renderSuggestList(results) {
