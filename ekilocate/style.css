@@ -554,3 +554,29 @@ td.cell-station-name.cell-correct {
 
 
 
+/* ==========================================
+   ボタンのホバー効果とタイトルのテーマ連動
+========================================== */
+/* モード選択のタイトルをテーマカラー（変数）と連動させます */
+#diff-title {
+    color: var(--theme-accent, #2c3e50);
+    transition: color 0.3s;
+}
+
+/* 各種立体ボタンにマウスを乗せた時、少し明るく光るエフェクト */
+.top-icon-btn:hover, .diff-btn:hover:not([disabled]), #submit-guess-btn:hover {
+    filter: brightness(1.15);
+}
+
+/* ==========================================
+   シェアボタンの視覚的ブレ（錯覚）防止用フラット化
+========================================== */
+.modal-buttons .btn {
+    border-bottom-width: 0px !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-radius: 4px !important;
+}
+.modal-buttons .btn:active {
+    filter: brightness(0.8);
+}
