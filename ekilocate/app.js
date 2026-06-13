@@ -212,58 +212,67 @@ async function initLocaGame() {
 }
 
 
+// ==========================================
+// ゲーム開始と再開の処理
+// ==========================================
 function startGame(difficulty) {
+  // 1. 選択された難易度を記憶し、対応する正解駅をセットします
   currentDifficulty = difficulty;
-  
-  // 選ばれた難易度に応じて、今日の正解駅をセットします
   todayLocaStation = currentDifficulty === 'hard' ? todayLocaStationHard : todayLocaStationNormal;
 
-  // 該当する難易度のセーブデータを読み込みます
+  // 2. セーブデータからその難易度の履歴や回答回数を読み込みます
   const state = locaSavedState[currentDifficulty];
   locaGridHistory = state.history || [];
   locaGuessesCount = state.guessesCount || 0;
   
-  // 画面に残っている表と入力欄を綺麗にします
+  // 3. 画面上の表（結果履歴）と入力欄を一度空っぽにして綺麗にします
   document.getElementById("results-tbody").innerHTML = "";
   document.getElementById("station-search-input").value = "";
 
-  // 過去の送信回答を完全に盤面へ描き戻します
+  // 4. セーブデータに残っている過去の回答を、1行ずつ盤面に描き戻します
   locaGridHistory.forEach(h => {
-    // 過去のデータに距離の数値が含まれていない場合、ここで再計算して補完します
+    // 【重要】過去のセーブデータに「距離の数値（distanceNum）」が含まれていない場合の互換性対策
     let distNum = h.distanceNum;
     if (distNum === undefined && h.guess && todayLocaStation) {
+      // 距離を再計算して補完し、データにも保存しておきます
       distNum = calculateDistance(h.guess.latitude, h.guess.longitude, todayLocaStation.latitude, todayLocaStation.longitude);
-      h.distanceNum = distNum; // ついでにデータに保存しておく
+      h.distanceNum = distNum;
     }
+    // 1行分のHTMLを生成して画面に追加します
     renderResultRow(h.guess, distNum, h.direction, h.region, h.comp, h.line, h.isWin);
   });
 
-  // 開始状態をセーブデータに保存
+  // 5. 最新の状態をセーブデータに保存します
   saveLocaGameState();
 
+  // 6. モード選択画面を隠し、メインのゲーム画面を表示します
   document.getElementById('difficulty-screen').style.display = 'none';
   document.getElementById('main-game-screen').style.display = 'block';
 
-  // ハードモード明示バッジの表示切り替え（ハードなら表示、通常なら非表示）
+  // 7. 各種UI（バッジやボタン）の表示を制御します
+  // ハードモードの時だけ専用バッジを表示します
   const badge = document.getElementById("hard-mode-badge");
-  if (badge) badge.style.display = currentDifficulty === 'hard' ? 'inline-block' : 'none';
-
-  // 左上の戻るボタンと、残り回答数をメイン画面に表示する
-  document.getElementById('top-back-btn').style.display = 'inline-flex';
-  document.getElementById('remaining-guesses-display').style.display = 'block';
+  if (badge) {
+    badge.style.display = currentDifficulty === 'hard' ? 'inline-block' : 'none';
+  }
   
-  updateRemainingGuesses();
-
-  // 左上の戻るボタンと、残り回答数をメイン画面に表示する
+  // 左上の戻るボタンと、残り回答数のテキストを表示します
   const topBackBtn = document.getElementById('top-back-btn');
   if (topBackBtn) topBackBtn.style.display = 'inline-flex';
-  document.getElementById('remaining-guesses-display').style.display = 'block';
+  
+  const remainDisplay = document.getElementById('remaining-guesses-display');
+  if (remainDisplay) remainDisplay.style.display = 'block';
+  
+  // 残り回答数の数値を最新の状態に更新します
+  updateRemainingGuesses();
 
-  // すでにゲームが終わっている場合は、ボタン等の入力を無効化します
+  // 8. すでにゲームが終了（クリアまたはゲームオーバー）しているかの判定
   if (state.isOver) {
+    // 終わっている場合は、送信ボタンと入力欄を無効化（ロック）します
     document.getElementById("submit-guess-btn").disabled = true;
     document.getElementById("station-search-input").disabled = true;
   } else {
+    // まだ続いている場合は、入力できるようにロックを解除します
     document.getElementById("submit-guess-btn").disabled = false;
     document.getElementById("station-search-input").disabled = false;
   }
@@ -502,47 +511,6 @@ function updateRemainingGuesses() {
   if (display) display.textContent = `残り回答可能数：${remain} 回`;
 }
 
-
-// ==========================================
-// ゲーム開始と再開の処理（チラつき防止・バッジ連動）
-// ==========================================
-function startGame(difficulty) {
-  currentDifficulty = difficulty;
-  todayLocaStation = currentDifficulty === 'hard' ? todayLocaStationHard : todayLocaStationNormal;
-
-  const state = locaSavedState[currentDifficulty];
-  locaGridHistory = state.history || [];
-  locaGuessesCount = state.guessesCount || 0;
-  
-  document.getElementById("results-tbody").innerHTML = "";
-  document.getElementById("station-search-input").value = "";
-
-  locaGridHistory.forEach(h => {
-    renderResultRow(h.guess, h.distanceNum, h.direction, h.region, h.comp, h.line, h.isWin);
-  });
-
-  saveLocaGameState();
-
-  // 画面の切り替え
-  document.getElementById('difficulty-screen').style.display = 'none';
-  document.getElementById('main-game-screen').style.display = 'block';
-  
-  // ハードモードバッジの表示制御
-  const badge = document.getElementById("hard-mode-badge");
-  if (badge) {
-      badge.style.display = currentDifficulty === 'hard' ? 'inline-block' : 'none';
-  }
-  
-  updateRemainingGuesses();
-
-  if (state.isOver) {
-    document.getElementById("submit-guess-btn").disabled = true;
-    document.getElementById("station-search-input").disabled = true;
-  } else {
-    document.getElementById("submit-guess-btn").disabled = false;
-    document.getElementById("station-search-input").disabled = false;
-  }
-}
 
 
 // 属性（事業者や路線）の配列を比較し、緑・黄・黒のステータスを返す関数
@@ -1195,6 +1163,7 @@ function saveLocaGameState() {
 
 
 function restoreLocaGameState() {
+  // 日付が変わっていれば、過去の履歴データを初期化する処理
   if (locaSavedState.date !== currentDayIndex || !locaSavedState.normal) {
     locaSavedState = {
       date: currentDayIndex,
@@ -1205,19 +1174,17 @@ function restoreLocaGameState() {
     localStorage.setItem("ekiLocateStateV2", JSON.stringify(locaSavedState));
   }
 
-  //最後に遊んでいたモードがあれば、モード選択画面を飛ばしてゲーム画面を表示させる
-  const last = locaSavedState.lastPlayed;
+  // 前回遊んだモードの記憶を無視し、必ずモード選択画面を最初に表示させます
+  document.getElementById('difficulty-screen').style.display = 'block';
+  document.getElementById('main-game-screen').style.display = 'none';
   
-  // 初期画面のHTML側を display:none で隠しておき、ここで初めて block にすることで
-  // 「一瞬画面が見えてから切り替わる」という不自然なチラつきが完全に消滅します。
-  if (last) {
-     startGame(last);
-  } else {
-     document.getElementById('difficulty-screen').style.display = 'block';
-     document.getElementById('main-game-screen').style.display = 'none';
-  }
+  // モード選択画面の時点では、不要な「←」ボタンと「残り回数」を確実に隠しておきます
+  const topBackBtn = document.getElementById('top-back-btn');
+  if (topBackBtn) topBackBtn.style.display = 'none';
+  
+  const remainDisplay = document.getElementById('remaining-guesses-display');
+  if (remainDisplay) remainDisplay.style.display = 'none';
 }
-
 
 // ==========================================
 // 戦績とメタデータの保存処理
