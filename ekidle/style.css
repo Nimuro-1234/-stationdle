@@ -368,3 +368,16 @@ body.event-nye .key {
 #enter-btn {
     border-bottom: 4px solid #0288d1 !important;
 }
+
+/* ==========================================
+   結果ウィンドウのシェアボタンを平面的にする
+========================================== */
+.modal-buttons .btn {
+    border-bottom: none !important; /* 底面の厚みを消す */
+    border-radius: 4px !important;  /* 丸みを少しシャープに戻す（お好みで） */
+}
+
+/* 押した時にボタンが下に沈むアニメーションも無効化する */
+.modal-buttons .btn:active:not([disabled]) {
+    transform: none !important;
+}
