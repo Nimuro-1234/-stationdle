@@ -526,9 +526,15 @@ let locaGridHistory = []; // シェア用の結果絵文字を保存する箱を
 
 // 画面の「残り回答可能数」のテキストを更新する関数
 function updateRemainingGuesses() {
-  const remain = MAX_LOCA_GUESSES - locaGuessesCount;
   const display = document.getElementById("remaining-guesses-display");
-  if (display) display.textContent = `残り回答可能数：${remain} 回`;
+  if (!display) return;
+  
+  if (currentDifficulty === 'endless') {
+      display.textContent = `残り回答可能数：${locaEndlessState.remainingGuesses} 回`;
+  } else {
+      const remain = MAX_LOCA_GUESSES - locaGuessesCount;
+      display.textContent = `残り回答可能数：${remain} 回`;
+  }
 }
 
 
@@ -613,8 +619,14 @@ function submitLocaGuess() {
     isWin: isWin
   });
 
-  // ここでカウントを増やすのは「1回だけ」にします
-  locaGuessesCount++;
+  
+  // 回答回数消費処理
+  if (currentDifficulty === 'endless') {
+      locaGuessesCount++; // 今回かかった手数をカウント
+      locaEndlessState.remainingGuesses--; // 残り15回の枠を消費
+  } else {
+      locaGuessesCount++;
+  }
   updateRemainingGuesses();
   
   input.value = "";
@@ -623,29 +635,71 @@ function submitLocaGuess() {
 
   // 勝敗の確定チェックと、結果ウィンドウの確実なタイマー起動
   if (isWin) {
-    // 【追加】正解した瞬間にタイマーを止め、かかった秒数（小数点第1位まで）を計算する
-    if (locaPlayStartTime) {
-       locaCurrentClearTime = Math.round((Date.now() - locaPlayStartTime) / 100) / 10;
+    if (currentDifficulty === 'endless') {
+       // 【エンドレス専用の正解処理】
+       const clearTime = locaPlayStartTime ? Math.round((Date.now() - locaPlayStartTime) / 100) / 10 : 0;
+       const baseScore = 1000;
+       
+       let guessBonus = 0;
+       if (locaGuessesCount === 1) guessBonus = 5000;
+       else if (locaGuessesCount === 2) guessBonus = 3000;
+       else if (locaGuessesCount === 3) guessBonus = 1000;
+       else if (locaGuessesCount === 4) guessBonus = 500;
+       else if (locaGuessesCount === 5) guessBonus = 300;
+       else if (locaGuessesCount === 6) guessBonus = 100;
+       
+       const timeBonus = getEndlessTimeBonus(clearTime);
+       
+       locaEndlessState.combo++;
+       if (locaEndlessState.combo > locaEndlessState.maxCombo) locaEndlessState.maxCombo = locaEndlessState.combo;
+       
+       const multiplier = getEndlessComboMultiplier(locaEndlessState.combo);
+       const earnedScore = Math.floor((baseScore + guessBonus + timeBonus) * multiplier);
+       
+       locaEndlessState.score += earnedScore;
+       locaEndlessState.clearedCount++;
+       locaEndlessState.lastAnswerStation = guess;
+       
+       const recovery = getEndlessRecoveryAmount(locaGuessesCount);
+       
+       // UIを一旦ロック
+       document.getElementById("submit-guess-btn").disabled = true;
+       document.getElementById("station-search-input").disabled = true;
+       
+       // 邪魔なウィンドウを出さず、2秒間のポップアップを呼び出して自動で次へ進む
+       showEndlessWinPopup(earnedScore, locaEndlessState.combo, recovery);
+       
+    } else {
+       // 【通常・ハードモードの正解処理（既存）】
+       if (locaPlayStartTime) locaCurrentClearTime = Math.round((Date.now() - locaPlayStartTime) / 100) / 10;
+       saveLocaStats(true);
+       saveLocaGameState();
+       document.getElementById("submit-guess-btn").disabled = true;
+       document.getElementById("station-search-input").disabled = true;
+       setTimeout(() => { showLocaResultModal(true); }, 400);
     }
-    
-    saveLocaStats(true);
-    saveLocaGameState();
-    document.getElementById("submit-guess-btn").disabled = true;
-    document.getElementById("station-search-input").disabled = true;
-    
-    // 0.4秒の余韻の後に、結果ウィンドウを確実にポップアップさせます
-    setTimeout(() => { showLocaResultModal(true); }, 400);
-  } else if (locaGuessesCount >= MAX_LOCA_GUESSES) {
-    saveLocaStats(false);
-    saveLocaGameState();
-    document.getElementById("submit-guess-btn").disabled = true;
-    document.getElementById("station-search-input").disabled = true;
-    
-    // ゲームオーバー時も同様に結果ウィンドウをポップアップさせます
-    setTimeout(() => { showLocaResultModal(false); }, 400);
+
+  // 残り回数がない場合（ゲームオーバー）
+  } else if ((currentDifficulty === 'endless' && locaEndlessState.remainingGuesses <= 0) || 
+             (currentDifficulty !== 'endless' && locaGuessesCount >= MAX_LOCA_GUESSES)) {
+    if (currentDifficulty === 'endless') {
+       document.getElementById("submit-guess-btn").disabled = true;
+       document.getElementById("station-search-input").disabled = true;
+       setTimeout(() => { showEndlessResultModal(); }, 400); // エンドレス専用の終了画面
+    } else {
+       saveLocaStats(false);
+       saveLocaGameState();
+       document.getElementById("submit-guess-btn").disabled = true;
+       document.getElementById("station-search-input").disabled = true;
+       setTimeout(() => { showLocaResultModal(false); }, 400);
+    }
   } else {
-    //途中のプレイ状況保存
-    saveLocaGameState();
+    // 途中経過の保存
+    if (currentDifficulty === 'endless') {
+       localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
+    } else {
+       saveLocaGameState();
+    }
   }
 }
 
@@ -1487,6 +1541,78 @@ function startNextEndlessRound() {
   
   // 次のタイマー計測の準備
   locaPlayStartTime = null; 
+}
+
+
+// ==========================================
+// エンドレス専用：2秒ポップアップと盤面更新
+// ==========================================
+function showEndlessWinPopup(score, combo, recovery) {
+  const toast = document.getElementById("endless-toast");
+  document.getElementById("endless-toast-score").textContent = `+${score} pts`;
+  document.getElementById("endless-toast-combo").textContent = `${combo} Combo! (×${getEndlessComboMultiplier(combo)})`;
+  toast.style.display = "block";
+
+  // 2秒後にポップアップを隠し、シームレスに次の問題の盤面を描画する
+  setTimeout(() => {
+    toast.style.display = "none";
+    
+    // 【前回作成した関数】盤面リセットと0手目の自動入力
+    startNextEndlessRound();
+    
+    // スコア表示の更新
+    document.getElementById("endless-score-display").textContent = locaEndlessState.score;
+    document.getElementById("endless-combo-display").textContent = locaEndlessState.combo;
+    
+    // 手数の回復とアニメーション
+    if (recovery > 0) {
+      locaEndlessState.remainingGuesses += recovery;
+      if (locaEndlessState.remainingGuesses > 15) locaEndlessState.remainingGuesses = 15; // 上限15回
+      
+      updateRemainingGuesses();
+      
+      // 残り回数表示の横から「+n」をフワッと浮かび上がらせる
+      const anim = document.getElementById("recovery-anim");
+      const disp = document.getElementById("remaining-guesses-display");
+      if (anim && disp) {
+        const rect = disp.getBoundingClientRect();
+        // 文字の近く（やや右側）に配置
+        anim.style.left = (rect.left + rect.width / 1.5) + "px";
+        anim.style.top = (rect.top - 10) + "px";
+        anim.textContent = `+${recovery}`;
+        anim.style.display = "block";
+        
+        // CSSアニメーションを一度リセットして再再生する魔法の記述
+        anim.classList.remove("anim-float");
+        void anim.offsetWidth; 
+        anim.classList.add("anim-float");
+      }
+    }
+    
+    // 状態をセーブ
+    localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
+  }, 2000);
+}
+
+// エンドレス専用：ゲームオーバー画面の表示
+function showEndlessResultModal() {
+  const modal = document.getElementById("endless-result-modal");
+  document.getElementById("endless-answer-station").textContent = todayLocaStation.kanji;
+  document.getElementById("endless-final-score").textContent = locaEndlessState.score;
+  document.getElementById("endless-final-combo").textContent = locaEndlessState.maxCombo;
+  document.getElementById("endless-final-cleared").textContent = locaEndlessState.clearedCount;
+  
+  modal.style.display = "flex";
+  
+  // ゲームオーバーなのでデータをリセットし、次回は最初から遊べるようにする
+  locaEndlessState.deck = [];
+  locaEndlessState.score = 0;
+  locaEndlessState.combo = 0;
+  locaEndlessState.maxCombo = 0;
+  locaEndlessState.clearedCount = 0;
+  locaEndlessState.remainingGuesses = 15;
+  locaEndlessState.lastAnswerStation = null;
+  localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
 }
 
 
