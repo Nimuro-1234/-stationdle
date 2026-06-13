@@ -1085,65 +1085,88 @@ async function selectTodayLocaStation() {
   } catch (err) {
     console.warn("⚠️ サーバーの答えファイル読み込み失敗。自力でシミュレーション計算します:", err);
 
-    // 動作を最速にするための事前準備（ループの外でキーを作っておく）
+    // 動作を最速にするための事前準備（ループの外で各駅に「鍵」を持たせておく）
     for (let i = 0; i < validStations.length; i++) {
+       // 緯度・経度があればそれを繋げた文字列を、無ければURLを「同一駅判定用の鍵（_cKey）」にします
        validStations[i]._cKey = (validStations[i].latitude && validStations[i].longitude) 
                                  ? `${validStations[i].latitude},${validStations[i].longitude}` 
                                  : validStations[i].url;
     }
 
-    let lookback = 1000;
-    let nextAvailableDay = new Map(); // 配列ではなくMapを使うことで超高速化
+    let lookback = 1000; // 一度出題された駅が、再び出題されるまでの「お休み期間（日数）」
+    let nextAvailableDay = new Map(); // 各駅（鍵）が、次回いつ出題可能になるかを高速で記録する帳簿
     let targetNormal = null;
     let targetHard = null;
 
-    // Day 0から今日まで歴史をシミュレーションします（無駄な配列作成を排除し、一瞬で終わる構造に改善）
+    // Day 0（基準日）から今日まで、毎日どんな駅が出題されてきたか歴史をシミュレーションします
     for (let d = 0; d <= currentDayIndex; d++) {
-      let poolNormal = [];
-      let poolHard = [];
+      let poolNormal = []; // その日にノーマルモードで出題可能な駅を入れるくじ引き箱
+      let poolHard = [];   // その日にハードモードで出題可能な駅を入れるくじ引き箱
       
+      // 全駅をチェックして、その日のくじ引き箱に入れるか判定します
       for (let i = 0; i < validStations.length; i++) {
          let s = validStations[i];
+         // その日より未来に開業する駅ならスキップ
          if (s.startDay !== undefined && s.startDay > d) continue;
+         // その日以前に廃止された駅ならスキップ（999999は廃止予定なしの意味）
          if (s.endDay !== undefined && s.endDay <= d && s.endDay !== 999999) continue;
+         // 帳簿を見て、まだ「お休み期間中」の駅ならスキップ
          if ((nextAvailableDay.get(s._cKey) || 0) > d) continue;
+         
+         // 全ての条件をクリアした駅だけを、くじ引き箱に入れます
          poolNormal.push(s);
          poolHard.push(s);
       }
+      
+      // 万が一、使える駅が枯渇して箱が空っぽになった場合は、緊急措置として全駅を箱に戻します
       if (poolNormal.length === 0) {
          poolNormal = validStations;
          poolHard = validStations;
       }
 
-      // 通常モードの抽選
+      // 【通常モードの抽選】
+      // 日付(d)をベースに、毎日変わるけど毎回必ず同じ結果になる計算式（ハッシュ）で乱数を作ります
       let seedN = d * 33333 + 54321;
       let hashN = Math.imul(seedN ^ (seedN >>> 15), 2246822507);
       hashN = Math.imul(hashN ^ (hashN >>> 13), 3266489909);
       hashN = (hashN ^ (hashN >>> 16)) >>> 0;
+      
+      // 作った乱数を使って、箱の中から1つの駅を選び出します
       let candidateNormal = poolNormal[hashN % poolNormal.length];
+      
+      // 選ばれた駅（鍵）を帳簿に書き込み、今日から1000日間はお休みにします
       nextAvailableDay.set(candidateNormal._cKey, d + lookback + 1);
 
-      // ハードモードの抽選
+      // 【ハードモードの抽選】
+      // 今選ばれたばかりのノーマルの駅（同じ座標の駅含む）を、ハード用の箱から取り除いて被りを防ぎます
       poolHard = poolHard.filter(s => s._cKey !== candidateNormal._cKey);
-      if (poolHard.length === 0) poolHard = validStations;
+      if (poolHard.length === 0) poolHard = validStations; // 空になったら緊急補充
 
+      // ハードモード専用の計算式（+ 99999）で別の乱数を作ります
       let seedH = d * 33333 + 99999;
       let hashH = Math.imul(seedH ^ (seedH >>> 15), 2246822507);
       hashH = Math.imul(hashH ^ (hashH >>> 13), 3266489909);
       hashH = (hashH ^ (hashH >>> 16)) >>> 0;
+      
+      // ハードモードの答えを選び出します
       let candidateHard = poolHard[hashH % poolHard.length];
+      
+      // ハードで選ばれた駅も、同じように1000日間のお休みにします
       nextAvailableDay.set(candidateHard._cKey, d + lookback + 1);
 
+      // シミュレーションが「今日（currentDayIndex）」に到達したら、その答えを最終結果として確定します
       if (d === currentDayIndex) {
         targetNormal = candidateNormal;
         targetHard = candidateHard;
       }
     }
+    
+    // 確定した今日の答えを変数に格納します
     todayLocaStationNormal = targetNormal;
     todayLocaStationHard = targetHard;
   }
 
-  // 計算結果をキャッシュに保存して次回以降の読み込みを0秒にします
+  // 計算結果をキャッシュ（ブラウザの記憶）に保存して、明日になるまでは再計算をスキップ（0秒読み込み）します
   localStorage.setItem("ekiLocateAnswerCache", JSON.stringify({
     date: currentDayIndex,
     normal: todayLocaStationNormal,
