@@ -416,10 +416,9 @@ function setupSuggest() {
   // 【1】文字が入力されるたびに実行される処理
   input.addEventListener("input", (e) => {
     // プレイヤーの入力値（e.target.value）を、まず新字体に変換してから、
-    // 空白を取り除き、ひらがな化します
-    const query = toHiragana(
-      normalizeKanjiForSearch(e.target.value).replace(/[\s ]+/g, "")
-    );
+    // 入力文字の全角英数字を半角にし、小文字化し、スペース（全角・半角）を全て消した上でひらがなにする
+    let rawInput = e.target.value.replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
+    const query = toHiragana(normalizeKanjiForSearch(rawInput).toLowerCase().replace(/[\s ]+/g, ""));
     selectedSuggestIndex = -1; 
     currentSelectedStation = null;
 
@@ -437,30 +436,39 @@ function setupSuggest() {
       let score = 0;
 
       // エラー防止のため、データがない場合は空文字を代入して安全に比較する
-      // 【双方向対応】辞書側の駅名データも、検索の判定時だけ新字体に変換して比較する
-      const originalKanji = s.kanji || "";
-      const kanji = normalizeKanjiForSearch(originalKanji);
-      const kanjiHira = toHiragana(kanji);           // 【修正後：カタカナ混じりの駅名も比較できるように、ひらがな版も作っておきます】
-      const yomi = s.yomi || s.hiragana || "";
       const pref = s.pref || "";
       const muni = s.municipality || "";
       const ward = s.ward || "";
+      // ----------------------------------------------------
+      // 【修正後】
+      // ----------------------------------------------------
+      const originalKanji = s.kanji || "";
+      const baseKanji = normalizeKanjiForSearch(originalKanji);
+      
+      // 【追加】カッコ（半角・全角）とその中身を無視した純粋な文字数を計算（朝倉駅 (愛知県) → 「朝倉駅」の3文字として評価）
+      const scoreLen = baseKanji.replace(/[\(（].*?[\)）]/g, "").trim().length;
 
-      // 1. 完全一致（漢字・読み）を最優先
+      // 辞書側の文字も全角英数を半角・小文字化・スペース全削除して比較用（裏側専用）にする
+      let rawKanji = baseKanji.replace(/[Ａ-Ｚａ-ｚ０-９]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
+      const kanji = rawKanji.toLowerCase().replace(/[\s ]+/g, "");
+      const kanjiHira = toHiragana(kanji);
+      const yomi = (s.yomi || s.hiragana || "").replace(/[\s ]+/g, ""); 
+
+      // 1. 完全一致
       if (kanji === query || kanjiHira === query || yomi === query) {
         matchReason = `${pref}${muni}${ward}`;
         score = 1000;
       } 
-      // 2. 頭文字からの前方一致（短い駅名ほどスコアを高くして上に出す）
-      else if (kanji.startsWith(query) || kanjiHira.startsWith(query) | yomi.startsWith(query)) {
+      // 2. 頭文字からの前方一致
+      else if (kanji.startsWith(query) || kanjiHira.startsWith(query) || yomi.startsWith(query)) {
         matchReason = `${pref}${muni}${ward}`;
-        score = 500 - kanji.length;
+        score = 500 - scoreLen; // kanji.length の代わりに scoreLen を使用
       } 
       // 3. 文字の部分一致
       else if (kanji.includes(query) || kanjiHira.includes(query) || yomi.includes(query)) {
         matchReason = `${pref}${muni}${ward}`;
-        score = 100 - kanji.length;
-      } 
+        score = 100 - scoreLen; // kanji.length の代わりに scoreLen を使用
+      }
       // 4. 地域（都道府県＋市区町村、または市区町村単体の検索でもヒットさせる）
       else if ((pref + muni + ward).includes(query) || muni.includes(query) || ward.includes(query)) {
         matchReason = `📍 ${pref}${muni}${ward}`;
