@@ -254,6 +254,11 @@ function startGame(difficulty) {
   
   updateRemainingGuesses();
 
+  // 左上の戻るボタンと、残り回答数をメイン画面に表示する
+  const topBackBtn = document.getElementById('top-back-btn');
+  if (topBackBtn) topBackBtn.style.display = 'inline-flex';
+  document.getElementById('remaining-guesses-display').style.display = 'block';
+
   // すでにゲームが終わっている場合は、ボタン等の入力を無効化します
   if (state.isOver) {
     document.getElementById("submit-guess-btn").disabled = true;
