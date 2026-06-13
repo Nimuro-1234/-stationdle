@@ -252,10 +252,6 @@ function startGame(difficulty) {
   document.getElementById('top-back-btn').style.display = 'inline-flex';
   document.getElementById('remaining-guesses-display').style.display = 'block';
   
-  // ゲーム画面上部の「モード選択に戻る」ボタンを確実に表示させます
-  const backBtn = document.getElementById('back-to-diff-btn');
-  if (backBtn) backBtn.style.display = 'block';
-  
   updateRemainingGuesses();
 
   // すでにゲームが終わっている場合は、ボタン等の入力を無効化します
@@ -736,23 +732,26 @@ function setupUI() {
   document.getElementById("help-btn").addEventListener("click", () => document.getElementById("help-modal").style.display = "flex");
   document.getElementById("close-help-btn").addEventListener("click", () => document.getElementById("help-modal").style.display = "none");
 
-  // メイン画面の「モード選択に戻る」ボタンの機能
-  const backBtn = document.getElementById("back-to-diff-btn");
-  if (backBtn) {
-    backBtn.addEventListener("click", () => {
-      document.getElementById("main-game-screen").style.display = "none";
-      document.getElementById("difficulty-screen").style.display = "block";
-    });
-  }
-
-  // サイドメニュー内の「モード選択に戻る」ボタンの機能
+// 代わりに、サイドメニュー内の「モード選択に戻る」ボタンの処理を以下のように書き換えます。
   const sideBackBtn = document.getElementById("side-back-to-diff-btn");
   if (sideBackBtn) {
     sideBackBtn.addEventListener("click", (e) => {
       e.preventDefault();
       closeSideMenu(); // メニューを閉じる
+      
+      // メイン画面を隠してモード選択画面を表示する
       document.getElementById("main-game-screen").style.display = "none";
       document.getElementById("difficulty-screen").style.display = "block";
+      
+      // ハードモードバッジや上部の←ボタンなど、不要なUIを確実に隠す処理を追加します
+      const badge = document.getElementById("hard-mode-badge");
+      if (badge) badge.style.display = "none";
+      
+      const topBackBtn = document.getElementById("top-back-btn");
+      if (topBackBtn) topBackBtn.style.display = "none";
+      
+      const remainDisplay = document.getElementById('remaining-guesses-display');
+      if (remainDisplay) remainDisplay.style.display = 'none';
     });
   }
 
