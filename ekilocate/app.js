@@ -336,11 +336,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // 2つの地点（緯度・経度）から、「入力した駅」から見た「正解の駅」の8方位（矢印）を計算する関数
 function calculateDirection(lat1, lon1, lat2, lon2) {
-  // 距離が近すぎる（1km未満）場合は、その場所（🎯）とみなします
-  if (calculateDistance(lat1, lon1, lat2, lon2) < 1.0) {
-    return "🎯";
-  }
-
+  // 距離計算
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const lat1Rad = lat1 * (Math.PI / 180);
   const lat2Rad = lat2 * (Math.PI / 180);
@@ -433,23 +429,24 @@ function setupSuggest() {
       // 【双方向対応】辞書側の駅名データも、検索の判定時だけ新字体に変換して比較する
       const originalKanji = s.kanji || "";
       const kanji = normalizeKanjiForSearch(originalKanji);
-      const yomi = s.yomi || s.hiragana || ""; 
+      const kanjiHira = toHiragana(kanji);           // 【修正後：カタカナ混じりの駅名も比較できるように、ひらがな版も作っておきます】
+      const yomi = s.yomi || s.hiragana || "";
       const pref = s.pref || "";
       const muni = s.municipality || "";
       const ward = s.ward || "";
 
       // 1. 完全一致（漢字・読み）を最優先
-      if (kanji === query || yomi === query) {
+      if (kanji === query || kanjiHira === query || yomi === query) {
         matchReason = `${pref}${muni}${ward}`;
         score = 1000;
       } 
       // 2. 頭文字からの前方一致（短い駅名ほどスコアを高くして上に出す）
-      else if (kanji.startsWith(query) || yomi.startsWith(query)) {
+      else if (kanji.startsWith(query) || kanjiHira.startsWith(query) | yomi.startsWith(query)) {
         matchReason = `${pref}${muni}${ward}`;
         score = 500 - kanji.length;
       } 
       // 3. 文字の部分一致
-      else if (kanji.includes(query) || yomi.includes(query)) {
+      else if (kanji.includes(query) || kanjiHira.includes(query) || yomi.includes(query)) {
         matchReason = `${pref}${muni}${ward}`;
         score = 100 - kanji.length;
       } 
@@ -1539,11 +1536,14 @@ function getEndlessTimeBonus(seconds) {
   return 0; // 121秒以降
 }
 
-// コンボボーナス倍率（5、10ずつ区切り）
+// コンボボーナス倍率
+// 1連勝～10連勝までは毎回0.1ずつ増加（1=>1.1, 10=>2.0）
 function getEndlessComboMultiplier(combo) {
-  if (combo < 5) return 1.0;
+  if (combo < 10) {
+    return 1.0 + Math.floor(combo) * 0.1;
+  }
   
-  // 5連勝〜50連勝までは5区切りで0.1ずつ増加（5=>1.1, 10=>1.2 ... 50=>2.0）
+  // 11連勝〜50連勝までは5区切りで0.1ずつ増加（5=>1.1, 10=>1.2 ... 50=>2.0）
   if (combo <= 50) {
     return 1.0 + Math.floor(combo / 5) * 0.1;
   }
