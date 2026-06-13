@@ -4,11 +4,14 @@
 let currentDayIndex = 0; // 今日が基準日から何日目かを全関数で共有する箱
 let todayLocaStationNormal = null; // 通常モード用の正解駅
 let todayLocaStationHard = null;   // ハードモード用の正解駅
+// タイマー計算用の一時変数
+let locaPlayStartTime = null; 
+let locaCurrentClearTime = null;
 
-// モード別の戦績データ（手数、勝率、連勝記録、クリアした日付など）
+// モード別の戦績データ（手数、勝率、連勝記録、クリアした日付、最速タイムなど）
 let locaStats = JSON.parse(localStorage.getItem("ekiLocateStatsV2") || JSON.stringify({
-  normal: { played:0, won:0, currentStreak:0, maxStreak:0, dist:[0,0,0,0,0,0,0,0,0,0,0], clearedDates:[] },
-  hard:   { played:0, won:0, currentStreak:0, maxStreak:0, dist:[0,0,0,0,0,0,0,0,0,0,0], clearedDates:[] }
+  normal: { played:0, won:0, currentStreak:0, maxStreak:0, dist:[0,0,0,0,0,0,0,0,0,0,0], clearedDates:[], fastestTime: null },
+  hard:   { played:0, won:0, currentStreak:0, maxStreak:0, dist:[0,0,0,0,0,0,0,0,0,0,0], clearedDates:[], fastestTime: null }
 }));
 
 // モード共通のメタデータ（ログイン日数、連続クリア、駅図鑑など）
@@ -201,7 +204,16 @@ async function initLocaGame() {
     const submitBtn = document.getElementById("submit-guess-btn");
     const searchInput = document.getElementById("station-search-input");
     if (submitBtn) submitBtn.addEventListener("click", submitLocaGuess);
+    
     if (searchInput) {
+      // 【追加】入力窓が選択されたらタイマーをスタート（すでに始まっていれば無視）
+      searchInput.addEventListener("focus", () => {
+        if (!locaPlayStartTime && !locaSavedState[currentDifficulty].isOver) {
+          locaPlayStartTime = Date.now();
+        }
+      });
+
+      // （既存）Enterキーの処理
       searchInput.addEventListener("keypress", function(e) {
         if (e.key === "Enter") submitLocaGuess();
       });
@@ -611,6 +623,11 @@ function submitLocaGuess() {
 
   // 勝敗の確定チェックと、結果ウィンドウの確実なタイマー起動
   if (isWin) {
+    // 【追加】正解した瞬間にタイマーを止め、かかった秒数（小数点第1位まで）を計算する
+    if (locaPlayStartTime) {
+       locaCurrentClearTime = Math.round((Date.now() - locaPlayStartTime) / 100) / 10;
+    }
+    
     saveLocaStats(true);
     saveLocaGameState();
     document.getElementById("submit-guess-btn").disabled = true;
@@ -1241,11 +1258,19 @@ function saveLocaStats(isWin) {
     if (st.currentStreak > st.maxStreak) st.maxStreak = st.currentStreak; // 最大連勝記録を更新
     st.dist[locaGuessesCount] = (st.dist[locaGuessesCount] || 0) + 1; // クリアまでの手数を記録
     if (!st.clearedDates.includes(todayStrD)) st.clearedDates.push(todayStrD);
+
+    // 【追加】自己ベストタイムの更新処理
+    if (locaCurrentClearTime) {
+       // まだ記録がない、または今のタイムが過去のベストより早ければ上書きする
+       if (st.fastestTime === null || locaCurrentClearTime < st.fastestTime) {
+          st.fastestTime = locaCurrentClearTime;
+       }
+    }
     
     // 駅図鑑に正解した駅を登録（重複なし）
     if (todayLocaStation && !locaMeta.unlockedStations.includes(todayLocaStation.kanji)) {
        locaMeta.unlockedStations.push(todayLocaStation.kanji);
-    }
+  }
 
     // 共通の連続クリア日数計算
     if (locaMeta.lastClearDate !== todayStrD) {
@@ -1266,6 +1291,172 @@ function saveLocaStats(isWin) {
   // 保存箱（ローカルストレージ）に最新データを書き込む
   localStorage.setItem("ekiLocateStatsV2", JSON.stringify(locaStats));
   localStorage.setItem("ekiLocateMeta", JSON.stringify(locaMeta));
+}
+
+
+// ==========================================
+// エンドレスモード専用ロジック（山札システムとセーブデータ）
+// ==========================================
+
+// エンドレスモードのセーブデータ（山札の状態、スコア、コンボ、残り回数などを一括管理）
+let locaEndlessState = JSON.parse(localStorage.getItem("ekiLocateEndlessDeck") || JSON.stringify({
+  deck: [],               // シャッフルされた駅インデックスの配列
+  currentIndex: 0,        // 現在山札の何枚目を引いているか
+  score: 0,               // 現在の総スコア
+  combo: 0,               // 現在の連勝数
+  maxCombo: 0,            // 今回のプレイでの最高連勝数
+  clearedCount: 0,        // 正解した駅の合計数
+  remainingGuesses: 15,   // 現在の残り回答可能数
+  lastAnswerStation: null // 前回クリア（またはスキップ）した駅のデータ
+}));
+
+// 配列の中身をランダムにシャッフルする関数
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+// エンドレスモードの次の答えを山札から引く関数
+function drawNextEndlessStation() {
+  // 山札が空、または2000駅引ききった場合は、新しい山札を生成する
+  if (!locaEndlessState.deck || locaEndlessState.deck.length === 0 || locaEndlessState.currentIndex >= 2000) {
+    
+    let uniqueIndices = []; // 重複していない、かつ出題条件を満たす駅の番号を入れる箱
+    let seenKeys = new Set();
+    
+    // 【修正】辞書の中から、出題にふさわしい駅だけを厳選する
+    for (let i = 0; i < locaStations.length; i++) {
+      let s = locaStations[i];
+      
+      // selectTodayLocaStation と完全に一致させた厳格なフィルター
+      const isValid = s.pref !== "" && 
+                      s.address !== "" && 
+                      s.min_km !== null &&
+                      s.companies && s.companies.length > 0 &&
+                      !(s.companies.length === 1 && s.companies[0] === "日本貨物鉄道");
+                      
+      if (!isValid) continue; // 条件を満たさない駅は山札に入れない
+
+      // 座標かURLによる重複チェック
+      let key = (s.latitude && s.longitude) ? `${s.latitude},${s.longitude}` : s.url;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        uniqueIndices.push(i);
+      }
+    }
+    
+    // 厳選されたリストをシャッフルして新しい山札にする
+    shuffleArray(uniqueIndices);
+    
+    // 山札を作り直した場合はインデックスを0に戻す（スコア等はそのまま引き継ぐ）
+    locaEndlessState.deck = uniqueIndices;
+    locaEndlessState.currentIndex = 0;
+  }
+
+  // 山札から次の駅を引く
+  const targetIndex = locaEndlessState.deck[locaEndlessState.currentIndex];
+  const nextStation = locaStations[targetIndex];
+
+  // 次回のためにインデックスを進め、ローカルストレージに保存する
+  locaEndlessState.currentIndex++;
+  localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
+
+  return nextStation;
+}
+
+
+// ==========================================
+// エンドレスモード：スコア計算ロジック
+// ==========================================
+
+// タイムボーナス（秒数で区切り）
+function getEndlessTimeBonus(seconds) {
+  if (seconds <= 20) return 5000;
+  if (seconds <= 40) return 3000;
+  if (seconds <= 60) return 2000;
+  if (seconds <= 90) return 1000;
+  if (seconds <= 120) return 500;
+  return 0; // 121秒以降
+}
+
+// コンボボーナス倍率（5、10ずつ区切り）
+function getEndlessComboMultiplier(combo) {
+  if (combo < 5) return 1.0;
+  
+  // 5連勝〜50連勝までは5区切りで0.1ずつ増加（5=>1.1, 10=>1.2 ... 50=>2.0）
+  if (combo <= 50) {
+    return 1.0 + Math.floor(combo / 5) * 0.1;
+  }
+  
+  // 51連勝〜100連勝までは10区切りで0.1ずつ増加（51-60=>2.1, 61-70=>2.2 ... 91-100=>2.5）
+  if (combo <= 100) {
+    return 2.0 + Math.floor((combo - 41) / 10) * 0.1; 
+  }
+  
+  // 101連勝以降は2.5倍で固定
+  return 2.5; 
+}
+
+
+// ==========================================
+// 次の問題をセットし、前の駅を「0手目のヒント」として自動入力する処理
+// ==========================================
+function startNextEndlessRound() {
+  // 山札から今日の正解駅をセット
+  todayLocaStation = drawNextEndlessStation();
+  
+  // 盤面と履歴をリセット（ただし、残り回答回数は前の状態を引き継ぎます）
+  locaGridHistory = [];
+  locaGuessesCount = 0; 
+  document.getElementById("results-tbody").innerHTML = "";
+
+  // 前回クリア（またはスキップ）した駅の記録があれば、消費ゼロの無料ヒントとして自動入力
+  const prev = locaEndlessState.lastAnswerStation;
+  if (prev && todayLocaStation) {
+    const dist = calculateDistance(prev.latitude, prev.longitude, todayLocaStation.latitude, todayLocaStation.longitude);
+    const dir = calculateDirection(prev.latitude, prev.longitude, todayLocaStation.latitude, todayLocaStation.longitude);
+    
+    let regionStatus = "cell-absent";
+    if (prev.pref === todayLocaStation.pref) {
+      regionStatus = prev.municipality === todayLocaStation.municipality ? "cell-correct" : "cell-present";
+    }
+    const compStatus = checkArrayMatch(prev.companies, todayLocaStation.companies);
+    const lineStatus = checkArrayMatch(prev.lines, todayLocaStation.lines);
+
+    // 履歴に保存（isFreeGuessという専用フラグを立てておきます）
+    locaGridHistory.push({
+      guess: prev,
+      distance: dist + "km",
+      distanceNum: dist,
+      direction: dir,
+      region: regionStatus,
+      comp: compStatus,
+      line: lineStatus,
+      isWin: false,
+      isFreeGuess: true 
+    });
+
+    // 画面に描画（locaGuessesCount は増えないため、15回の制限枠は減りません）
+    renderResultRow(prev, dist, dir, regionStatus, compStatus, lineStatus, false);
+  }
+
+  // 画面表示等のリセット処理
+  document.getElementById("station-search-input").value = "";
+  document.getElementById("station-search-input").disabled = false;
+  document.getElementById("submit-guess-btn").disabled = false;
+  
+  // スキップボタンの安全ロック判定（残り回数が3回以下の場合は押せなくする）
+  const skipBtn = document.getElementById("skip-endless-btn");
+  if (skipBtn) {
+    skipBtn.disabled = (locaEndlessState.remainingGuesses <= 3);
+  }
+  
+  updateRemainingGuesses();
+  
+  // 次のタイマー計測の準備
+  locaPlayStartTime = null; 
 }
 
 
