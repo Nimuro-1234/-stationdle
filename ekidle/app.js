@@ -1094,7 +1094,10 @@ function showResultModal(isWin,isRestore){
   if(!st) st = {played:0,won:0,currentStreak:0,maxStreak:0,dist:[0,0,0,0,0,0,0,0,0,0]};
   if(!st.dist) st.dist=[0,0,0,0,0,0,0,0,0,0];
   document.getElementById("modal-title").textContent=isWin?"正解！おめでとう！":"残念！ゲームオーバー";
-  document.getElementById("modal-desc").textContent=`${todayStation.kanji} (${todayStation.yomi})`;
+  document.getElementById("modal-desc").innerHTML = `
+    <span style="font-size:18px; font-weight:bold;">${todayLocaStation.kanji}</span><br>
+    <span style="font-size:14px; color:#7f8c8d;">(${todayStation.yomi})</span><br>
+  `;
 
   // 【修正】お取り寄せ・ふるさと納税用に、常に市区町村単位の正確な地域名を作成
   let safePref = todayStation.pref || "富山県";
@@ -1121,96 +1124,97 @@ function showResultModal(isWin,isRestore){
   let rakutenImp='<img src="//i.moshimo.com/af/i/impression?a_id=5616621&p_id=55&pc_id=55&pl_id=624" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
   // 2段目：通常のお取り寄せ（楽天側もご提示いただいた半角プラス区切りへ修正）
-let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/0/?area=13&first=1&ss_first=1&sretry=0&tab_ex=commerce`;
-let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
-let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  let yahooShoppingDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/0/?area=13&first=1&ss_first=1&sretry=0&tab_ex=commerce`;
+  let yahooShoppingUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooShoppingDest)}`;
+  let yahooShoppingImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/`;
-let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
-let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  let rakutenMarketDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("特産品")}/`;
+  let rakutenMarketUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenMarketDest)}`;
+  let rakutenMarketImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-// 3段目：ふるさと納税（こちらも同様に半角プラス区切りへ統一）
-let yahooFurusatoDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/0/?first=1&ss_first=1&sretry=0&tab_ex=commerce`;
-let yahooFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooFurusatoDest)}`;
-let yahooFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  // 3段目：ふるさと納税（こちらも同様に半角プラス区切りへ統一）
+  let yahooFurusatoDest = `https://shopping.yahoo.co.jp/search/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/0/?first=1&ss_first=1&sretry=0&tab_ex=commerce`;
+  let yahooFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=${encodeURIComponent(yahooFurusatoDest)}`;
+  let yahooFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/`;
-let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
-let rakutenFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
+  let rakutenFurusatoDest = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(muniMuni)}+${encodeURIComponent("ふるさと納税")}/`;
+  let rakutenFurusatoUrl = `https://af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=${encodeURIComponent(rakutenFurusatoDest)}`;
+  let rakutenFurusatoImp = '<img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">';
 
-// 結果画面のHTML書き換え
-document.getElementById("wiki-link-container").innerHTML=`
-<div style="margin-bottom:12px;">
-<a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
-</div>
-<div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px; position:relative;">
-<div style="text-align:center; margin-bottom:8px;">
-<span style="display:inline-block; border:1px solid #aaa; border-radius:4px; padding:1px 6px; font-size:10px; color:#aaa; font-weight:bold;">PR</span>
-</div>
-<div style="font-size:11px; font-weight:bold; color:#e65100; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prText}</div>
-<div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
-<a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
-<img src="/yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
-</a>
-<a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
-<img src="/R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
-</a>
-<div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
-<div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🎁 この土地の名産品をお取り寄せ（通常購入）</div>
-<a href="${yahooShoppingUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
-<img src="/yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ショッピング
-</a>
-<a href="${rakutenMarketUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#bf0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
-楽天市場で探す
-</a>
-<div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
-<div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🗾 地域を応援して名産品を貰う（ふるさと納税）</div>
-<a href="${yahooFurusatoUrl}" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
-<img src="/yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ふるさと納税
-</a>
-<a href="${rakutenFurusatoUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#7a0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
-楽天ふるさと納税
-</a>
-</div>
-</div>
-${rakutenImp}
-${yahooImp}
-${rakutenMarketImp}
-${yahooShoppingImp}
-${yahooFurusatoImp}
-${rakutenFurusatoImp}
-`;
-document.getElementById("stat-played").textContent=st.played;
-let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
-document.getElementById("stat-winrate").textContent=winRate;
-document.getElementById("stat-streak").textContent=st.currentStreak;
-document.getElementById("stat-maxstreak").textContent=st.maxStreak;
-//何手目で正解できたかの分布データを横向きの棒グラフ（HTMLとCSS）として組み立てて表示する
-let distHTML="<div style='font-weight:bold;margin:15px 0 5px;border-bottom:1px solid #ccc;padding-bottom:5px;'>回答回数の分布</div>";
-let maxDist=Math.max(...st.dist);
-const barColors=["#6aaa64","#42a5f5","#26c6da","#ffca28","#ffa726","#ff7043","#ec407a","#ab47bc"];
-for(let i=1;i<=maxGuesses;i++){
-let count=st.dist[i]||0;
-let w=maxDist>0?Math.max(8,Math.round((count/maxDist)*100)):8;
-let bg=barColors[i-1]||"#6aaa64";
-distHTML+=`<div style="display:flex;align-items:center;margin-bottom:4px;">
-<div style="width:15px;font-weight:bold;text-align:right;margin-right:5px;font-size:12px;">${i}</div>
-<div style="flex:1;background-color:#f0f2f5;border-radius:2px;">
-<div style="background-color:${bg};height:18px;width:${w}%;color:white;text-align:right;padding-right:5px;font-size:11px;line-height:18px;border-radius:2px;box-sizing:border-box;">${count}</div>
-</div>
-</div>`;
-}
-document.getElementById("guess-distribution").innerHTML=distHTML;
-//タイルの色の結果を四角い絵文字（🟩🟨🟪⬛）の並びに変換し、結果画面の中央に配置する
-const grid=document.getElementById("modal-grid");
-let gridHTML=gridHistory.map((row,i)=>{
-let r=row.map(c=>colorToEmoji[c]).join("");
-return r;
-}).join("<br>");
-grid.innerHTML=gridHTML;
+  // 結果画面のHTML書き換え
+  document.getElementById("wiki-link-container").innerHTML=`
+    <div style="margin-bottom:12px;">
+    <a href="${todayStation.url}" target="_blank" style="display:inline-block; padding:8px 12px; background-color:#e0e0e0; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:12px;">Wikipediaで見る</a>
+    </div>
+    <div style="background-color:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:10px; margin-bottom:5px; position:relative;">
+    <div style="text-align:center; margin-bottom:8px;">
+    <span style="display:inline-block; border:1px solid #aaa; border-radius:4px; padding:1px 6px; font-size:10px; color:#aaa; font-weight:bold;">PR</span>
+    </div>
+    <div style="font-size:11px; font-weight:bold; color:#e65100; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prText}</div>
+    <div style="display:flex; justify-content:center; gap:8px; align-items:center; flex-wrap:wrap;">
+    <a href="${yahooUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+    <img src="/yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">トラベル
+    </a>
+    <a href="${rakutenUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:0; background-color:#00B900; border:1px solid #00B900; border-radius:4px; width:45%; height:32px; overflow:hidden;">
+    <img src="/R_Travel_v2.04.svg" alt="楽天トラベル" style="height:100%; border:none;">
+    </a>
+    <div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
+    <div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🎁 この土地の名産品をお取り寄せ（通常購入）</div>
+    <a href="${yahooShoppingUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+    <img src="/yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ショッピング
+    </a>
+    <a href="${rakutenMarketUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#bf0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+    楽天市場で探す
+    </a>
+    <div style="width:100%; border-top:1px dashed #ffcc80; margin:6px 0;"></div>
+    <div style="width:100%; font-size:11px; font-weight:bold; color:#e65100; margin-bottom:4px; text-align:left; padding-left:5%;">🗾 地域を応援して名産品を貰う（ふるさと納税）</div>
+    <a href="${yahooFurusatoUrl}" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#ffffff; border:1px solid #ff0033; color:#333; text-decoration:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+    <img src="/yahoo_japan_icon_64.svg" alt="Y!" style="height:14px; margin-right:4px; border:none;">ふるさと納税
+    </a>
+    <a href="${rakutenFurusatoUrl}" target="_blank" style="display:flex; justify-content:center; align-items:center; padding:8px 0; background-color:#7a0000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; font-size:11px; width:45%;">
+    楽天ふるさと納税
+    </a>
+    </div>
+    </div>
+    ${rakutenImp}
+    ${yahooImp}
+    ${rakutenMarketImp}
+    ${yahooShoppingImp}
+    ${yahooFurusatoImp}
+    ${rakutenFurusatoImp}
+  `;
+  document.getElementById("stat-played").textContent=st.played;
+  let winRate=st.played>0?Math.round((st.won/st.played)*100):0;
+  document.getElementById("stat-winrate").textContent=winRate;
+  document.getElementById("stat-streak").textContent=st.currentStreak;
+  document.getElementById("stat-maxstreak").textContent=st.maxStreak;
+  //何手目で正解できたかの分布データを横向きの棒グラフ（HTMLとCSS）として組み立てて表示する
+  let distHTML="<div style='font-weight:bold;margin:15px 0 5px;border-bottom:1px solid #ccc;padding-bottom:5px;'>回答回数の分布</div>";
+  let maxDist=Math.max(...st.dist);
+  const barColors=["#6aaa64","#42a5f5","#26c6da","#ffca28","#ffa726","#ff7043","#ec407a","#ab47bc"];
+  for(let i=1;i<=maxGuesses;i++){
+  let count=st.dist[i]||0;
+  let w=maxDist>0?Math.max(8,Math.round((count/maxDist)*100)):8;
+  let bg=barColors[i-1]||"#6aaa64";
+  distHTML+=`<div style="display:flex;align-items:center;margin-bottom:4px;">
+    <div style="width:15px;font-weight:bold;text-align:right;margin-right:5px;font-size:12px;">${i}</div>
+    <div style="flex:1;background-color:#f0f2f5;border-radius:2px;">
+    <div style="background-color:${bg};height:18px;width:${w}%;color:white;text-align:right;padding-right:5px;font-size:11px;line-height:18px;border-radius:2px;box-sizing:border-box;">${count}</div>
+    </div>
+    </div>`;
+  }
+  document.getElementById("guess-distribution").innerHTML=distHTML;
+  //タイルの色の結果を四角い絵文字（🟩🟨🟪⬛）の並びに変換し、結果画面の中央に配置する
+  const grid=document.getElementById("modal-grid");
+  let gridHTML=gridHistory.map((row,i)=>{
+  let r=row.map(c=>colorToEmoji[c]).join("");
+  return r;
+  }).join("<br>");
+  grid.innerHTML=gridHTML;
   // ランダムモード中は、日々の勝率や戦績グラフなどの要素を非表示にしてスッキリさせる
-    document.getElementById("result-modal").style.display="flex"; // ←元からあるコード
+  document.getElementById("result-modal").style.display="flex"; // ←元からあるコード
 }
+
 // 結果画面でシェアボタンが押されたとき、文字と絵文字のパズル結果を組み立てて各SNSの投稿画面を開く
 function shareResult(type){
   let lastColors=gridHistory.length>0?gridHistory[gridHistory.length-1]:[];
