@@ -1697,18 +1697,41 @@ function showEndlessResultModal() {
   `;
   
   // アフィリエイトPR枠の作成（スクロールのズレを防ぐため高さを固定確保）
+  // ====== [app.js] showEndlessResultModal関数内のPR枠部分 ======
+  // 修正後：ご提供いただいた実際のコードを埋め込み、PRバッジと万能テキストを適用した決定版です
   const affDiv = document.createElement("div");
-  affDiv.style.marginTop = "20px";
-  affDiv.style.padding = "10px";
-  affDiv.style.background = "#fff9db";
-  affDiv.style.borderRadius = "6px";
-  affDiv.style.border = "1px solid #f59f00";
-  affDiv.style.minHeight = "60px"; // 高さを固定してスクロールズレを防止
+  affDiv.style.marginTop = "15px";
+  affDiv.style.padding = "12px";
+  affDiv.style.background = "#fafafa";
+  affDiv.style.borderRadius = "8px";
+  affDiv.style.border = "1px solid #e2e8f0";
+  affDiv.style.textAlign = "left";
+  affDiv.style.minHeight = "150px"; // 読み込み遅延によるスクロールのズレを防ぐため高さを固定確保
+  
   affDiv.innerHTML = `
-    <div style="font-size:11px; color:#f59f00; font-weight:bold; margin-bottom:4px;">💻 酷使した脳に栄養補給！</div>
-    <a href="https://www.amazon.co.jp/" target="_blank" style="font-size:12px; color:#e67e22; font-weight:bold; text-decoration:none;">
-      【Amazon】ラムネやブルーライトカット眼鏡で次のサバイバルに備える ➔
-    </a>
+    <div style="margin-bottom:10px; display:flex; align-items:center;">
+        <span style="font-size:10px; color:#94a3b8; border:1px solid #cbd5e1; border-radius:4px; padding:1px 5px; font-weight:bold; letter-spacing:0.5px; line-height:1; display:inline-block; background:#fff;">PR</span>
+    </div>
+
+    <div style="font-size:12px; color:#475569; font-weight:bold; margin-bottom:12px; text-align:center;">
+        💻 じっくり楽しんだ目と脳に、最高のご褒美とリフレッシュを。
+    </div>
+
+    <div style="margin-bottom:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:10px; display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:11px; color:#64748b; font-weight:bold;">🗺️ 次はゲームを離れて、のんびり日本全国を眺めてみる？</div>
+        <a href="//af.moshimo.com/af/c/click?a_id=5616620&p_id=54&pc_id=54&pl_id=616&url=https%3A%2F%2Fsearch.rakuten.co.jp%2Fsearch%2Fmall%2F%25E6%2597%25A5%25E6%259C%25AC%25E9%2589%2584%25E9%2581%2593%25E6%2597%2585%25E8%25A1%258C%25E5%259C%25B0%25E5%259B%25B3%25E5%25B8%25B3%2F" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc style="display:block; text-align:center; font-size:11px; color:#bf0000; background:#fff5f5; border:1px solid #feb2b2; padding:6px 0; border-radius:4px; text-decoration:none; font-weight:bold; transition: background 0.2s;">
+            楽天市場で「日本鉄道旅行地図帳」を探す ➔
+        </a>
+        <img src="//i.moshimo.com/af/i/impression?a_id=5616620&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" alt="" loading="lazy">
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:11px; color:#64748b; font-weight:bold;">🍬 消耗したブドウ糖エネルギーを美味しくチャージするなら</div>
+        <a href="//af.moshimo.com/af/c/click?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502&url=https%3A%2F%2Fshopping.yahoo.co.jp%2Fsearch%2F%25E5%25A4%25A7%25E7%25B2%2592%25E3%2583%25A9%25E3%2583%25A0%25E3%2583%258D%2F0%2F%3Ffirst%3D1%26tab_ex%3Dcommerce%26fr%3Dshp-prop%26mcr%3D0d82602f670f66d79b8f3e6db110de22%26ts%3D1781342120%26sretry%3D1%26sc_i%3Dshopping-pc-web-search-suggest-h_srch-srchbtn-sgstfrom-top--h_srch-kwd%26area%3D13" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc style="display:block; text-align:center; font-size:11px; color:#ff007f; background:#fff5fa; border:1px solid #fbb6ce; padding:6px 0; border-radius:4px; text-decoration:none; font-weight:bold; transition: background 0.2s;">
+            Yahoo!ショッピングで「大粒ラムネ」を探す ➔
+        </a>
+        <img src="//i.moshimo.com/af/i/impression?a_id=5626583&p_id=1225&pc_id=1925&pl_id=18502" width="1" height="1" style="border:none;" alt="" loading="lazy">
+    </div>
   `;
 
   // モード選択に戻る際、ステータスバーを綺麗に隠す処理をボタンに仕込む
