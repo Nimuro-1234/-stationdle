@@ -1110,7 +1110,7 @@ function showResultModal(isWin,isRestore){
   // ポップアップ内のPR用バナー文言（トラベル用に修正）
   let prText = typeof isAprilFoolMode!=="undefined"&&isAprilFoolMode 
     ? `＼ 聖地のある「${safePref}」へ巡礼して指の疲れを癒やす ／` 
-    : `＼ この駅のある「${areaKeyword}」へ聖地巡礼に行こう！ ／`;
+    : `＼ この駅のある「${safePref + areaKeyword}」へ聖地巡礼に行こう！ ／`;
 
   // 1段目：宿・ホテル予約（既存のトラベルURL）
   let encodedStation=encodeURIComponent(encodeURIComponent(encodeURIComponent(searchKw)));
