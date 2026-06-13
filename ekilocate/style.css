@@ -557,7 +557,6 @@ td.cell-station-name.cell-correct {
 /* モード選択のタイトルをテーマカラー（変数）と連動させます */
 #diff-title {
     color: var(--theme-accent, #2c3e50);
-    transition: color 0.3s;
 }
 
 /* 各種立体ボタンにマウスを乗せた時、少し明るく光るエフェクト */
