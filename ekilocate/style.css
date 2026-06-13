@@ -412,3 +412,130 @@ button, .btn {
     transform: translateY(3px);
     box-shadow: 0 0 0 #34495e !important;
 }
+
+
+/* ==========================================
+   円形プログレスバー付きローディング画面
+========================================== */
+#loading-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: #f5f7fa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease, visibility 0.5s;
+}
+
+/* 読み込み完了時にフェードアウトさせるクラスです */
+#loading-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loading-circular-container {
+    text-align: center;
+}
+
+.circular-progress-wrap {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    margin: 0 auto 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 円形の進捗バー（JavaScriptから角度を動的に書き換えます） */
+#circular-progress-bar {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(#3498db 0%, #e2e8f0 0%);
+    transition: background 0.1s linear;
+}
+
+/* バーの内側をくり抜いてドーナツ状に見せる疑似要素です */
+.circular-progress-wrap::after {
+    content: "";
+    position: absolute;
+    width: 114px;
+    height: 114px;
+    background-color: #f5f7fa;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.loading-icon-wrapper {
+    position: relative;
+    z-index: 2;
+    width: 68px;
+    height: 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* アイコンをゆっくり上下にバウンドさせるアニメーションです */
+#loading-pin-icon {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    animation: pinBobbing 1.8s ease-in-out infinite;
+}
+
+@keyframes pinBobbing {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+#loading-text {
+    font-size: 14px;
+    color: #7f8c8d;
+    font-weight: bold;
+    margin: 8px 0 3px;
+}
+
+#loading-percentage {
+    font-size: 16px;
+    color: #3498db;
+    font-weight: 900;
+    margin: 0;
+}
+
+/* ==========================================
+   距離の近さに応じたグラデーションカラー（味気なさ解消）
+========================================== */
+/* ① 200km以上離れている：遠距離（従来のシックなグレー） */
+.dist-far {
+    background-color: #475569 !important;
+}
+
+/* ② 50km〜200km圏内：中距離（接近の黄色） */
+.dist-close {
+    background-color: #f1c40f !important;
+    color: #2c3e50 !important; /* 文字の視認性を確保します */
+}
+
+/* ③ 10km〜50km圏内：近距離（大接近のオレンジ） */
+.dist-closer {
+    background-color: #e67e22 !important;
+    color: #ffffff !important;
+}
+
+/* ④ 10km以内：至近距離（あと一息の赤橙色 ＋ ドキドキする脈動エフェクト） */
+.dist-closest {
+    background-color: #e74c3c !important;
+    color: #ffffff !important;
+    animation: proximityGlow 1.5s infinite alternate;
+}
+
+@keyframes proximityGlow {
+    from { box-shadow: inset 0 0 4px rgba(255,255,255,0.2); }
+    to { box-shadow: inset 0 0 16px rgba(255,255,255,0.7); }
+}
