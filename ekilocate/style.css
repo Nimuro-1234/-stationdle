@@ -356,3 +356,59 @@ button, .btn {
     font-size: 13px;
     border-bottom: 4px solid rgba(0,0,0,0.2) !important;
 }
+
+
+/* ==========================================
+   添付アイコン風：押し込める立体ボタンデザイン
+========================================== */
+/* 上部のアイコンボタン群（？、🎨、📊、☰） */
+.top-icon-btn {
+    width: 42px;
+    height: 42px;
+    background-color: #3498db; /* アイコン画像と同じベースの青色 */
+    color: #ffffff;
+    border: none !important;
+    border-radius: 10px; /* アイコンのような丸みを帯びた四角 */
+    font-size: 18px;
+    font-weight: bold;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #2980b9; /* 下方向への分厚い影（ブロック感） */
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+/* ボタンを押した瞬間に、影が潰れて下に沈み込むリアルな演出 */
+.top-icon-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #2980b9;
+}
+
+/* 難易度選択画面のボタンも同じ立体ブロック仕様に統一 */
+.difficulty-screen button {
+    display: block;
+    width: 220px;
+    margin: 15px auto;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #3498db;
+    border: none !important;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #2980b9;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.difficulty-screen button:active:not([disabled]) {
+    transform: translateY(5px);
+    box-shadow: 0 0 0 #2980b9;
+}
+
+/* メイン画面の「戻る」ボタンも押し込める仕様に */
+#back-to-diff-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #34495e !important;
+}
