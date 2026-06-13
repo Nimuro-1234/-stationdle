@@ -905,7 +905,9 @@ function showLocaResultModal(isWin) {
   if (graphBars && st.dist) {
     graphBars.innerHTML = "";
     
-    // 1手〜10手の中で、一番多かったクリア回数（最大値）を探して基準にします
+    // 10回制限に合わせ、9・10手用の色も追加したver
+    const graphColors = ["#6aaa64", "#42a5f5", "#26c6da", "#ffca28", "#ffa726", "#ff7043", "#ec407a", "#ab47bc", "#8d6e63", "#78909c"];
+    
     let maxCount = 1;
     for (let i = 1; i <= 10; i++) {
       if ((st.dist[i] || 0) > maxCount) maxCount = st.dist[i];
@@ -914,8 +916,13 @@ function showLocaResultModal(isWin) {
     // 1手から10手までのグラフバーを1本ずつ組み立てます
     for (let i = 1; i <= 10; i++) {
       const count = st.dist[i] || 0;
-      const barWidth = Math.max(8, Math.round((count / maxCount) * 100)); // 最低でも8%の長さを保証
-      const barColor = (i === locaGuessesCount) ? "#3498db" : "#787c7e"; // 今回クリアした手数のバーだけ水色にする
+      const barWidth = Math.max(8, Math.round((count / maxCount) * 100));
+      
+      // 今回クリアした手数の場合のみ、専用の色を配列から取得します（配列は0から始まるため -1 します）
+      let barColor = "#787c7e";
+      if (i === locaGuessesCount && isWin) {
+        barColor = graphColors[i - 1]; 
+      }
       
       const barRow = document.createElement("div");
       barRow.style.display = "flex";
