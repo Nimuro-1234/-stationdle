@@ -166,8 +166,27 @@ async function initLocaGame() {
     // 【進捗80%】問題生成
     updateLocaLoadingProgress(80, "今日の問題を構築中...");
 
-    // 計算済みの currentDayIndex を使って、未来の駅や古い廃止駅を省きます
+    // 出題可能駅をフィルタする
     locaStations = rawStations.filter(s => {
+      
+      // 【追加】同じ座標、または同じWikipediaのURLを持つ重複駅を山札の段階で1つに統合（排除）する処理
+      const seenStationsGeo = new Set(); // すでに登録した駅の鍵（キー）を記録しておくための箱
+      
+      locaStations = locaStations.filter(s => {
+        // 緯度・経度が存在すればそれを繋げた文字列を、なければURLを固有の鍵（キー）にします
+        const geoKey = (s.latitude && s.longitude) ? `${s.latitude},${s.longitude}` : s.url;
+      
+        // もしすでに同じ鍵が記録されていれば、重複駅なので山札から除外（false）します
+        if (seenStationsGeo.has(geoKey)) {
+          return false;
+        }
+      
+        // 初めて登場する鍵であれば、箱に記録して山札に残し（true）ます
+        seenStationsGeo.add(geoKey);
+        return true;
+      });
+
+      // 計算済みの currentDayIndex を使って、貨物専用駅・未来の駅・古い廃止駅などを省きます
       const isFreight = s.companies && s.companies.length === 1 && s.companies[0] === "日本貨物鉄道";
       const isFuture = s.startDay !== undefined && s.startDay > currentDayIndex;
       const isAbolishedOld = s.endDay !== undefined && s.endDay !== 999999 && s.endDay <= currentDayIndex - 33;
