@@ -704,6 +704,46 @@ function submitLocaGuess() {
 
   // ⑤ 結果をHTMLの表に1行追加する
   renderResultRow(guess, distance, direction, regionStatus, compStatus, lineStatus, isWin);
+
+  // ▼▼▼ ここから追加（1手ごとのテンポアップボーナス） ▼▼▼
+  if (currentDifficulty === 'endless' && !isWin) {
+    // 経過時間を秒で取得（5分＝300秒）
+    let guessTimeSec = locaPlayStartTime ? Math.floor((Date.now() - locaPlayStartTime) / 1000) : 0;
+    
+    // スピードボーナス：最速500pt〜5分で0ptになるように減衰
+    let speedBonus = Math.max(0, 500 - Math.floor(guessTimeSec * 1.66));
+    
+    // 距離ボーナス：最大500pt（10km以内）〜最低50pt（300km以上）
+    let distBonus = 50; 
+    if (distance <= 10) distBonus = 500;
+    else if (distance <= 50) distBonus = 300;
+    else if (distance <= 100) distBonus = 200;
+    else if (distance <= 300) distBonus = 100;
+
+    // ▼▼▼ 追加：パネルの色に応じた的中ボーナス ▼▼▼
+    const getPanelBonus = (status) => status === "cell-correct" ? 1000 : (status === "cell-present" ? 300 : 0);
+    let colorBonus = getPanelBonus(regionStatus) + getPanelBonus(compStatus) + getPanelBonus(lineStatus);
+    
+    let earnedPerGuess = speedBonus + distBonus + colorBonus;
+    
+    // スコアを加算してリアルタイムで画面に反映
+    locaEndlessState.score += (speedBonus + distBonus);
+    
+    const endlessScoreDisplay = document.getElementById("endless-score-display");
+    if (endlessScoreDisplay) endlessScoreDisplay.textContent = locaEndlessState.score;
+
+    // ▼▼▼ 追加：入力欄の横から「+xxx」をフワッと浮かび上がらせる演出 ▼▼▼
+    const inputWrapper = document.querySelector(".input-wrapper");
+    if (inputWrapper) {
+      const animEl = document.createElement("div");
+      animEl.className = "floating-score";
+      animEl.textContent = `+${earnedPerGuess}`;
+      inputWrapper.appendChild(animEl);
+      // アニメーションが終わる頃（1.2秒後）に要素を消してメモリを掃除
+      setTimeout(() => animEl.remove(), 1200);
+    }
+  }
+  // ▲▲▲ ここまで追加 ▲▲
   
   // 入力欄をリセット
   // 過去の回答の色の結果と、駅の全データを復元・シェア用に記憶しておく
@@ -737,7 +777,7 @@ function submitLocaGuess() {
     if (currentDifficulty === 'endless') {
        // 【エンドレス専用の正解処理】
        const clearTime = locaPlayStartTime ? Math.round((Date.now() - locaPlayStartTime) / 100) / 10 : 0;
-       const baseScore = 1000;
+       const baseScore = 30000; // 基礎スコアを1000→30000へ大幅アップ
        
        let guessBonus = 0;
        if (locaGuessesCount === 1) guessBonus = 5000;
@@ -765,7 +805,10 @@ function submitLocaGuess() {
        // UIを一旦ロック
        document.getElementById("submit-guess-btn").disabled = true;
        document.getElementById("station-search-input").disabled = true;
-       
+
+      // 内訳をまとめたオブジェクトを渡すように変更
+       const breakdown = { base: baseScore, guess: guessBonus, time: timeBonus, mult: multiplier.toFixed(1) };
+      
        // 邪魔なウィンドウを出さず、2秒間のポップアップを呼び出して自動で次へ進む
        showEndlessWinPopup(earnedScore, locaEndlessState.combo, recovery);
        
@@ -812,8 +855,8 @@ function renderResultRow(guess, distance, direction, regionStatus, compStatus, l
 
   // 事業者と路線の表示テキストを作ります（長すぎる場合は「〇〇 他」と省略）
   // 後の処理で書き換える可能性があるため、constではなくletで宣言します
-  let compText = (guess.companies && guess.companies.length > 0) ? guess.companies[0] + (guess.companies.length > 1 ? " 他" : "") : "不明";
-  let lineText = (guess.lines && guess.lines.length > 0) ? guess.lines[0] + (guess.lines.length > 1 ? " 他" : "") : "不明";
+  let compText = (guess.companies && guess.companies.length > 0) ? guess.companies[0] + (guess.companies.length > 1 ? ` 他${guess.companies.length - 1}社` : "") : "不明";
+  let lineText = (guess.lines && guess.lines.length > 0) ? guess.lines[0] + (guess.lines.length > 1 ? ` 他${guess.lines.length - 1}路線` : "") : "不明";
 
   // もし難易度が「ハード」で、かつ完全正解（isWin）ではない場合のみ発動する処理
   if (currentDifficulty === 'hard' && !isWin) {
@@ -1542,24 +1585,16 @@ function getEndlessTimeBonus(seconds) {
 }
 
 // コンボボーナス倍率
-// 1連勝～10連勝までは毎回0.1ずつ増加（1=>1.1, 10=>2.0）
 function getEndlessComboMultiplier(combo) {
-  if (combo < 10) {
-    return 1.0 + Math.floor(combo) * 0.1;
-  }
-  
-  // 11連勝〜50連勝までは5区切りで0.1ずつ増加（5=>1.1, 10=>1.2 ... 50=>2.0）
-  if (combo <= 50) {
-    return 1.0 + Math.floor(combo / 5) * 0.1;
-  }
-  
-  // 51連勝〜100連勝までは10区切りで0.1ずつ増加（51-60=>2.1, 61-70=>2.2 ... 91-100=>2.5）
-  if (combo <= 100) {
-    return 2.0 + Math.floor((combo - 41) / 10) * 0.1; 
-  }
-  
-  // 101連勝以降は2.5倍で固定
-  return 2.5; 
+  if (combo <= 0) return 1.0;
+  if (combo <= 20) return 1.0 + (combo * 0.1);
+  if (combo <= 50) return 3.0 + Math.floor((combo - 20) / 5) * 0.1;
+  if (combo <= 100) return 3.6 + Math.floor((combo - 50) / 10) * 0.1;
+  if (combo <= 200) return 4.1 + Math.floor((combo - 100) / 20) * 0.1;
+  if (combo <= 500) return 4.6 + Math.floor((combo - 200) / 30) * 0.1;
+  if (combo <= 1000) return 5.6 + Math.floor((combo - 500) / 50) * 0.1;
+  if (combo <= 2000) return 6.6 + Math.floor((combo - 1000) / 100) * 0.1;
+  return 7.6; // 2001連勝以降は固定
 }
 
 
@@ -1697,6 +1732,13 @@ if (skipEndlessBtn) {
       // コンボ表示を0に戻して次をスタート
       document.getElementById("endless-combo-display").textContent = locaEndlessState.combo;
       startNextEndlessRound();
+      
+      // スキップ通知を1.5秒間表示
+      const skipToast = document.getElementById("skip-toast");
+      if (skipToast) {
+        skipToast.style.display = "block";
+        setTimeout(() => { skipToast.style.display = "none"; }, 1500);
+      }
     }
   });
 }
@@ -1705,8 +1747,17 @@ if (skipEndlessBtn) {
 // ==========================================
 // エンドレス専用：2秒ポップアップと盤面更新
 // ==========================================
-function showEndlessWinPopup(score, combo, recovery) {
+function showEndlessWinPopup(score, combo, recovery, breakdown) {
   const toast = document.getElementById("endless-toast");
+
+  // 内訳を動的に書き込み
+  document.getElementById("endless-toast-breakdown").innerHTML = `
+    🎯 基礎スコア: +${breakdown.base}<br>
+    ⏱️ タイムボーナス: +${breakdown.time}<br>
+    💡 手数ボーナス: +${breakdown.guess}<br>
+    🔥 コンボ倍率: ×${breakdown.mult}
+  `;
+  
   document.getElementById("endless-toast-score").textContent = `+${score} pts`;
   document.getElementById("endless-toast-combo").textContent = `${combo} Combo! (×${getEndlessComboMultiplier(combo)})`;
   toast.style.display = "block";
