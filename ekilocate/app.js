@@ -656,7 +656,8 @@ function submitLocaGuess() {
        const multiplier = getEndlessComboMultiplier(locaEndlessState.combo);
        const earnedScore = Math.floor((baseScore + guessBonus + timeBonus) * multiplier);
        
-       locaEndlessState.score += earnedScore;
+       locaEndlessState.score += earnedScore;    //スコア加算
+       checkAndTriggerHighScoreEffect(locaEndlessState.score);    //ハイスコアチェック
        locaEndlessState.clearedCount++;
        locaEndlessState.lastAnswerStation = guess;
        
@@ -1612,6 +1613,124 @@ function showEndlessResultModal() {
   locaEndlessState.clearedCount = 0;
   locaEndlessState.remainingGuesses = 15;
   locaEndlessState.lastAnswerStation = null;
+  localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
+}
+
+
+// ==========================================
+// エンドレスモード：UI連携・演出・リザルト管理
+// ==========================================
+
+// 過去の最高記録（ハイスコアと最大連勝数）をローカルストレージから読み込み（なければ0）
+let locaEndlessHighScore = parseInt(localStorage.getItem("ekiLocateEndlessHighScore") || "0", 10);
+let locaEndlessMaxComboAllTime = parseInt(localStorage.getItem("ekiLocateEndlessMaxCombo") || "0", 10);
+
+// ① エンドレスモードの説明ポップアップを開く
+function openEndlessIntroModal() {
+  document.getElementById("endless-intro-modal").style.display = "flex";
+}
+
+// ② 説明を閉じてゲームを実際に開始する
+function closeEndlessIntroAndStart() {
+  document.getElementById("endless-intro-modal").style.display = "none";
+  
+  // エンドレス用の初期表示に切り替え
+  currentDifficulty = 'endless';
+  document.getElementById("endless-status-bar").style.display = "flex";
+  
+  // スコアなどの画面表示を現在のセーブデータから復元
+  document.getElementById("endless-score-display").textContent = locaEndlessState.score;
+  document.getElementById("endless-combo-display").textContent = locaEndlessState.combo;
+  
+  // 次の問題をセットしてスタート
+  startNextEndlessRound();
+}
+
+// ③ ハイスコア更新時にリアルタイムで派手な演出を出す関数
+function checkAndTriggerHighScoreEffect(currentScore) {
+  // 今のスコアが過去のハイスコアを上回った瞬間の判定
+  if (currentScore > locaEndlessHighScore && locaEndlessHighScore > 0) {
+    const hsToast = document.getElementById("endless-highscore-toast");
+    if (hsToast && hsToast.style.display === "none") {
+      // 画面上部にピカピカ光るハイスコア通知を3秒間だけ表示する演出
+      hsToast.style.display = "block";
+      setTimeout(() => {
+        hsToast.style.display = "none";
+      }, 3000);
+      
+      // 何度も演出が出ないように、リアルタイムでハイスコア値を仮更新しておく
+      locaEndlessHighScore = currentScore;
+      localStorage.setItem("ekiLocateEndlessHighScore", locaEndlessHighScore.toString());
+    }
+  }
+}
+
+// ④ 【差し替え・機能拡張】エンドレスモード終了時の専用ウィンドウ表示
+function showEndlessResultModal() {
+  const modal = document.getElementById("endless-result-modal");
+  
+  // 今回のスコアが最終的にハイスコアを更新したかチェックして保存
+  if (locaEndlessState.score > locaEndlessHighScore) {
+    locaEndlessHighScore = locaEndlessState.score;
+    localStorage.setItem("ekiLocateEndlessHighScore", locaEndlessHighScore.toString());
+  }
+  if (locaEndlessState.maxCombo > locaEndlessMaxComboAllTime) {
+    locaEndlessMaxComboAllTime = locaEndlessState.maxCombo;
+    localStorage.setItem("ekiLocateEndlessMaxCombo", locaEndlessMaxComboAllTime.toString());
+  }
+
+  // 専用結果ウィンドウのテキストを書き換える
+  document.getElementById("endless-answer-station").textContent = todayLocaStation.kanji;
+  document.getElementById("endless-final-score").textContent = locaEndlessState.score;
+  document.getElementById("endless-final-combo").textContent = locaEndlessState.maxCombo;
+  document.getElementById("endless-final-cleared").textContent = locaEndlessState.clearedCount;
+
+  // ウィンドウ内に過去の最高連勝、過去の最高スコアを動的に追加
+  const recordDiv = document.createElement("div");
+  recordDiv.style.marginTop = "15px";
+  recordDiv.style.fontSize = "13px";
+  recordDiv.style.color = "#7f8c8d";
+  recordDiv.style.fontWeight = "bold";
+  recordDiv.innerHTML = `
+    <div>🏆 過去最高スコア: ${locaEndlessHighScore} pts</div>
+    <div>🔥 過去最高連勝数: ${locaEndlessMaxComboAllTime} 連勝</div>
+  `;
+  
+  // アフィリエイトPR枠の作成（スクロールのズレを防ぐため高さを固定確保）
+  const affDiv = document.createElement("div");
+  affDiv.style.marginTop = "20px";
+  affDiv.style.padding = "10px";
+  affDiv.style.background = "#fff9db";
+  affDiv.style.borderRadius = "6px";
+  affDiv.style.border = "1px solid #f59f00";
+  affDiv.style.minHeight = "60px"; // 高さを固定してスクロールズレを防止
+  affDiv.innerHTML = `
+    <div style="font-size:11px; color:#f59f00; font-weight:bold; margin-bottom:4px;">💻 酷使した脳に栄養補給！</div>
+    <a href="https://www.amazon.co.jp/" target="_blank" style="font-size:12px; color:#e67e22; font-weight:bold; text-decoration:none;">
+      【Amazon】ラムネやブルーライトカット眼鏡で次のサバイバルに備える ➔
+    </a>
+  `;
+
+  // モード選択に戻る際、ステータスバーを綺麗に隠す処理をボタンに仕込む
+  const modalContent = modal.querySelector(".modal-content");
+  // 過去の重複追加を防ぐため、一度追加用のクラスを掃除してから挿入します
+  const oldBoxes = modalContent.querySelectorAll(".endless-add-box");
+  oldBoxes.forEach(b => b.remove());
+  
+  recordDiv.classList.add("endless-add-box");
+  affDiv.classList.add("endless-add-box");
+  
+  // ボタンの直前にデータを挿入
+  const restartBtn = modalContent.querySelector("button");
+  modalContent.insertBefore(recordDiv, restartBtn);
+  modalContent.insertBefore(affDiv, restartBtn);
+
+  modal.style.display = "flex";
+
+  // ゲームオーバーになったので次回のために現在のプレイデータをリセット
+  locaEndlessState = {
+    deck: [], score: 0, combo: 0, maxCombo: 0, clearedCount: 0, remainingGuesses: 15, lastAnswerStation: null
+  };
   localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
 }
 
