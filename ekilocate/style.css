@@ -576,3 +576,30 @@ td.cell-station-name.cell-correct {
 .modal-buttons .btn:active {
     filter: brightness(0.8);
 }
+
+
+/* ====== [style.css] 末尾に追加 ====== */
+
+/* 結果ウィンドウにも水色の縁を固定 */
+#result-modal .modal-content {
+    border: 3px solid #3498db !important;
+}
+
+/* シェアボタン群用の完全フラット（平面）スタイル */
+.flat-btn {
+    flex: 1;
+    padding: 10px 0 !important;
+    font-size: 12px !important;
+    font-weight: bold;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer;
+    outline: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    text-align: center;
+    transition: background 0.2s;
+}
+.flat-btn:active {
+    filter: brightness(0.85);
+}
