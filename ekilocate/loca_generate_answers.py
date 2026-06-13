@@ -135,7 +135,9 @@ def generate_answers():
             'hard': {"kanji": final_hard['kanji'], "pref": final_hard['pref'], "municipality": final_hard['municipality']}
         }
 
+    # ==============================================================
     # 4. JSONファイルへの書き込み（本番用と管理者用）
+    # ==============================================================
     for d in range(today_index, today_index + 36):
         target_date = base_date + timedelta(days=d)
         year_str = str(target_date.year)
@@ -144,24 +146,39 @@ def generate_answers():
         filepath_hash = f'answers/{year_str}.json'
         filepath_admin = f'answers_admin/{year_str}_admin.json'
 
+        # --------------------------------------------------
         # 本番用ファイル更新
+        # --------------------------------------------------
         existing_hashes = {}
         if os.path.exists(filepath_hash):
             with open(filepath_hash, 'r', encoding='utf-8') as f:
                 existing_hashes = json.load(f)
                 
-        existing_hashes[date_str] = generated_hashes[date_str]
+        # 【復活】今日から3日間は、すでに過去に生成した答えが存在していれば「絶対に上書きしない」
+        if d <= today_index + 3:
+            if date_str not in existing_hashes:
+                existing_hashes[date_str] = generated_hashes[date_str]
+        else:
+            # 4日目以降の未来は常に最新のシミュレーション結果で上書きする
+            existing_hashes[date_str] = generated_hashes[date_str]
 
         with open(filepath_hash, 'w', encoding='utf-8') as f:
             json.dump(existing_hashes, f, ensure_ascii=False, separators=(',', ':'))
 
+        # --------------------------------------------------
         # 管理者用ファイル更新
+        # --------------------------------------------------
         existing_admin = {}
         if os.path.exists(filepath_admin):
             with open(filepath_admin, 'r', encoding='utf-8') as f:
                 existing_admin = json.load(f)
                 
-        existing_admin[date_str] = generated_admin[date_str]
+        # 【復活】管理者用データも同様に、3日間は上書きしない
+        if d <= today_index + 3:
+            if date_str not in existing_admin:
+                existing_admin[date_str] = generated_admin[date_str]
+        else:
+            existing_admin[date_str] = generated_admin[date_str]
 
         with open(filepath_admin, 'w', encoding='utf-8') as f:
             json.dump(existing_admin, f, ensure_ascii=False, indent=4)
