@@ -359,58 +359,64 @@ button, .btn {
 
 
 /* ==========================================
-   添付アイコン風：押し込める立体ボタンデザイン
+   駅ドル風：押し込める立体ボタンデザイン
 ========================================== */
-/* 上部のアイコンボタン群（？、🎨、📊、☰） */
+.top-icon-btn, .diff-btn, #submit-guess-btn {
+    border: none !important;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.1s ease, border-bottom-width 0.1s ease;
+    outline: none !important;
+    color: #ffffff;
+}
+
+/* ボタンを押した瞬間にボーダーを0にして下に沈ませる */
+.top-icon-btn:active:not([disabled]), 
+.diff-btn:active:not([disabled]), 
+#submit-guess-btn:active:not([disabled]) {
+    transform: translateY(4px);
+    border-bottom-width: 0px !important;
+}
+
+/* 上部アイコンボタン */
 .top-icon-btn {
     width: 42px;
     height: 42px;
-    background-color: #3498db; /* アイコン画像と同じベースの青色 */
-    color: #ffffff;
-    border: none !important;
-    border-radius: 10px; /* アイコンのような丸みを帯びた四角 */
     font-size: 18px;
-    font-weight: bold;
+    background-color: #e3e3e1;
+    color: #1a1a1b;
+    border-bottom: 4px solid #b5b5b3 !important;
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #2980b9; /* 下方向への分厚い影（ブロック感） */
-    transition: transform 0.1s, box-shadow 0.1s;
 }
 
-/* ボタンを押した瞬間に、影が潰れて下に沈み込むリアルな演出 */
-.top-icon-btn:active {
-    transform: translateY(4px);
-    box-shadow: 0 0 0 #2980b9;
-}
-
-/* 難易度選択画面のボタンも同じ立体ブロック仕様に統一 */
-.difficulty-screen button {
+/* 難易度選択・戻るボタン */
+.diff-btn {
     display: block;
-    width: 220px;
+    width: 240px;
     margin: 15px auto;
     padding: 15px;
     font-size: 16px;
-    font-weight: bold;
-    color: #ffffff;
+    border-bottom: 4px solid rgba(0,0,0,0.2) !important;
+}
+
+/* 送信ボタン */
+#submit-guess-btn {
     background-color: #3498db;
-    border: none !important;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 0 5px 0 #2980b9;
-    transition: transform 0.1s, box-shadow 0.1s;
+    border-bottom: 4px solid #2980b9 !important;
+    padding: 0 24px;
+    font-size: 16px;
 }
 
-.difficulty-screen button:active:not([disabled]) {
-    transform: translateY(5px);
-    box-shadow: 0 0 0 #2980b9;
-}
-
-/* メイン画面の「戻る」ボタンも押し込める仕様に */
-#back-to-diff-btn:active {
-    transform: translateY(3px);
-    box-shadow: 0 0 0 #34495e !important;
+/* ==========================================
+   正解時のセル緑色上書き
+========================================== */
+td.cell-station-name.cell-correct {
+    background-color: #6aaa64 !important;
+    color: #ffffff !important;
 }
 
 
