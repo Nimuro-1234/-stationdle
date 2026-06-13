@@ -678,6 +678,19 @@ body.event-nye #diff-title {
     transform: translateY(3px) !important; 
 }
 
+
+/* ====== [style.css] 末尾 ====== */
+/* ボタン押し込み時のガタつき完全防止 */
+.diff-btn:active, .btn:active {
+    position: relative !important;
+    top: 3px !important;
+    border-bottom-width: 0 !important;
+    margin-bottom: 3px !important; /* 消えたボーダーの3px分をここで補い、高さを維持します */
+    transform: none !important;
+    background-clip: border-box !important;
+}
+
+
 /* =================================== */
 /* エンドレスモード */
 /* =================================== */
