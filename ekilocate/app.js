@@ -405,8 +405,11 @@ function setupSuggest() {
 
   // 【1】文字が入力されるたびに実行される処理
   input.addEventListener("input", (e) => {
-    // 全角・半角スペースを全て取り除き、ひらがなに統一する
-    const query = toHiragana(e.target.value.replace(/[\s ]+/g, ""));
+    // プレイヤーの入力値（e.target.value）を、まず新字体に変換してから、
+    // 空白を取り除き、ひらがな化します
+    const query = toHiragana(
+      normalizeKanjiForSearch(e.target.value).replace(/[\s ]+/g, "")
+    );
     selectedSuggestIndex = -1; 
     currentSelectedStation = null;
 
@@ -618,17 +621,18 @@ function submitLocaGuess() {
   // サジェストから選ばれていない（手打ちされた）場合の救済処理
   if (!currentSelectedStation) {
     
-    // 入力欄の文字を取得します
-    let inputVal = input.value;
+    // まず、入力欄の文字を丸ごと取得する際に、新字体へ変換して統一しておきます
+    let inputVal = normalizeKanjiForSearch(input.value);
     
     // 手打ちされた文字の末尾に「駅」が付いていたら、裏でこっそり消します（横浜駅 → 横浜）
     //if (inputVal.endsWith("駅") && inputVal.length > 1) {
     //  inputVal = inputVal.slice(0, -1);
     //}
 
-    // 辞書の中から、漢字かひらがなが完全に一致する駅を探し出します
+    // 辞書の駅名（s.kanji）と、プレイヤーの入力文字（inputVal）を比較します
     const exactMatches = locaStations.filter(
-      s => s.kanji === inputVal || (s.hiragana && s.hiragana === inputVal)
+      // 辞書側の駅名も念のため新字体に変換した上で、新字体同士で完全一致するかチェックします
+      s => normalizeKanjiForSearch(s.kanji) === inputVal || (s.hiragana && s.hiragana === inputVal)
     );
     
     if (exactMatches.length === 1) {
