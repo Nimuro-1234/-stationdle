@@ -67,20 +67,29 @@ h1 {
     border-color: #3498db;
 }
 
+/* 送信ボタン専用のデザイン（立体感を出して押しやすくします） */
 #submit-guess-btn {
-    padding: 0 24px;
+    padding: 10px 20px;
     font-size: 16px;
     font-weight: bold;
     background-color: #3498db;
     color: #ffffff;
     border: none;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.1s;
+    border-bottom: 4px solid #2980b9 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
+
 
 #submit-guess-btn:hover {
     background-color: #2980b9;
+}
+
+#submit-guess-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
 /* サジェストのドロップダウンリスト */
@@ -253,11 +262,6 @@ body.theme-ocean { background-color: #e0f7fa; color: #004d40; --theme-accent: #0
 body.theme-blue { background-color: #e3f2fd; color: #0d47a1; --theme-accent: #1976d2; --modal-bg: #bbdefb; --modal-text: #0d47a1; }
 body.theme-green { background-color: #e8f5e9; color: #1b5e20; --theme-accent: #388e3c; --modal-bg: #c8e6c9; --modal-text: #1b5e20; }
 
-/* 行事日エフェクト */
-body.event-halloween { background-color: #2c1b18; color: #ff9800; --theme-accent: #ff9800; --modal-bg: #43251f; --modal-text: #ff9800; }
-body.event-valentine { background-color: #3e2723; color: #ffcdd2; --theme-accent: #ffcdd2; --modal-bg: #4e342e; --modal-text: #ffcdd2; }
-body.event-christmas { background-color: #0f3024; color: #e8f5e9; --theme-accent: #d32f2f; --modal-bg: #144232; --modal-text: #e8f5e9; }
-body.event-newyear { background-color: #fffaf0; color: #b71c1c; --theme-accent: #e53935; --modal-bg: #fdf5e6; --modal-text: #b71c1c; }
 
 /* テーマカラーが黒の場合、タイトルを白文字に */
 body.theme-dark #game-title { 
@@ -302,26 +306,7 @@ button, .btn {
     border: none !important;
 }
 
-/* 送信ボタン専用のデザイン（立体感を出して押しやすくします） */
-#submit-guess-btn {
-    background-color: #3498db;
-    color: #fff;
-    border-radius: 4px;
-    padding: 10px 20px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    transition: background-color 0.2s, transform 0.1s;
-}
 
-#submit-guess-btn:hover {
-    background-color: #2980b9;
-}
-
-#submit-guess-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-}
 
 
 /* ==========================================
@@ -342,11 +327,7 @@ button, .btn {
     transition: all 0.1s ease;
 }
 
-/* ボタンを押した瞬間に下に沈むリアルな演出を入れます */
-.btn:active {
-    border-bottom-width: 0px !important;
-    transform: translateY(3px);
-}
+
 
 /* モーダルの背景をテーマ変数と連動させます */
 .modal-content {
@@ -410,13 +391,7 @@ button, .btn {
     border-bottom: 4px solid rgba(0,0,0,0.2) !important;
 }
 
-/* 送信ボタン */
-#submit-guess-btn {
-    background-color: #3498db;
-    border-bottom: 4px solid #2980b9 !important;
-    padding: 0 24px;
-    font-size: 16px;
-}
+
 
 /* ==========================================
    正解時のセル緑色上書き
@@ -568,45 +543,12 @@ td.cell-station-name.cell-correct {
     filter: brightness(1.15);
 }
 
-/* ==========================================
-   シェアボタンの視覚的ブレ（錯覚）防止用フラット化
-========================================== */
-.modal-buttons .btn {
-    border-bottom-width: 0px !important;
-    transform: none !important;
-    box-shadow: none !important;
-    border-radius: 4px !important;
-}
-.modal-buttons .btn:active {
-    filter: brightness(0.8);
-}
-
-
-/* ====== [style.css] 末尾に追加 ====== */
 
 /* 結果ウィンドウにも水色の縁を固定 */
 #result-modal .modal-content {
     border: 3px solid #3498db !important;
 }
 
-/* シェアボタン群用の完全フラット（平面）スタイル */
-.flat-btn {
-    flex: 1;
-    padding: 10px 0 !important;
-    font-size: 12px !important;
-    font-weight: bold;
-    border: none !important;
-    border-radius: 4px !important;
-    cursor: pointer;
-    outline: none !important;
-    box-shadow: none !important;
-    transform: none !important;
-    text-align: center;
-    transition: background 0.2s;
-}
-.flat-btn:active {
-    filter: brightness(0.85);
-}
 
 /* ==========================================
    シェアボタン群の立体化 ＆ 駅ドル完全再現
@@ -663,20 +605,7 @@ body.event-nye #diff-title {
     color: #ffffff;
 }
 
-/* ボタン押し込み時に下の要素がガタッと上にズレるのを防ぐ修正 */
-.diff-btn:active, .btn:active {
-    /* ボーダーの太さを0にせず維持することで、物理的な高さを死守します */
-    border-bottom-width: 3px !important; 
-    
-    /* 色だけを透明にして、影（ボーダー）が消えたように見せます */
-    border-bottom-color: transparent !important; 
-    
-    /* 背景色が透明なボーダーの下に漏れるのを防ぎます */
-    background-clip: padding-box !important; 
-    
-    /* ボタン全体を下にスライドさせて「押し込んだ感」を出します */
-    transform: translateY(3px) !important; 
-}
+
 
 
 /* ====== [style.css] 末尾 ====== */
