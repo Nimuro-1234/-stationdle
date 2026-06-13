@@ -1296,6 +1296,9 @@ function restoreLocaGameState() {
   
   const remainDisplay = document.getElementById('remaining-guesses-display');
   if (remainDisplay) remainDisplay.style.display = 'none';
+
+  const endlessBar = document.getElementById("endless-status-bar");
+  if (endlessBar) endlessBar.style.display = "none";
 }
 
 // ==========================================
@@ -1546,6 +1549,33 @@ function startNextEndlessRound() {
 
 
 // ==========================================
+// エンドレスモード：スキップボタンの動作
+// ==========================================
+const skipEndlessBtn = document.getElementById("skip-endless-btn");
+if (skipEndlessBtn) {
+  skipEndlessBtn.addEventListener("click", () => {
+    // 安全装置：残り回数が3回より多い時だけスキップ可能
+    if (locaEndlessState.remainingGuesses > 3) {
+      
+      // コスト3回の支払いと、コンボリセット（ペナルティ）
+      locaEndlessState.remainingGuesses -= 3;
+      locaEndlessState.combo = 0;
+      
+      // スキップした駅も「次の問題の0手目ヒント」として利用するために記憶しておく
+      locaEndlessState.lastAnswerStation = todayLocaStation;
+      
+      // セーブして次のラウンド（問題）へ強制移行
+      localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
+      
+      // コンボ表示を0に戻して次をスタート
+      document.getElementById("endless-combo-display").textContent = locaEndlessState.combo;
+      startNextEndlessRound();
+    }
+  });
+}
+
+
+// ==========================================
 // エンドレス専用：2秒ポップアップと盤面更新
 // ==========================================
 function showEndlessWinPopup(score, combo, recovery) {
@@ -1626,22 +1656,32 @@ let locaEndlessHighScore = parseInt(localStorage.getItem("ekiLocateEndlessHighSc
 let locaEndlessMaxComboAllTime = parseInt(localStorage.getItem("ekiLocateEndlessMaxCombo") || "0", 10);
 
 // ① エンドレスモードの説明ポップアップを開く
-function openEndlessIntroModal() {
-  document.getElementById("endless-intro-modal").style.display = "flex";
-}
-
-// ② 説明を閉じてゲームを実際に開始する
 function closeEndlessIntroAndStart() {
   document.getElementById("endless-intro-modal").style.display = "none";
-  
-  // エンドレス用の初期表示に切り替え
+
   currentDifficulty = 'endless';
+
+  // 【重要：追加】モード選択画面を隠して、メインのゲーム画面を確実に表示する
+  document.getElementById('difficulty-screen').style.display = 'none';
+  document.getElementById('main-game-screen').style.display = 'block';
+
+  // 【重要：追加】左上の戻るボタンと、残り回数表示を復活させる
+  const topBackBtn = document.getElementById('top-back-btn');
+  if (topBackBtn) topBackBtn.style.display = 'inline-flex';
+  const remainDisplay = document.getElementById('remaining-guesses-display');
+  if (remainDisplay) remainDisplay.style.display = 'block';
+
+  // ハードモード用のバッジは隠す
+  const badge = document.getElementById("hard-mode-badge");
+  if (badge) badge.style.display = 'none';
+
+  // エンドレス用のステータスバーを表示
   document.getElementById("endless-status-bar").style.display = "flex";
-  
-  // スコアなどの画面表示を現在のセーブデータから復元
+
+  // スコアなどの画面表示を復元
   document.getElementById("endless-score-display").textContent = locaEndlessState.score;
   document.getElementById("endless-combo-display").textContent = locaEndlessState.combo;
-  
+
   // 次の問題をセットしてスタート
   startNextEndlessRound();
 }
