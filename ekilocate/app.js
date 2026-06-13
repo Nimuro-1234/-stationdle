@@ -622,9 +622,9 @@ function submitLocaGuess() {
     let inputVal = input.value;
     
     // 手打ちされた文字の末尾に「駅」が付いていたら、裏でこっそり消します（横浜駅 → 横浜）
-    if (inputVal.endsWith("駅") && inputVal.length > 1) {
-      inputVal = inputVal.slice(0, -1);
-    }
+    //if (inputVal.endsWith("駅") && inputVal.length > 1) {
+    //  inputVal = inputVal.slice(0, -1);
+    //}
 
     // 辞書の中から、漢字かひらがなが完全に一致する駅を探し出します
     const exactMatches = locaStations.filter(
