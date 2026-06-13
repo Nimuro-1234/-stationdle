@@ -1409,10 +1409,11 @@ function getEndlessComboMultiplier(combo) {
 // エンドレスモード：手数に応じた回復量の計算
 // ==========================================
 function getEndlessRecoveryAmount(guesses) {
-  if (guesses <= 3) return 3;
-  if (guesses <= 6) return 2;
-  if (guesses <= 10) return 1;
-  return 0; // 11手以上かかった場合は回復なし
+  if (guesses <= 3) return 5;
+  if (guesses <= 6) return 4;
+  if (guesses <= 10) return 3;
+  if (guesses <= 15) return 2;
+  return 0; // 万が一のオーバーフロー時
 }
 
 // ------------------------------------------
