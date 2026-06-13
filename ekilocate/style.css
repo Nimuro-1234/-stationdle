@@ -268,33 +268,6 @@ body.theme-dark #game-title {
     color: #ffffff; 
 }
 
-/* ==========================================
-   モーダルウィンドウ（枠線とスクロールバー）
-========================================== */
-.modal-content {
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.06) 100%);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
-}
-
-/* 駅ドル方式のカスタムスクロールバー（水色） */
-.modal-content::-webkit-scrollbar {
-    width: 8px;
-}
-.modal-content::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 12px 0;
-}
-.modal-content::-webkit-scrollbar-thumb {
-    background-color: #3498db; /* ロゴと同じ水色 */
-    border-radius: 10px;
-}
-
-/* ==========================================
-   説明ウィンドウの枠線を水色に固定
-========================================== */
-#help-modal .modal-content {
-    border: 3px solid #3498db !important;
-}
 
 
 /* ==========================================
@@ -328,12 +301,15 @@ button, .btn {
 }
 
 
-
+/* ==========================================
+   モーダルウィンドウ（枠線とスクロールバー）
+========================================== */
 /* モーダルの背景をテーマ変数と連動させます */
 .modal-content {
     background-color: var(--modal-bg, #ffffff) !important;
     color: var(--modal-text, #2c3e50) !important;
-    background-image: none !important;
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.06) 100%) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
 }
 
 /* 結果画面のシェアボタン群を縦に引き延ばすスタイル */
@@ -344,6 +320,28 @@ button, .btn {
     font-size: 13px;
     border-bottom: 4px solid rgba(0,0,0,0.2) !important;
 }
+
+
+/* 駅ドル方式のカスタムスクロールバー（水色） */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 12px 0;
+}
+.modal-content::-webkit-scrollbar-thumb {
+    background-color: #3498db; /* ロゴと同じ水色 */
+    border-radius: 10px;
+}
+
+/* ==========================================
+   説明ウィンドウの枠線を水色に固定
+========================================== */
+#help-modal .modal-content {
+    border: 3px solid #3498db !important;
+}
+
 
 
 /* ==========================================
