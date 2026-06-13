@@ -824,9 +824,6 @@ function submitLocaGuess() {
            time: timeBonus, 
            mult: multiplier.toFixed(1) 
        };
-
-      // 内訳をまとめたオブジェクトを渡すように変更
-       const breakdown = { base: baseScore, guess: guessBonus, time: timeBonus, mult: multiplier.toFixed(1) };
       
        // まとめた内訳（breakdown）を4つ目の引数として確実に渡します
        showEndlessWinPopup(earnedScore, locaEndlessState.combo, recovery, breakdown);
