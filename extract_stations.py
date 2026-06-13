@@ -206,7 +206,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    # return ["ち-て"], weekday
+    # return ["く-け"], weekday
 
     return chunks[weekday], weekday
 
@@ -242,6 +242,36 @@ def fetch_station_details(url):
         soup = BeautifulSoup(res.text, "html.parser")
 
         infoboxes = soup.find_all('table', class_='infobox')
+
+        # ↓↓↓ ここから追加 ↓↓↓
+        # 廃止駅確認処理
+        active_infoboxes = []
+        for box in infoboxes:
+            is_abolished = False
+            
+            # 取得した表の行(tr)を1行ずつ確認する
+            for tr in box.find_all('tr'):
+                th = tr.find('th') # 見出し（「開業年月日」や「廃止年月日」など）
+                td = tr.find('td') # 中身（「1980年」など）
+                
+                # 見出しと中身の両方が存在する場合のみ判定
+                if th and td:
+                    # 見出しに「廃止」が含まれ、かつ中身が空っぽではない場合
+                    # （※Wikipediaの仕様上、項目だけあって中身が空のケースを安全にスルーするため）
+                    if '廃止' in th.get_text(strip=True) and td.get_text(strip=True):
+                        is_abolished = True
+                        print("      [除外] 廃止情報が含まれる表を検知したため、抽出から除外しました。")
+                        break # 廃止表と確定した時点で、この表の確認を終了
+
+            
+            # 廃止フラグが立っていない（現役の）表だけをリストに追加する
+            if not is_abolished:
+                active_infoboxes.append(box)
+
+        
+        # これ以降の処理を、現役の表（active_infoboxes）だけで行うようにデータを上書きする
+        infoboxes = active_infoboxes
+        # ↑↑↑ ここまで追加 ↑↑↑
 
         # ↓↓↓ ここから追加 ↓↓↓
         best_addr = ""
@@ -803,6 +833,17 @@ def extract_and_count_stations():
                 existing_stations[unique_key]["missingCount"] = 0
                 print(f"  [完全保護] {v['kanji']} の通信エラーを検知。過去の全データを安全に復元しました。")
             else:
+                # ↓↓↓ ここから追加 ↓↓↓
+                # 既存データと新データで、所属路線または所属事業者の内容が変わっているかチェック
+                old_lines = old_item.get("lines", [])
+                new_lines = v.get("lines", [])
+                old_comps = old_item.get("companies", [])
+                new_comps = v.get("companies", [])
+                
+                if old_lines != new_lines or old_comps != new_comps:
+                    print(f"  [データ更新] {v['kanji']} の情報が更新されました（廃止路線の削除などを反映）。")
+                # ↑↑↑ ここまで追加 ↑↑↑
+
                 # 正常に取得できた場合は、新しいデータで上書き（ただしID等のシステム数値は引き継ぐ）
                 existing_stations[unique_key] = v
                 existing_stations[unique_key]["id"] = preserved_id
