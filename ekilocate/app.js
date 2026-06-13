@@ -916,24 +916,26 @@ function showLocaResultModal(isWin) {
     // 1手から10手までのグラフバーを1本ずつ組み立てます
     for (let i = 1; i <= 10; i++) {
       const count = st.dist[i] || 0;
-      const barWidth = Math.max(8, Math.round((count / maxCount) * 100));
+      // 0回でも数字が確実に見えるよう、最低でも幅を10%確保します
+      const barWidth = Math.max(10, Math.round((count / maxCount) * 100));
+      // 回数にかかわらず、配列から専用の色を常に適用します
+      const barColor = graphColors[i - 1]; 
       
-      // 今回クリアした手数の場合のみ、専用の色を配列から取得します（配列は0から始まるため -1 します）
-      let barColor = "#787c7e";
-      if (i === locaGuessesCount && isWin) {
-        barColor = graphColors[i - 1]; 
-      }
-      
+      // 今回のクリア手数だけ、枠線をつけて目立たせる（任意ですが分かりやすくなります）
+      const isCurrent = (i === locaGuessesCount && isWin);
+      const highlightStyle = isCurrent ? "border: 2px solid #333;" : "";
+
       const barRow = document.createElement("div");
       barRow.style.display = "flex";
       barRow.style.alignItems = "center";
       barRow.style.fontSize = "11px";
       
+      // 数字を右端に配置（0回でも表示）
       barRow.innerHTML = `
         <div style="width:25px; text-align:right; padding-right:6px; font-weight:bold; color:#64748b;">${i}</div>
-        <div style="flex:1; background:#f1f5f9; border-radius:3px; height:16px;">
-          <div style="background:${barColor}; width:${barWidth}%; height:100%; border-radius:3px; color:#fff; font-weight:bold; font-size:10px; display:flex; align-items:center; justify-content:flex-end; padding-right:4px; box-sizing:border-box;">
-            ${count > 0 ? count : ''}
+        <div style="flex:1; background:#f1f5f9; border-radius:3px; height:18px;">
+          <div style="background:${barColor}; width:${barWidth}%; height:100%; border-radius:3px; color:#fff; font-weight:bold; font-size:11px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; box-sizing:border-box; ${highlightStyle}">
+            ${count}
           </div>
         </div>
       `;
