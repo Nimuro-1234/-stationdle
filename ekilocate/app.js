@@ -27,6 +27,7 @@ let locaEndlessState = JSON.parse(localStorage.getItem("ekiLocateEndlessDeck") |
   lastAnswerStation: null // 前回クリア（またはスキップ）した駅のデータ
 }));
 
+
 // モード共通のメタデータ（ログイン日数、連続クリア、駅図鑑など）
 let locaMeta = JSON.parse(localStorage.getItem("ekiLocateMeta") || JSON.stringify({
   firstLoginDate: "", lastLoginDate: "", consecutiveLoginDays: 0, 
@@ -40,6 +41,33 @@ let locaSettings = JSON.parse(localStorage.getItem("ekiLocateSettings") || JSON.
 
 //プレイ途中データ
 let locaSavedState = JSON.parse(localStorage.getItem("ekiLocateStateV2") || '{"date":-1, "normal": {"guessesCount":0, "history":[], "isOver":false}, "hard": {"guessesCount":0, "history":[], "isOver":false}}');
+
+
+// ==========================================
+// ポップアップ順番待ち（キュー）変数
+let locaEventPopupQueue = [];
+
+
+// ==========================================
+// セーブデータ容量節約用の軽量化関数
+// ==========================================
+// ローカルストレージに保存する駅のデータを、必要な属性（漢字・ひらがな・地域・事業者・路線・座標など）だけに絞り込みます
+function minifyStationData(s) {
+  if (!s) return null;
+  return {
+    kanji: s.kanji,
+    hiragana: s.hiragana,
+    yomi: s.yomi,
+    pref: s.pref,
+    municipality: s.municipality,
+    ward: s.ward,
+    companies: s.companies,
+    lines: s.lines,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    url: s.url
+  };
+}
 
 
 // ==========================================
@@ -724,6 +752,21 @@ function submitLocaGuess() {
   // ⑤ 結果をHTMLの表に1行追加する
   renderResultRow(guess, distance, direction, regionStatus, compStatus, lineStatus, isWin);
 
+  // ▼▼ ここから修正：保存するデータを軽量化 ▼▼
+  const miniGuess = minifyStationData(guess);
+
+  // 過去の回答の色の結果と、駅の軽量データを復元・シェア用に記憶しておく
+  locaGridHistory.push({
+    guess: miniGuess,
+    distance: isWin ? "🎯" : distance + "km",
+    distanceNum: distance,
+    direction: isWin ? "🎯" : direction,
+    region: regionStatus,
+    comp: compStatus,
+    line: lineStatus,
+    isWin: isWin
+  });
+
   // ▼▼▼ ここから追加（1手ごとのテンポアップボーナス） ▼▼▼
   if (currentDifficulty === 'endless' && !isWin) {
     // 経過時間を秒で取得（5分＝300秒）
@@ -817,7 +860,7 @@ function submitLocaGuess() {
        locaEndlessState.score += earnedScore;    //スコア加算
        checkAndTriggerHighScoreEffect(locaEndlessState.score);    //ハイスコアチェック
        locaEndlessState.clearedCount++;
-       locaEndlessState.lastAnswerStation = guess;
+       locaEndlessState.lastAnswerStation = miniGuess; // ← guess から miniGuess に変更します
        
        const recovery = getEndlessRecoveryAmount(locaGuessesCount);
        
@@ -1231,37 +1274,136 @@ function shareLocaResult(type) {
   }
 }
 
-// ----------------------------------------------------
-// 【修正後：タイトルの書き換えを廃止し、絵文字を降らせる処理を呼び出します】
-// ----------------------------------------------------
-// 行事日エフェクト（背景色変更と絵文字落下アニメーションの呼び出し）
-function triggerLocaEvent(ev) {
-  // 古いイベントクラスを消去して新しいクラス（CSSの背景色用）を付与します
-  document.body.className = document.body.className.replace(/event-\w+/g, "");
-  if (!ev) return;
-  document.body.classList.add("event-" + ev);
+// ==========================================
+// ポップアップ順番待ち（キュー）システム
+// ==========================================
 
-  // イベントに応じた絵文字を設定します
-  let emoji = "";
-  if (ev === "newyear") emoji = "🎍";
-  else if (ev === "valentine") emoji = "🍫";
-  else if (ev === "hinamatsuri") emoji = "🌸";
-  else if (ev === "kodomo") emoji = "🎏";
-  else if (ev === "tanabata") emoji = "🎋";
-  else if (ev === "halloween") emoji = "🎃";
-  else if (ev === "christmas") emoji = "🎄";
-  else if (ev === "nye") emoji = "🔔";
+// 優先度（数字が小さいほど先に出る）を指定してポップアップを列に並べる関数
+function registerLocaEventPopup(priority, action) {
+  locaEventPopupQueue.push({ priority, action });
+  locaEventPopupQueue.sort((a, b) => a.priority - b.priority);
+}
 
-  // 絵文字が設定されていれば、画面上部から30個降らせます
-  if (emoji !== "") {
-    spawnFallingEmojis(emoji, 30);
+// 列の先頭にあるポップアップを画面に出す関数
+function showNextLocaEventPopup() {
+  if (locaEventPopupQueue.length > 0) {
+    const next = locaEventPopupQueue.shift();
+    next.action();
   }
 }
 
-// 【重要】消えてしまっていたエラーの原因（日付チェック関数）を復活させます
+function startLocaEventPopups() {
+  showNextLocaEventPopup();
+}
+
+
+// ==========================================
+// 行事日エフェクトと記念日ポップアップ
+// ==========================================
+function triggerLocaEvent(ev) {
+  // 古いエフェクトやヘッドマークを綺麗に掃除します
+  document.body.className = document.body.className.replace(/event-\w+/g, "");
+  let c = document.getElementById("event-container");
+  if (c) c.remove();
+  const oldHm = document.getElementById("site-anni-headmark");
+  if (oldHm) oldHm.remove();
+
+  if (!ev) {
+    // イベントがない日でも、順番待ちポップアップ（ユーザー周年など）があれば実行します
+    setTimeout(startLocaEventPopups, 100);
+    return;
+  }
+  
+  document.body.classList.add("event-" + ev);
+
+  // --- 【1】サイト周年記念（ロゴの特別装飾とポップアップ） ---
+  if (ev === "site_anniversary") {
+    let nYear = sessionStorage.getItem("debug_site_anni_year") || 1; 
+    const h1 = document.querySelector('h1');
+    if (h1) {
+      const headmark = document.createElement("div");
+      headmark.id = "site-anni-headmark";
+      headmark.style.marginLeft = "10px";
+      headmark.style.display = "inline-block";
+      headmark.style.transform = "rotate(10deg)"; 
+      headmark.innerHTML = `<svg width="45" height="45" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#ffd700" stroke="#ff8c00" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="#fff"/><text x="50" y="42" font-family="sans-serif" font-size="18" font-weight="bold" fill="#d32f2f" text-anchor="middle">祝</text><text x="50" y="70" font-family="sans-serif" font-size="22" font-weight="bold" fill="#d32f2f" text-anchor="middle">${nYear}周年</text><path d="M 20 85 L 10 110 L 35 95 Z" fill="#ff8c00"/><path d="M 80 85 L 90 110 L 65 95 Z" fill="#ff8c00"/></svg>`;
+      h1.appendChild(headmark);
+    }
+    
+    // 【優先度10】サイト周年ポップアップを登録
+    registerLocaEventPopup(10, () => {
+      const siteAnniDiv = document.createElement("div");
+      siteAnniDiv.style.position = "fixed"; siteAnniDiv.style.top = "50%"; siteAnniDiv.style.left = "50%"; siteAnniDiv.style.transform = "translate(-50%,-50%)";
+      // テーマカラーに連動するクラスを付与し、枠線を水色に固定します
+      siteAnniDiv.className = "modal-content";
+      siteAnniDiv.style.border = "3px solid #3498db"; 
+      siteAnniDiv.style.padding = "25px"; siteAnniDiv.style.zIndex = "10000";
+      siteAnniDiv.style.borderRadius = "12px"; siteAnniDiv.style.textAlign = "center"; 
+      siteAnniDiv.style.width = "85%"; siteAnniDiv.style.maxWidth = "350px";
+      siteAnniDiv.innerHTML = `
+        <h2 style='color:#e74c3c; margin-top:0;'>🎉 駅ロケ ${nYear}周年記念！ 🎉</h2>
+        <p style='font-size:14px; line-height:1.6; font-weight:bold;'>皆様のおかげで、駅ロケは無事に ${nYear} 周年を迎えることができました。</p>
+        <p style='font-size:13px; line-height:1.6;'>日頃の感謝を込めて、本日は特別なお祭り仕様で運行中です。<br>これからも末永いご愛顧をよろしくお願いいたします！</p>
+        <button id='close-site-anni-btn' class='btn' style='background:#3498db; color:#fff; margin-top:15px; font-size:16px; width:100%; padding:12px;'>出発進行！</button>
+      `;
+      document.body.appendChild(siteAnniDiv);
+      siteAnniDiv.querySelector('button').addEventListener('click', () => {
+        siteAnniDiv.remove();
+        showNextLocaEventPopup(); // 閉じた後に次のポップアップを呼ぶ
+      });
+    });
+  }
+
+  // --- 【2】行事日の絵文字落下エフェクト（透明な壁をすり抜ける軽量版） ---
+  if (["newyear", "hinamatsuri", "kodomo", "tanabata", "nye", "anniversary", "site_anniversary", "christmas", "valentine", "halloween"].includes(ev)) {
+    c = document.createElement("div");
+    c.id = "event-container";
+    c.style.position = "fixed"; c.style.top = "0"; c.style.left = "0";
+    c.style.width = "100vw"; c.style.height = "100vh";
+    c.style.pointerEvents = "none"; // プレイヤーの操作を邪魔しない魔法のコード
+    c.style.zIndex = "99999";
+    c.style.overflow = "hidden";
+    document.body.appendChild(c);
+
+    let char = Math.random() > 0.5 ? "❄️" : "🎄";
+    if (ev === "hinamatsuri" || ev === "anniversary" || ev === "site_anniversary") char = "🌸";
+    if (ev === "newyear") char = "🎍";
+    if (ev === "kodomo") char = "🎏";
+    if (ev === "tanabata") char = "🎋";
+    if (ev === "nye") char = "🔔";
+    if (ev === "valentine") char = Math.random() > 0.5 ? "💖" : "🍫";
+    if (ev === "halloween") char = Math.random() > 0.5 ? "🎃" : "🦇";
+
+    for (let i = 0; i < 30; i++) {
+      let p = document.createElement("div");
+      p.className = "falling-emoji"; 
+      p.innerText = char;
+      p.style.position = "absolute";
+      p.style.top = "-50px";
+      p.style.left = Math.random() * 100 + "vw";
+      p.style.fontSize = (Math.random() * 15 + 15) + "px";
+      p.style.opacity = Math.random() * 0.5 + 0.5;
+      
+      // 落下時間を3秒〜6秒、ラグを0秒〜0.5秒の間に設定します
+      const duration = Math.random() * 3 + 3;
+      const delay = Math.random() * 0.5;
+      p.style.animation = `fallingEmojiAnim ${duration}s linear ${delay}s forwards`;
+      c.appendChild(p);
+    }
+    // エフェクト終了後にコンテナを削除してメモリを解放
+    setTimeout(() => { if (c) c.remove(); }, 7000);
+  }
+
+  // すべてのイベント判定が終わった最後に、順番待ち列を一斉スタートさせる
+  setTimeout(startLocaEventPopups, 100);
+}
+
+
+// 現在の日付を取得して、今日が特別な日か判定する必須関数（エラーの原因だったため確実に配置）
 function checkLocaEvent() {
   const d = new Date(); const m = d.getMonth() + 1; const day = d.getDate();
   let ev = "";
+  
   if (m === 1 && day <= 3) ev = "newyear";
   else if (m === 2 && day === 14) ev = "valentine";
   else if (m === 3 && day === 3) ev = "hinamatsuri";
@@ -1270,52 +1412,54 @@ function checkLocaEvent() {
   else if (m === 10 && day === 31) ev = "halloween";
   else if (m === 12 && (day === 24 || day === 25)) ev = "christmas";
   else if (m === 12 && day === 31) ev = "nye";
-  triggerLocaEvent(ev);
-}
 
-// 指定された絵文字を画面全体に1度だけ降らせる処理
-function spawnFallingEmojis(emoji, count) {
-  // 降らせる絵文字をまとめるための透明な箱（コンテナ）を作成します
-  const container = document.createElement("div");
-  container.id = "emoji-shower-container";
-  container.style.position = "fixed";
-  container.style.top = "0";
-  container.style.left = "0";
-  container.style.width = "100%";
-  container.style.height = "100%";
-  container.style.pointerEvents = "none"; // プレイヤーの操作を妨げないようにします
-  container.style.zIndex = "9999";
-  container.style.overflow = "hidden"; // 画面外にはみ出た横スクロールを防ぎます
-  document.body.appendChild(container);
-
-  // 指定された回数（count）だけ絵文字の要素を作成して箱に入れます
-  for (let i = 0; i < count; i++) {
-    const el = document.createElement("div");
-    el.className = "falling-emoji";
-    el.textContent = emoji;
-    
-    // 横幅のどこから降ってくるかをランダム（0〜100%）に設定します
-    el.style.left = Math.random() * 100 + "vw";
-    // 絵文字の大きさをランダム（20px〜35px）に設定し、奥行き感を出します
-    el.style.fontSize = (Math.random() * 15 + 20) + "px";
-    
-    // 落下時間を 2秒〜8秒 の間でランダムに設定します
-    const duration = Math.random() * 6 + 2;
-    // 落下し始めるまでの待ち時間（0秒〜1.5秒）をズラします
-    const delay = Math.random() * 1.5;
-
-    // CSSで定義した落下アニメーションを個別に適用します
-    el.style.animation = `fallingEmojiAnim ${duration}s ease-in ${delay}s forwards`;
-
-    container.appendChild(el);
+  // サイト周年の自動判定（仮のリリース日として2024年6月1日を設定しています。適宜変更してください）
+  const SITE_OPEN_DATE = "2024-06-01"; 
+  const openDate = new Date(SITE_OPEN_DATE);
+  if (m === openDate.getMonth() + 1 && day === openDate.getDate() && d.getFullYear() > openDate.getFullYear()) {
+    ev = "site_anniversary";
+    let nYear = d.getFullYear() - openDate.getFullYear();
+    sessionStorage.setItem("debug_site_anni_year", nYear);
   }
 
-  // 最大8秒 + 遅延を考慮し、10秒後にコンテナを削除します
-  setTimeout(() => {
-    if (container.parentNode) {
-      container.parentNode.removeChild(container);
+  // ユーザー個人の周年記念判定
+  let meta = {};
+  try { meta = JSON.parse(localStorage.getItem("ekiLocateMeta") || '{}'); } catch(e) {}
+  
+  if (meta.firstLoginDate) {
+    const firstDate = new Date(meta.firstLoginDate);
+    if (firstDate.getMonth() + 1 === m && firstDate.getDate() === day && firstDate.getFullYear() < d.getFullYear()) {
+      const years = d.getFullYear() - firstDate.getFullYear();
+      
+      // 【優先度30】ユーザー周年ポップアップを登録（列の最後に表示）
+      registerLocaEventPopup(30, () => {
+        const userAnniDiv = document.createElement("div");
+        userAnniDiv.style.position = "fixed"; userAnniDiv.style.top = "50%"; userAnniDiv.style.left = "50%"; userAnniDiv.style.transform = "translate(-50%,-50%)";
+        userAnniDiv.className = "modal-content";
+        userAnniDiv.style.border = "3px solid #3498db"; 
+        userAnniDiv.style.padding = "25px"; userAnniDiv.style.zIndex = "10000";
+        userAnniDiv.style.borderRadius = "12px"; userAnniDiv.style.textAlign = "center"; 
+        userAnniDiv.style.width = "85%"; userAnniDiv.style.maxWidth = "350px";
+        userAnniDiv.innerHTML = `
+          <h2 style='color:#e74c3c; margin-top:0;'>🎉 ご乗車 ${years} 周年！ 🎉</h2>
+          <p style='font-size:14px; line-height:1.6; font-weight:bold;'>今日で「駅ロケ」の運行に加わっていただいてから、ちょうど <b>${years} 年</b> が経ちました！</p>
+          <p style='font-size:13px; line-height:1.6;'>日頃のプレイ、本当にありがとうございます。<br>これからも様々な駅との出会いをお楽しみください！</p>
+          <button id='close-user-anni-btn' class='btn' style='background:#3498db; color:#fff; margin-top:15px; font-size:16px; width:100%; padding:12px;'>出発進行！</button>
+        `;
+        document.body.appendChild(userAnniDiv);
+        userAnniDiv.querySelector('button').addEventListener('click', () => {
+          userAnniDiv.remove();
+          showNextLocaEventPopup(); 
+        });
+      });
+      
+      // 特別なイベントが被っていなければ、ユーザー専用の紙吹雪（anniversary）をセット
+      if (ev === "") ev = "anniversary";
     }
-  }, 10000);
+  }
+
+  // 判定が終わったら、イベントとポップアップをスタート
+  triggerLocaEvent(ev);
 }
 
 
@@ -1763,9 +1907,9 @@ function startNextEndlessRound() {
     
   }
 
-    // 問題がセットされたら、それが1問目であっても必ず現在の駅と履歴を保存します
-    // （これにより、途中で画面を離れても盤面が消えなくなります）
-    locaEndlessState.currentStation = todayLocaStation;
+    // 【追加】引いた駅と履歴をセーブデータに同期する
+    // todayLocaStation を軽量化して保存します
+    locaEndlessState.currentStation = minifyStationData(todayLocaStation);
     locaEndlessState.history = locaGridHistory;
     localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
 
@@ -1806,8 +1950,8 @@ if (skipEndlessBtn) {
       // コンボが途切れたのでBESTバッジを消す
       updateEndlessBestBadges();
       
-      // スキップした駅も「次の問題の0手目ヒント」として利用するために記憶しておく
-      locaEndlessState.lastAnswerStation = todayLocaStation;
+      // スキップした駅も「次の問題の0手目ヒント」として利用するために軽量化して記憶しておく
+      locaEndlessState.lastAnswerStation = minifyStationData(todayLocaStation);
       
       // セーブして次のラウンド（問題）へ強制移行
       localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
