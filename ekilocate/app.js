@@ -837,10 +837,8 @@ function submitLocaGuess() {
   // 勝敗の確定チェックと、結果ウィンドウの確実なタイマー起動
   if (isWin) {
     if (currentDifficulty === 'endless') {
-       // 【エンドレス専用の正解処理】
        const clearTime = locaPlayStartTime ? Math.round((Date.now() - locaPlayStartTime) / 100) / 10 : 0;
-       const baseScore = 30000; // 基礎スコアを1000→30000へ大幅アップ
-       
+       const baseScore = 30000;
        let guessBonus = 0;
        if (locaGuessesCount === 1) guessBonus = 5000;
        else if (locaGuessesCount === 2) guessBonus = 3000;
@@ -848,45 +846,31 @@ function submitLocaGuess() {
        else if (locaGuessesCount === 4) guessBonus = 500;
        else if (locaGuessesCount === 5) guessBonus = 300;
        else if (locaGuessesCount === 6) guessBonus = 100;
-       
        const timeBonus = getEndlessTimeBonus(clearTime);
-       
        locaEndlessState.combo++;
        if (locaEndlessState.combo > locaEndlessState.maxCombo) locaEndlessState.maxCombo = locaEndlessState.combo;
-       
        const multiplier = getEndlessComboMultiplier(locaEndlessState.combo);
        const earnedScore = Math.floor((baseScore + guessBonus + timeBonus) * multiplier);
-       
-       locaEndlessState.score += earnedScore;    //スコア加算
-       checkAndTriggerHighScoreEffect(locaEndlessState.score);    //ハイスコアチェック
+       locaEndlessState.score += earnedScore;
+       if (typeof checkAndTriggerHighScoreEffect === "function") checkAndTriggerHighScoreEffect(locaEndlessState.score);
        locaEndlessState.clearedCount++;
-       locaEndlessState.lastAnswerStation = miniGuess; // ← guess から miniGuess に変更します
-       
+       locaEndlessState.lastAnswerStation = miniGuess;
        const recovery = getEndlessRecoveryAmount(locaGuessesCount);
-       
-       // UIを一旦ロック
        document.getElementById("submit-guess-btn").disabled = true;
        document.getElementById("station-search-input").disabled = true;
-
-      // ボーナスの内訳を1つのオブジェクト（箱）にまとめます
-       const breakdown = { 
-           base: baseScore, 
-           guess: guessBonus, 
-           time: timeBonus, 
-           mult: multiplier.toFixed(1) 
-       };
-      
-       // まとめた内訳（breakdown）を4つ目の引数として確実に渡します
+       
+       const breakdown = { base: baseScore, guess: guessBonus, time: timeBonus, mult: multiplier.toFixed(1) };
        showEndlessWinPopup(earnedScore, locaEndlessState.combo, recovery, breakdown);
        
     } else {
-       // 【通常・ハードモードの正解処理（既存）】
        if (locaPlayStartTime) locaCurrentClearTime = Math.round((Date.now() - locaPlayStartTime) / 100) / 10;
        saveLocaStats(true);
        saveLocaGameState();
        document.getElementById("submit-guess-btn").disabled = true;
        document.getElementById("station-search-input").disabled = true;
-       setTimeout(() => { showLocaResultModal(true); }, 400);
+       
+       // 【追加】遅延付きで正解ポップアップを出してから、結果ウィンドウを表示
+       showStatusPopup("正解！🎉", "", "#6aaa64", () => { showLocaResultModal(true); });
     }
 
   // 残り回数がない場合（ゲームオーバー）
@@ -895,24 +879,52 @@ function submitLocaGuess() {
     if (currentDifficulty === 'endless') {
        document.getElementById("submit-guess-btn").disabled = true;
        document.getElementById("station-search-input").disabled = true;
-       setTimeout(() => { showEndlessResultModal(); }, 400); // エンドレス専用の終了画面
+       
+       // 【追加】遅延付きで終了ポップアップを出してから、結果ウィンドウを表示
+       showStatusPopup("残念！ゲームオーバー", "回答回数を使い切りました", "#e74c3c", () => { showEndlessResultModal(); });
     } else {
        saveLocaStats(false);
        saveLocaGameState();
        document.getElementById("submit-guess-btn").disabled = true;
        document.getElementById("station-search-input").disabled = true;
-       setTimeout(() => { showLocaResultModal(false); }, 400);
+       
+       // 【追加】遅延付きで残念ポップアップを出してから、結果ウィンドウを表示
+       showStatusPopup("残念！💦", "ゲームオーバー", "#e74c3c", () => { showLocaResultModal(false); });
     }
   } else {
-    // 途中経過の保存
     if (currentDifficulty === 'endless') {
-       locaEndlessState.history = locaGridHistory; // 【追加】履歴を同期
+       locaEndlessState.history = locaGridHistory;
        localStorage.setItem("ekiLocateEndlessDeck", JSON.stringify(locaEndlessState));
-       updateEndlessSkipButton(); // 【追加】入力の度にスキップ判定
+       updateEndlessSkipButton();
     } else {
        saveLocaGameState();
     }
   }
+}
+
+
+// ==========================================
+// 汎用ステータスポップアップ（遅延表示用）
+// ==========================================
+function showStatusPopup(title, subtitle, color, callback) {
+  const popup = document.createElement("div");
+  popup.style.position = "fixed"; popup.style.top = "40%"; popup.style.left = "50%";
+  popup.style.transform = "translate(-50%, -50%)"; popup.style.background = "rgba(0,0,0,0.85)";
+  popup.style.color = "#fff"; popup.style.padding = "20px 30px"; popup.style.borderRadius = "12px";
+  popup.style.textAlign = "center"; popup.style.zIndex = "1000"; popup.style.fontWeight = "bold";
+  popup.style.boxShadow = "0 10px 25px rgba(0,0,0,0.3)"; popup.style.border = `3px solid ${color}`;
+  
+  popup.innerHTML = `
+    <div style="font-size:28px; color:${color}; margin-bottom:10px;">${title}</div>
+    ${subtitle ? `<div style="font-size:14px; color:#fff;">${subtitle}</div>` : ""}
+  `;
+  document.body.appendChild(popup);
+  
+  // 2秒間ポップアップを見せてから、消して次の処理（結果画面表示など）へ進む
+  setTimeout(() => {
+    popup.remove();
+    if (callback) callback();
+  }, 2000);
 }
 
 // 結果をテーブルの1行（<tr>）として組み立てて画面に出す関数
@@ -2551,6 +2563,69 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("stats-view-normal").style.display = "none";
   });
 });
+
+
+// ==========================================
+// データのエクスポートとインポート（駅ロケ専用・改ざん防止機能付き）
+// ==========================================
+function generateLocaChecksum(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+// データの書き出し（エクスポート）
+function exportLocaData() {
+  const data = {
+    game: "EkiLocate", // 駅ドルと混ざらないための「駅ロケ専用」の証明タグ
+    stats: localStorage.getItem("ekiLocateStatsV2"),
+    endlessDeck: localStorage.getItem("ekiLocateEndlessDeck"),
+    endlessHighScore: localStorage.getItem("ekiLocateEndlessHighScore"),
+    endlessMaxCombo: localStorage.getItem("ekiLocateEndlessMaxCombo"),
+    meta: localStorage.getItem("ekiLocateMeta"),
+    settings: localStorage.getItem("ekiLocateSettings")
+  };
+  
+  const payloadString = JSON.stringify(data);
+  const secureData = JSON.stringify({ payload: payloadString, sig: generateLocaChecksum(payloadString) });
+  const code = btoa(encodeURIComponent(secureData));
+  
+  navigator.clipboard.writeText(code).then(() => {
+    alert("駅ロケ専用の引き継ぎコードをコピーしました！\nメモ帳などに貼り付けて保管してください。");
+  }).catch(() => {
+    prompt("コピーに失敗しました。以下のコードを手動でコピーしてください:", code);
+  });
+}
+
+// データの読み込み（インポート）
+function importLocaData() {
+  const code = prompt("引き継ぎコードを入力してください:");
+  if (!code) return;
+  
+  try {
+    const secureData = JSON.parse(decodeURIComponent(atob(code)));
+    if (generateLocaChecksum(secureData.payload) !== secureData.sig) throw new Error("コードが改ざんされているか、破損しています。");
+    
+    const parsed = JSON.parse(secureData.payload);
+    if (parsed.game !== "EkiLocate") throw new Error("このコードは駅ロケ用ではありません。（他のゲームのコードは使えません）");
+    
+    if (parsed.stats) localStorage.setItem("ekiLocateStatsV2", parsed.stats);
+    if (parsed.endlessDeck) localStorage.setItem("ekiLocateEndlessDeck", parsed.endlessDeck);
+    if (parsed.endlessHighScore) localStorage.setItem("ekiLocateEndlessHighScore", parsed.endlessHighScore);
+    if (parsed.endlessMaxCombo) localStorage.setItem("ekiLocateEndlessMaxCombo", parsed.endlessMaxCombo);
+    if (parsed.meta) localStorage.setItem("ekiLocateMeta", parsed.meta);
+    if (parsed.settings) localStorage.setItem("ekiLocateSettings", parsed.settings);
+    
+    alert("データの引き継ぎに成功しました！ページを再読み込みします。");
+    location.reload();
+  } catch (e) {
+    alert("エラー: 無効なコードです。\n" + e.message);
+  }
+}
 
 
 // 画面の準備ができたらゲームスタート
