@@ -700,7 +700,8 @@ body.event-nye #diff-title {
 #all-stats-modal .modal-content, 
 #endless-intro-modal .modal-content,
 #help-modal .modal-content,
-#result-modal .modal-content {
+#result-modal .modal-content,
+#endless-result-modal .modal-content { 
     background: var(--modal-bg, #ffffff) !important;
     color: var(--modal-text, #2c3e50) !important;
     border: 3px solid #3498db !important;
