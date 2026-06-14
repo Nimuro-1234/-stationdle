@@ -1541,7 +1541,7 @@ async function selectTodayLocaStation() {
                                  : validStations[i].url;
     }
 
-    let lookback = 1000; // 一度出題された駅が、再び出題されるまでの「お休み期間（日数）」
+    let lookback = 2000; // 一度出題された駅が、再び出題されるまでの「お休み期間（日数）」
     let nextAvailableDay = new Map(); // 各駅（鍵）が、次回いつ出題可能になるかを高速で記録する帳簿
     let targetNormal = null;
     let targetHard = null;
