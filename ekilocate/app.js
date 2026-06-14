@@ -1008,6 +1008,10 @@ function setupUI() {
   // 【修正】テーマボタンで色を変えた時に設定を保存する
   const themes = ["", "theme-dark", "theme-sakura", "theme-ocean", "theme-green", "theme-blue"];
   document.getElementById("theme-btn").addEventListener("click", () => {
+
+    // テーマボタンを押した時に、行事日の色を強制解除します
+    document.body.className = document.body.className.replace(/event-\w+/g, "");
+    
     let currentIdx = themes.indexOf(locaSettings.theme);
     if (currentIdx === -1) currentIdx = 0;
     
@@ -1254,6 +1258,21 @@ function triggerLocaEvent(ev) {
   }
 }
 
+// 【重要】消えてしまっていたエラーの原因（日付チェック関数）を復活させます
+function checkLocaEvent() {
+  const d = new Date(); const m = d.getMonth() + 1; const day = d.getDate();
+  let ev = "";
+  if (m === 1 && day <= 3) ev = "newyear";
+  else if (m === 2 && day === 14) ev = "valentine";
+  else if (m === 3 && day === 3) ev = "hinamatsuri";
+  else if (m === 5 && day === 5) ev = "kodomo";
+  else if (m === 7 && day === 7) ev = "tanabata";
+  else if (m === 10 && day === 31) ev = "halloween";
+  else if (m === 12 && (day === 24 || day === 25)) ev = "christmas";
+  else if (m === 12 && day === 31) ev = "nye";
+  triggerLocaEvent(ev);
+}
+
 // 指定された絵文字を画面全体に1度だけ降らせる処理
 function spawnFallingEmojis(emoji, count) {
   // 降らせる絵文字をまとめるための透明な箱（コンテナ）を作成します
@@ -1280,8 +1299,8 @@ function spawnFallingEmojis(emoji, count) {
     // 絵文字の大きさをランダム（20px〜35px）に設定し、奥行き感を出します
     el.style.fontSize = (Math.random() * 15 + 20) + "px";
     
-    // 落下にかかる時間（2秒〜4秒）をランダムにしてバラつきを出します
-    const duration = Math.random() * 2 + 2;
+    // 落下時間を 2秒〜8秒 の間でランダムに設定します
+    const duration = Math.random() * 6 + 2;
     // 落下し始めるまでの待ち時間（0秒〜1.5秒）をズラします
     const delay = Math.random() * 1.5;
 
@@ -1291,12 +1310,12 @@ function spawnFallingEmojis(emoji, count) {
     container.appendChild(el);
   }
 
-  // 全てのアニメーションが確実に終わる頃（6秒後）に、箱ごと綺麗に削除してメモリを解放します
+  // 最大8秒 + 遅延を考慮し、10秒後にコンテナを削除します
   setTimeout(() => {
     if (container.parentNode) {
       container.parentNode.removeChild(container);
     }
-  }, 6000);
+  }, 10000);
 }
 
 
