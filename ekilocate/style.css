@@ -728,3 +728,27 @@ body.event-nye #diff-title {
     border-color: var(--theme-accent, #3498db) !important;
 }
 
+
+/* ==========================================
+   全ボタンのフラットデザイン（ボーダーレス）化
+========================================== */
+/* すべてのボタンから立体用の下線を消去し、代わりに軽い影をつけます */
+.btn, 
+.diff-btn, 
+.top-icon-btn, 
+#submit-guess-btn {
+    border-bottom: none !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
+
+/* ボタンを押し込んだ時、影を消して少しだけ沈み込ませます（ガタつきません） */
+.btn:active:not([disabled]), 
+.diff-btn:active:not([disabled]), 
+.top-icon-btn:active:not([disabled]), 
+#submit-guess-btn:active:not([disabled]),
+.flat-share-cluster .btn:active {
+    border-bottom: none !important;
+    transform: translateY(2px) !important; /* 沈み込みを4pxから2pxに控えめにします */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+    margin-bottom: 0 !important;
+}
