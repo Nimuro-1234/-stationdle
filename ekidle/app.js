@@ -1677,6 +1677,7 @@ function generateChecksum(str) {
 function exportUserData() {
   // ローカルストレージから必要な全データを集める
   const data = {
+    game: "Ekidle",  // 駅ドルの証明タグ
     stats: localStorage.getItem("ekiPuzzleStatsV2"),
     archive: localStorage.getItem("ekiPuzzleArchiveV1"),
     zukan: localStorage.getItem("ekiZukanData"),
