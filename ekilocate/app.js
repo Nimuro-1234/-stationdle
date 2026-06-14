@@ -2265,6 +2265,7 @@ function showEndlessResultModal() {
   recordDiv.style.color = "#7f8c8d";
   recordDiv.style.fontWeight = "bold";
   recordDiv.innerHTML = `
+    <div>👑 過去最高ランク: <span style="color:${bestRankData.color}">${bestRankData.rank}</span></div>
     <div>🏆 過去最高スコア: ${locaEndlessHighScore} pts</div>
     <div>🔥 過去最高連勝数: ${locaEndlessMaxComboAllTime} 連勝</div>
   `;
