@@ -2232,14 +2232,19 @@ function shareEndlessResult(type) {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
   } else if (type === "line") {
     window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, "_blank");
+  } else if (type === "facebook") {
+    // Facebookのシェア画面を開きます
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}&quote=${encodeURIComponent(text)}`, "_blank");
   } else if (type === "copy") {
+    // テキストをコピーします
     navigator.clipboard.writeText(text).then(() => alert("クリップボードにコピーしました"));
   }
 }
 
-// シェアボタンへの紐付け
+// 各シェアボタンが押された時の動作を紐付けます
 document.getElementById("endless-share-btn")?.addEventListener("click", () => shareEndlessResult("twitter"));
 document.getElementById("endless-line-btn")?.addEventListener("click", () => shareEndlessResult("line"));
+document.getElementById("endless-fb-btn")?.addEventListener("click", () => shareEndlessResult("facebook"));
 document.getElementById("endless-copy-btn")?.addEventListener("click", () => shareEndlessResult("copy"));
 
 
@@ -2247,32 +2252,47 @@ document.getElementById("endless-copy-btn")?.addEventListener("click", () => sha
 // 総合成績（全モードのプレイ記録）の表示処理
 // ==========================================
 function showAllStats() {
-  const n = locaStats.normal || {played:0, won:0, currentStreak:0, maxStreak:0};
-  const h = locaStats.hard || {played:0, won:0, currentStreak:0, maxStreak:0};
-  
-  // 通常モードの数値をセット
-  document.getElementById("st-n-play").textContent = n.played;
-  document.getElementById("st-n-win").textContent = n.played > 0 ? Math.round((n.won / n.played) * 100) : 0;
-  document.getElementById("st-n-streak").textContent = n.currentStreak;
-  document.getElementById("st-n-max").textContent = n.maxStreak;
+  try {
+    // セーブデータを安全に読み込みます（データが無い場合は空の数値を入れます）
+    const statsData = JSON.parse(localStorage.getItem("ekiLocateStatsV2")) || {};
+    const n = statsData.normal || {played:0, won:0, currentStreak:0, maxStreak:0};
+    const h = statsData.hard || {played:0, won:0, currentStreak:0, maxStreak:0};
+    
+    // エンドレスのスコアもエラーを防ぐためローカルストレージから直接取得します
+    const eScore = parseInt(localStorage.getItem("ekiLocateEndlessHighScore")) || 0;
+    const eCombo = parseInt(localStorage.getItem("ekiLocateEndlessMaxCombo")) || 0;
 
-  // ハードモードの数値をセット
-  document.getElementById("st-h-play").textContent = h.played;
-  document.getElementById("st-h-win").textContent = h.played > 0 ? Math.round((h.won / h.played) * 100) : 0;
-  document.getElementById("st-h-streak").textContent = h.currentStreak;
-  document.getElementById("st-h-max").textContent = h.maxStreak;
+    // 取得した数値を各項目に書き込みます（要素が存在するかどうかも確認します）
+    const setSafeText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
 
-  // エンドレスモードの数値をセット
-  document.getElementById("st-e-score").textContent = locaEndlessHighScore || 0;
-  document.getElementById("st-e-combo").textContent = locaEndlessMaxComboAllTime || 0;
+    setSafeText("st-n-play", n.played);
+    setSafeText("st-n-win", n.played > 0 ? Math.round((n.won / n.played) * 100) : 0);
+    setSafeText("st-n-streak", n.currentStreak);
+    setSafeText("st-n-max", n.maxStreak);
 
-  document.getElementById("all-stats-modal").style.display = "flex";
+    setSafeText("st-h-play", h.played);
+    setSafeText("st-h-win", h.played > 0 ? Math.round((h.won / h.played) * 100) : 0);
+    setSafeText("st-h-streak", h.currentStreak);
+    setSafeText("st-h-max", h.maxStreak);
+
+    setSafeText("st-e-score", eScore);
+    setSafeText("st-e-combo", eCombo);
+
+    // 画面を表示します
+    const modalEl = document.getElementById("all-stats-modal");
+    if (modalEl) {
+      modalEl.style.display = "flex";
+    } else {
+      alert("成績画面が見つかりません。index.htmlの追加場所をご確認ください。");
+    }
+  } catch (error) {
+    console.error("成績表示エラー:", error);
+    alert("データの読み込みに失敗しました。");
+  }
 }
-
-// 記録画面を閉じる
-document.getElementById("close-all-stats-btn")?.addEventListener("click", () => {
-  document.getElementById("all-stats-modal").style.display = "none";
-});
 
 // モード選択画面のボタンから呼び出す
 document.getElementById("show-stats-btn")?.addEventListener("click", showAllStats);
