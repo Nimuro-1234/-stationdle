@@ -694,19 +694,19 @@ body.event-nye #diff-title {
 
 
 /* ==========================================
-   全ポップアップのテーマカラー完全連動
+   全ポップアップの枠線固定とテーマカラー連動
 ========================================== */
-/* すべてのモーダルの背景色と基本文字色をテーマ変数で上書きする */
+/* すべてのモーダルの枠線を水色（#3498db）で太さ3pxに固定する */
 #all-stats-modal .modal-content, 
 #endless-intro-modal .modal-content,
 #help-modal .modal-content,
 #result-modal .modal-content {
     background: var(--modal-bg, #ffffff) !important;
     color: var(--modal-text, #2c3e50) !important;
-    border-color: var(--theme-accent, #3498db) !important;
+    border: 3px solid #3498db !important;
 }
 
-/* ポップアップ内の文字（黒や濃いグレーで固定されているもの）をテーマ色に連動 */
+/* ポップアップ内の文字色をテーマに連動させる */
 #all-stats-modal h2,
 #endless-intro-modal h2,
 #help-modal h2,
@@ -715,7 +715,14 @@ body.event-nye #diff-title {
     color: var(--modal-text, #2c3e50) !important;
 }
 
-/* 成績画面（サバイバル枠など）の固定背景色を透明にしてテーマ色に馴染ませる */
+/* 記録ポップアップ内の実績数字を、テーマカラー（通常は水色）に連動させる */
+#all-stats-modal [id^="st-n-"], 
+#all-stats-modal [id^="st-h-"], 
+#all-stats-modal [id^="st-e-"] {
+    color: var(--theme-accent, #3498db) !important;
+}
+
+/* 成績画面（サバイバル枠など）の背景を透明にしてテーマ色に馴染ませる */
 #all-stats-modal #stats-view-endless > div {
     background: transparent !important;
     border-color: var(--theme-accent, #3498db) !important;
