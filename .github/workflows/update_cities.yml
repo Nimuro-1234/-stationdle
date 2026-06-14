@@ -50,28 +50,34 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # 新しく生成されたファイルをステージングエリアに追加します
+          # 新しく生成されたファイルをステージングエリアに追加
           git add city_categories.json
           
-          # データに更新（差分）があった場合のみ、両方のブランチへ書き込み処理を行います
+          # データに更新（差分）があった場合のみ処理を行う
           if ! git diff --cached --quiet; then
-            # [A] 現在のメインブランチにコミットしてプッシュします
+            # [A] 現在のブランチにコミットしてプッシュ
             git commit -m "Auto-update city categories"
             git push origin HEAD
             
-            # [B] 生成されたファイルを一時的に仮想サーバーの安全な場所へ退避します
+            # [B] ファイルを一時退避
             cp city_categories.json /tmp/city_categories.json
             
-            # [C] development ブランチに切り替えます
+            # [C] リモートの development ブランチを正確に取得して切り替え
+            git fetch origin development:development
             git checkout development
             
-            # [D] 退避させていた最新ファイルを development ブランチに上書きします
+            # [D] 退避ファイルを上書きして追加
             cp /tmp/city_categories.json city_categories.json
             git add city_categories.json
             
-            # [E] development ブランチ側でもコミットしてプッシュします
-            git commit -m "Auto-update city categories (development)"
-            git push origin development
+            # [E] development 側でも差分があるか確認し、あればコミットしてプッシュ
+            if ! git diff --cached --quiet; then
+              git commit -m "Auto-update city categories (development)"
+              git push origin development
+            else
+              echo "developmentブランチ側はすでに最新のため、コミットをスキップしました。"
+            fi
+            
           else
             echo "データの更新がなかったため、プッシュは行われませんでした。"
           fi
