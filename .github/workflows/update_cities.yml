@@ -25,6 +25,8 @@ jobs:
       # 1. リポジトリのコードを仮想サーバーに展開する
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ← この2行を追加します
 
       # 2. Pythonの実行環境（バージョン3.x）をセットアップする
       - name: Set up Python
@@ -48,6 +50,28 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # city_categories.json に差分がある場合のみコミットを行う
+          # 新しく生成されたファイルをステージングエリアに追加します
           git add city_categories.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update city categories" && git push)
+          
+          # データに更新（差分）があった場合のみ、両方のブランチへ書き込み処理を行います
+          if ! git diff --cached --quiet; then
+            # [A] 現在のメインブランチにコミットしてプッシュします
+            git commit -m "Auto-update city categories"
+            git push origin HEAD
+            
+            # [B] 生成されたファイルを一時的に仮想サーバーの安全な場所へ退避します
+            cp city_categories.json /tmp/city_categories.json
+            
+            # [C] development ブランチに切り替えます
+            git checkout development
+            
+            # [D] 退避させていた最新ファイルを development ブランチに上書きします
+            cp /tmp/city_categories.json city_categories.json
+            git add city_categories.json
+            
+            # [E] development ブランチ側でもコミットしてプッシュします
+            git commit -m "Auto-update city categories (development)"
+            git push origin development
+          else
+            print "データの更新がなかったため、プッシュは行われませんでした。"
+          fi
