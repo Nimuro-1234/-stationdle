@@ -13,6 +13,42 @@ import urllib.parse  # 追加：URLを解析するためのモジュール
 #自治体データキャッシュ用
 municipality_cache = {}
 
+#自治体データキャッシュ用
+municipality_cache = {}
+
+
+# =========================================================================
+# 【追加】URLの表記揺れ（エンコード）を解消して標準化する関数
+# =========================================================================
+def normalize_wikipedia_url(url_string):
+    if not url_string:
+        return ""
+    # 「%E5%90%8D...」のようなエンコードを生の「名古屋市」などの日本語に直す
+    decoded = urllib.parse.unquote(url_string)
+    # 前後の余計な空白などを削除して返す
+    return decoded.strip()
+
+
+# =========================================================================
+# 【修正】都市カテゴリJSONの読み込みと判定用セット（URLベース）の作成
+# =========================================================================
+DESIGNATED_CITIES_URLS = set()
+CORE_CITIES_URLS = set()
+SPECIAL_CITIES_URLS = set()
+PREF_CAPITALS_URLS = set()
+
+if os.path.exists("city_categories.json"):
+    try:
+        with open("city_categories.json", "r", encoding="utf-8") as f:
+            city_categories_data = json.load(f)
+            # URL全体をデコード（標準化）してセットに格納
+            DESIGNATED_CITIES_URLS = set(normalize_wikipedia_url(item["url"]) for item in city_categories_data.get("政令指定都市", []))
+            CORE_CITIES_URLS = set(normalize_wikipedia_url(item["url"]) for item in city_categories_data.get("中核市", []))
+            SPECIAL_CITIES_URLS = set(normalize_wikipedia_url(item["url"]) for item in city_categories_data.get("施行時特例市", []))
+            PREF_CAPITALS_URLS = set(normalize_wikipedia_url(item["url"]) for item in city_categories_data.get("都道府県庁所在地", []))
+    except Exception as e:
+        print(f"city_categories.json の読み込みに失敗しました: {e}")
+
 
 # =========================================================================
 # 【ここに追加！】uub.jpから最新の全国市区町村リストを全自動で取得する関数
@@ -206,7 +242,7 @@ def get_todays_sub_pages():
         chunks[weekday] = ["あ"]
 
     # ★テスト用に「あ」のページだけを強制的に指定します
-    # return ["く-け"], weekday
+    return ["さ"], weekday
 
     return chunks[weekday], weekday
 
@@ -220,6 +256,10 @@ def fetch_station_details(url):
         "municipality": "",        # 市区町村名
         "ward": "",                # 政令指定都市の行政区名
         "muni_url": "",            # 自治体ページのURL
+        "is_designated_city": False, # 政令指定都市か
+        "is_core_city": False,       # 中核市か
+        "is_special_city": False,    # 施行時特例市か
+        "is_pref_capital": False,    # 都道府県庁所在地か
         "platforms": 0,            # 面数
         "tracks": 0,               # 線路数
         "min_km": float('inf'),    # 最小営業キロ
@@ -456,6 +496,27 @@ def fetch_station_details(url):
                                 muni_str += '市'
 
                             data["municipality"] = muni_str
+
+                    # =====================================================================
+                    # 【修正】URLの直接比較による都市カテゴリの判定と、偽の行政区の除外処理
+                    # =====================================================================
+                    # スクレイピングで取得した自治体URLをデコードして標準化
+                    normalized_muni_url = normalize_wikipedia_url(data["muni_url"])
+                    
+                    if normalized_muni_url:
+                        # 標準化されたURL同士で直接判定（非常に堅牢です）
+                        data["is_designated_city"] = normalized_muni_url in DESIGNATED_CITIES_URLS
+                        data["is_core_city"]       = normalized_muni_url in CORE_CITIES_URLS
+                        data["is_special_city"]    = normalized_muni_url in SPECIAL_CITIES_URLS
+                        data["is_pref_capital"]    = normalized_muni_url in PREF_CAPITALS_URLS
+
+                    # 【区の誤判定防止】
+                    # すでに ward（区）が抽出されているが、親の自治体が「政令指定都市」ではない場合
+                    muni_name = data["municipality"]
+                    if data["ward"] and not data["is_designated_city"] and data["pref"] != "東京都":
+                        print(f"      [補正] {muni_name} は政令指定都市ではないため、行政区 '{data['ward']}' を除外しました。")
+                        data["ward"] = ""  # 偽の行政区をリセット
+                    # =====================================================================
 
                     # 4. 【合体】自治体データを取得して駅データに統合
                     if data["muni_url"]:
