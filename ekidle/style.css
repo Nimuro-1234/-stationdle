@@ -250,8 +250,9 @@ body.event-nye .key {
   border-radius: 10px;
 }
 
+
 /* ==========================================
-ロード画面
+結果ウィンドウのスクロールバーはみ出し対策
 ========================================== */
 /* 画面全体を覆うクリーンな背景 */
 #loading-screen {
@@ -309,13 +310,23 @@ body.event-nye .key {
 }
 
 /* 走る電車のアイコン */
+/* 走る電車のアイコン（アニメーション追加版） */
 #train-icon {
   position: absolute;
-  top: -28px; /* 線路の上に乗せる */
-  left: 0%; /* JSでバーと同じパーセンテージを操作します */
+  top: -28px;
+  left: 0%;
   font-size: 24px;
-  transform: translateX(-50%); /* アイコンの中心をバーの先端に合わせる */
-  transition: left 0.4s ease-out;
+  transition: left 0.4s ease-out; /* 前に進むなめらかな動き */
+  animation: gatagoto 0.4s infinite; /* 常にガタゴト揺れるアニメーションを実行 */
+}
+
+/* ガタゴト動くアニメーションの設計図（上下の揺れとわずかな傾き） */
+@keyframes gatagoto {
+  0% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  25% { transform: translateX(-50%) translateY(-1px) rotate(1deg); }
+  50% { transform: translateX(-50%) translateY(0.5px) rotate(-0.5deg); }
+  75% { transform: translateX(-50%) translateY(-0.5px) rotate(-1deg); }
+  100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
 }
 
 /* 状況を知らせるテキスト */
@@ -325,3 +336,40 @@ body.event-nye .key {
   margin: 0;
   font-weight: bold;
 }
+
+
+/* ==========================================
+   駅ロケ風：押し込める立体ボタンデザイン（駅ドル用）
+========================================== */
+.btn {
+    border-radius: 8px !important;
+    font-weight: bold;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.1s ease, border-bottom-width 0.1s ease !important;
+    outline: none !important;
+    border: none !important; /* HTMLに直接書かれている枠線を上書き消去します */
+    border-bottom: 4px solid rgba(0,0,0,0.2) !important;
+}
+
+/* ボタンを押した瞬間に影をなくして下に沈ませる */
+.btn:active:not([disabled]) {
+    transform: translateY(4px);
+    border-bottom-width: 0px !important;
+}
+
+/* ------------------------------------------
+   特定ボタンの影色（厚み部分）の個別調整
+------------------------------------------ */
+/* メイン画面の操作ボタン */
+#clear-btn, #back-btn {
+    border-bottom: 4px solid #c0392b !important;
+}
+#enter-btn {
+    border-bottom: 4px solid #0288d1 !important;
+}
+
+
+/* ==========================================
+   結果ウィンドウのシェアボタンを平面的にする
+========================================== */
