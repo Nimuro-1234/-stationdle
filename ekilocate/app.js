@@ -807,20 +807,6 @@ function submitLocaGuess() {
   }
   // ▲▲▲ ここまで追加 ▲▲
   
-  // 入力欄をリセット
-  // 過去の回答の色の結果と、駅の全データを復元・シェア用に記憶しておく
-  locaGridHistory.push({
-    guess: guess,
-    distance: isWin ? "🎯" : distance + "km",
-    distanceNum: distance,
-    direction: isWin ? "🎯" : direction,
-    region: regionStatus,
-    comp: compStatus,
-    line: lineStatus,
-    isWin: isWin
-  });
-
-  
   // 回答回数消費処理
   if (currentDifficulty === 'endless') {
       locaGuessesCount++; // 今回かかった手数をカウント
