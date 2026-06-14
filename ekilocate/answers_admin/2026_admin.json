@@ -516,5 +516,19 @@
             "pref": "長崎県",
             "municipality": "長崎市"
         }
+    },
+    "2026-07-20": {
+        "normal": {
+            "kanji": "新上挙母駅",
+            "yomi": "しんうわごろも",
+            "pref": "愛知県",
+            "municipality": "豊田市"
+        },
+        "hard": {
+            "kanji": "大山崎駅",
+            "yomi": "おおやまざき",
+            "pref": "京都府",
+            "municipality": "大山崎町"
+        }
     }
 }
