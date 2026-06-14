@@ -43,6 +43,7 @@ adminPanel.innerHTML = `
 <option value="valentine">バレンタイン（🍫）</option>
 <option value="hinamatsuri">ひなまつり（🌸）</option>
 <option value="kodomo">こどもの日（🎏）</option>
+<option value="site_anniversary">サイト周年（🎉）</option>
 <option value="tanabata">七夕（🎋）</option>
 <option value="halloween">ハロウィン（🎃）</option>
 <option value="christmas">クリスマス（🎄）</option>
@@ -163,6 +164,13 @@ setTimeout(() => {
 // 演出テスト
 document.getElementById('admin-event-btn').addEventListener('click', () => {
   const ev = document.getElementById('admin-event-select').value;
+  const nYear = document.getElementById('admin-site-anni-year').value;
+
+  // サイト周年の場合は、入力された「n」の数字をセッションに記憶させます
+  if (ev === "site_anniversary") {
+    sessionStorage.setItem("debug_site_anni_year", nYear);
+  }
+  
   // 第二引数に true を渡すことで、強制的に再生させます
   if (typeof triggerLocaEvent === "function") triggerLocaEvent(ev, true);
 });
