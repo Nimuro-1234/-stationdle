@@ -632,55 +632,40 @@ async function selectTodayStation() {
     // もしすでに今日以降まで計算済みならループをスキップ
     if (startDay <= currentDayIndex) {
       
-      // ==========================================
-      // ② 高速化版：開業・廃止のイベントキューを準備
-      // ==========================================
-      const arrivalQueue = [...strictModeStations]
-        .filter(s => s.startDay != null)
-        .sort((a, b) => a.startDay - b.startDay);
+      // ② 高速化＆完全一致版：フラグ管理によるイベントキュー
+      strictModeStations.forEach(s => {
+        // startDayがnullの場合は最初から現役
+        s.isActive = (s.startDay == null);
+      });
 
-      const departureQueue = [...strictModeStations]
-        .filter(s => s.endDay != null && s.endDay !== 999999)
-        .sort((a, b) => a.endDay - b.endDay);
+      const arrivalQueue = [...strictModeStations].filter(s => s.startDay != null).sort((a, b) => a.startDay - b.startDay);
+      const departureQueue = [...strictModeStations].filter(s => s.endDay != null && s.endDay !== 999999).sort((a, b) => a.endDay - b.endDay);
 
-      const permanentStations = strictModeStations.filter(s => s.startDay == null);
-      let activeSet = new Set(permanentStations);
       let arrivalIdx = 0;
       let departureIdx = 0;
-
+      
+      // ③ シミュレーションループ
       // startDay以前のイベントを空回しして、activeSetをstartDay時点の状態に進める
       for (let d = 0; d < startDay; d++) {
+        // その日のフラグを更新（Setの代わりにフラグを切り替えるだけなので超高速）
         while (arrivalIdx < arrivalQueue.length && arrivalQueue[arrivalIdx].startDay <= d) {
-          activeSet.add(arrivalQueue[arrivalIdx]);
+          arrivalQueue[arrivalIdx].isActive = true;
           arrivalIdx++;
         }
         while (departureIdx < departureQueue.length && departureQueue[departureIdx].endDay <= d) {
-          activeSet.delete(departureQueue[departureIdx]);
+          departureQueue[departureIdx].isActive = false;
           departureIdx++;
         }
-      }
 
-    // ==========================================
-    // ③ シミュレーションループ（前回の続きから今日まで）
-    // ==========================================
-    for(let d = 0; d <= currentDayIndex; d++){
-      
-      // その日の現役駅を更新（イベント駆動）
-      while (arrivalIdx < arrivalQueue.length && arrivalQueue[arrivalIdx].startDay <= d) {
-        activeSet.add(arrivalQueue[arrivalIdx]);
-        arrivalIdx++;
-      }
-      while (departureIdx < departureQueue.length && departureQueue[departureIdx].endDay <= d) {
-        activeSet.delete(departureQueue[departureIdx]);
-        departureIdx++;
-      }
-
-      let activeStations = Array.from(activeSet);
-      if (activeStations.length === 0) activeStations = strictModeStations;
-
-      // 出禁判定
-      let pool = activeStations.filter(s => !nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d);
-      if (pool.length === 0) pool = activeStations;  //もし出題できる駅が無ければ全ての駅を対象にする
+        // 元の配列の順序を完全に維持したまま、現役かつ出禁でない駅を抽出
+        let pool = strictModeStations.filter(s => 
+          s.isActive && 
+          (!nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d)
+        );
+  
+        if (pool.length === 0) {
+          pool = strictModeStations.filter(s => s.isActive);
+        }
 
       // ハッシュ計算
       let seed = d * 12345 + currentMode * 6789;
@@ -689,7 +674,6 @@ async function selectTodayStation() {
       hash = (hash ^ (hash >>> 16)) >>> 0;
 
       let candidate = pool[hash % pool.length];
-      
       // 次回の出禁日を登録
       nextAvailableDay[candidate.yomi] = d + lookback + 1;
 
