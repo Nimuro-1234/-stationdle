@@ -618,8 +618,9 @@ async function selectTodayStation() {
       // d日目の時点で現役だった駅だけを抽出して配列に追加しています
       for (let i = 0; i < strictModeStations.length; i++) {
         let s = strictModeStations[i];
-        
-        if (s.startDay !== undefined && s.startDay <= d && (s.endDay === undefined || s.endDay > d || s.endDay === 999999)) {
+
+        // jsの!=nullはnullとundefinedの両方を弾く
+        if (s.startDay != null && s.startDay <= d && (s.endDay == null || s.endDay > d || s.endDay === 999999)) {
           activeStations.push(s);
         }
       }
