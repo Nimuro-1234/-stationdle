@@ -612,14 +612,38 @@ async function selectTodayStation() {
     let nextAvailableDay = {}; 
 
     for(let d = 0; d <= currentDayIndex; d++){
-      let activeStations = strictModeStations.filter(s => 
-        s.startDay !== undefined && s.startDay <= d && (s.endDay === undefined || s.endDay > d || s.endDay === 999999)
-      );
+      
+      let activeStations = [];
+      
+      // d日目の時点で現役だった駅だけを抽出して配列に追加しています
+      for (let i = 0; i < strictModeStations.length; i++) {
+        let s = strictModeStations[i];
+        
+        if (s.startDay !== undefined && s.startDay <= d && (s.endDay === undefined || s.endDay > d || s.endDay === 999999)) {
+          activeStations.push(s);
+        }
+      }
 
-      if (activeStations.length === 0) activeStations = strictModeStations;
+      // もし現役の駅が1つもなければ、全駅を対象にするフォールバック処理です
+      if (activeStations.length === 0) {
+        activeStations = strictModeStations;
+      }
 
-      let pool = activeStations.filter(s => !nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d);
-      if(pool.length === 0) pool = activeStations; 
+      let pool = [];
+      
+      // 抽出した現役駅の中から、さらに出禁期間（ロック）を過ぎている駅を絞り込んでいます
+      for (let i = 0; i < activeStations.length; i++) {
+        let s = activeStations[i];
+        
+        if (!nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d) {
+          pool.push(s);
+        }
+      }
+
+      // もし候補が1つもなければ、現役駅すべてを候補とするフォールバック処理です
+      if (pool.length === 0) {
+        pool = activeStations;
+      }
 
       let seed = d * 12345 + currentMode * 6789;
       let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
