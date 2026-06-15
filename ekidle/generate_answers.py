@@ -10,7 +10,7 @@ def math_imul(a, b):
     return ((a & 0xffffffff) * (b & 0xffffffff)) & 0xffffffff
 
 def zero_fill_right_shift(val, n):
-    return (val & 0x100000000) >> n
+    return (val & 0xffffffff) >> n
 
 def generate_answers():
     # 1. 最新の駅データをインターネット経由で直接読み込む
