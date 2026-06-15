@@ -288,12 +288,12 @@ def fetch_station_details(url):
         active_infoboxes = []
         for box in infoboxes:
             is_abolished = False
-            
+
             # 取得した表の行(tr)を1行ずつ確認する
             for tr in box.find_all('tr'):
                 th = tr.find('th') # 見出し（「開業年月日」や「廃止年月日」など）
                 td = tr.find('td') # 中身（「1980年」など）
-                
+
                 # 見出しと中身の両方が存在する場合のみ判定
                 if th and td:
                     # 見出しに「廃止」が含まれ、かつ中身が空っぽではない場合
@@ -303,12 +303,12 @@ def fetch_station_details(url):
                         print("      [除外] 廃止情報が含まれる表を検知したため、抽出から除外しました。")
                         break # 廃止表と確定した時点で、この表の確認を終了
 
-            
+
             # 廃止フラグが立っていない（現役の）表だけをリストに追加する
             if not is_abolished:
                 active_infoboxes.append(box)
 
-        
+
         # これ以降の処理を、現役の表（active_infoboxes）だけで行うようにデータを上書きする
         infoboxes = active_infoboxes
         # ↑↑↑ ここまで追加 ↑↑↑
@@ -324,9 +324,9 @@ def fetch_station_details(url):
             box_addr = ""
             box_lat = None
             box_lon = None
-            box_loc_td = None 
+            box_loc_td = None
             box_y = None
-            
+
             # まず、このInfobox内に座標タグがあるか探す
             #infoboxから座標を取得する
             geo_span = box.find('span', class_='geo')
@@ -339,39 +339,51 @@ def fetch_station_details(url):
                     except ValueError:
                         pass
 
+            # ★追加：この箱の中に本物の「所在地」見出しがあるか事前チェック
+            box_has_real_location = any(t.find('th') and t.find('th').get_text(strip=True) == '所在地' for t in box.find_all('tr'))
+
             #infoboxから所在地を取得する
             for tr in box.find_all('tr'):
                 th = tr.find('th')
                 td = tr.find('td')
 
+                hdr = ""
+                # 通常処理：見出しと中身がある場合
                 if th and td:
                     hdr = th.get_text(strip=True)
-                    if hdr == '所在地':
-                        clean = re.split(r'<div|<sup', str(td))[0]
-                        txt = BeautifulSoup(clean, "html.parser").get_text(strip=True)
-                        box_addr = re.split(r'\[|座標:|北緯|〒', txt)[0].strip()
-                        box_loc_td = td # ★追加：所在地のtdタグを確保
-                    elif '開業年月日' in hdr:
-                        m = re.search(r'(\d{4})年', td.get_text(strip=True))
-                        if m:
-                            y = int(m.group(1))
-                            if box_y is None or y < box_y:
-                                box_y = y
+                # 予備処理：見出しが無く、本物の所在地行も存在しない場合（「所在地幅=long」対応）
+                elif not th and td:
+                    txt = td.get_text(" ", strip=True)
+                    if not box_has_real_location and re.search(r'(東京都|北海道|(?:京都|大阪)府|[一-龠]{2,3}県)', txt):
+                        hdr = '所在地'
+
+                # 判定結果（hdr）をもとにデータを抽出
+                if hdr == '所在地':
+                    clean = re.split(r'<div|<sup', str(td))[0]
+                    txt = BeautifulSoup(clean, "html.parser").get_text(strip=True)
+                    box_addr = re.split(r'\[|座標:|北緯|〒', txt)[0].strip()
+                    box_loc_td = td # 所在地のtdタグを確保
+                elif '開業年月日' in hdr:
+                    m = re.search(r'(\d{4})年', td.get_text(strip=True))
+                    if m:
+                        y = int(m.group(1))
+                        if box_y is None or y < box_y:
+                            box_y = y
 
             # 最初の住所・座標を保険としてキープ
             if box_addr and not best_addr:
                 best_addr = box_addr
-                best_loc_td = box_loc_td 
+                best_loc_td = box_loc_td
             if box_lat is not None and best_lat is None:
                 best_lat = box_lat
                 best_lon = box_lon
-                
+
             # より古い開業年が見つかれば、そのInfoboxの住所・座標で上書き！
             if box_y is not None and box_y < oldest_y:
                 oldest_y = box_y
                 if box_addr:
                     best_addr = box_addr
-                    best_loc_td = box_loc_td 
+                    best_loc_td = box_loc_td
                 if box_lat is not None:
                     best_lat = box_lat
                     best_lon = box_lon
@@ -424,7 +436,7 @@ def fetch_station_details(url):
                 th = tr.find('th')
                 td = tr.find('td')
 
-                
+
                 # ▼ここから不要
                 # th必須にする処理は土合駅でバグを起こすため廃止
                 # 見出し(th)と中身(td)のペアが揃っていない行は、すべて問答無用で無視する
@@ -434,7 +446,7 @@ def fetch_station_details(url):
                 # header = th.get_text(strip=True)
                 # value_text = td.get_text(" ", strip=True)
                 # ▲ここまで不要
-                
+
                 header = ""
                 value_text = ""
 
@@ -449,12 +461,12 @@ def fetch_station_details(url):
                         header = '所在地'
                 else:
                     continue
-                
+
 
 
                 # ① 所在地と住所の抽出
                 if header == '所在地':
-                    
+
                     # ▼ここから不要
                     # 古い開業年月日を取得する段階で座標も取得するようになったため不要
                     # 【シンプル化】注釈(<sup)や座標等の補足(<div)が始まる前までのHTMLを切り出してテキスト化
@@ -535,7 +547,7 @@ def fetch_station_details(url):
                     # =====================================================================
                     # スクレイピングで取得した自治体URLをデコードして標準化
                     normalized_muni_url = normalize_wikipedia_url(data["muni_url"])
-                    
+
                     if normalized_muni_url:
                         # 標準化されたURL同士で直接判定（非常に堅牢です）
                         data["is_designated_city"] = normalized_muni_url in DESIGNATED_CITIES_URLS
@@ -738,32 +750,32 @@ def extract_and_count_stations():
                         page_title = urllib.parse.unquote(href.split("/wiki/")[-1])
                         url_clean_name = page_title.split("_(")[0]
                         url_dots = url_clean_name.count('・')
-                        
+
                         # 2. 【表示名側の検証】「 (JR...)」のような半角カッコ（曖昧さ回避）だけを消去して「・」を数える
                         # ※正規表現 \s*\(.*?\) は半角カッコのみを消すため、五福末広町などの全角カッコ「（）」は安全に保護されます
                         display_clean_name = re.sub(r'\s*\(.*?\)', '', display_name)
                         display_dots = display_clean_name.count('・')
-                        
+
                         # 3. URLと表示名、どちらか「・」が多い方を採用する（Wikipediaのリンクのサボりを強制補完）
                         dot_count = max(url_dots, display_dots)
-                        
+
                         # 4. カッコの中身（読み）を「・」で分割する
                         parts = inner_text.split('・')
-                        
+
                         # 5. 「・」の数 ＋ 1 個分のパーツを取得する（構造的な上限）
                         valid_parts = parts[:dot_count + 1]
-                        
+
                         # 6. 【ユーザー考案の最強防壁】漢字を含むパーツ（路線名など）を確実に除外する
                         # これにより、万が一「dot_count」が多すぎても、無関係な路線名が結合されるのを防ぎます
                         filtered_parts = [p for p in valid_parts if not re.search(r'[一-龠]', p)]
-                        
+
                         # 万が一すべて除外された場合の保険
                         if not filtered_parts:
                             filtered_parts = [parts[0]]
-                        
+
                         # 7. 採用したパーツを再び「・」で繋ぐ
                         yomi_raw = "・".join(filtered_parts)
-                        
+
                         # 8. 最後に末尾の「えき」等を削除
                         yomi_raw = re.sub(r"(えき|ていりゅうじょう|しんごうじょう|停留場)$", "", yomi_raw)
                         # ▲▲▲ ここまで差し替え ▲▲▲
@@ -936,7 +948,7 @@ def extract_and_count_stations():
                 # --- 【変更】全データ項目の変更を自動検知して記録する ---
                 # システムが管理する項目（更新比較の対象外）
                 ignore_keys = {"id", "startDay", "endDay", "missingCount", "unique_key", "subPage", "url"}
-                
+
                 station_changes = {}
                 for key in v.keys():
                     if key in ignore_keys:
