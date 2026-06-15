@@ -644,10 +644,21 @@ async function selectTodayStation() {
       let arrivalIdx = 0;
       let departureIdx = 0;
       
-      // ③ シミュレーションループ
-      // startDay以前のイベントを空回しして、activeSetをstartDay時点の状態に進める
+      // ③-1. startDayまでのフラグ状態を「早送り」する（ハッシュ計算はしない）
       for (let d = 0; d < startDay; d++) {
-        // その日のフラグを更新（Setの代わりにフラグを切り替えるだけなので超高速）
+        while (arrivalIdx < arrivalQueue.length && arrivalQueue[arrivalIdx].startDay <= d) {
+          arrivalQueue[arrivalIdx].isActive = true;
+          arrivalIdx++;
+        }
+        while (departureIdx < departureQueue.length && departureQueue[departureIdx].endDay <= d) {
+          departureQueue[departureIdx].isActive = false;
+          departureIdx++;
+        }
+      }
+
+      // ③-2. startDayから今日(currentDayIndex)までの「メインシミュレーションループ」
+      for (let d = startDay; d <= currentDayIndex; d++) {
+        // その日のフラグを更新
         while (arrivalIdx < arrivalQueue.length && arrivalQueue[arrivalIdx].startDay <= d) {
           arrivalQueue[arrivalIdx].isActive = true;
           arrivalIdx++;
@@ -662,23 +673,24 @@ async function selectTodayStation() {
           s.isActive && 
           (!nextAvailableDay[s.yomi] || nextAvailableDay[s.yomi] <= d)
         );
-  
+
         if (pool.length === 0) {
           pool = strictModeStations.filter(s => s.isActive);
         }
 
-      // ハッシュ計算
-      let seed = d * 12345 + currentMode * 6789;
-      let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
-      hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
-      hash = (hash ^ (hash >>> 16)) >>> 0;
+        // ハッシュ計算で今日の駅を決定
+        let seed = d * 12345 + currentMode * 6789;
+        let hash = Math.imul(seed ^ (seed >>> 15), 2246822507);
+        hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+        hash = (hash ^ (hash >>> 16)) >>> 0;
 
-      let candidate = pool[hash % pool.length];
-      // 次回の出禁日を登録
-      nextAvailableDay[candidate.yomi] = d + lookback + 1;
+        let candidate = pool[hash % pool.length];
+        
+        // 次回の出禁日を登録
+        nextAvailableDay[candidate.yomi] = d + lookback + 1;
 
-      if(d === currentDayIndex) todayStation = candidate;
-    } 
+        if(d === currentDayIndex) todayStation = candidate;
+      }
       
       // ==========================================
       // ④ 不要になった過去の出禁データを掃除して保存
