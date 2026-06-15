@@ -1584,6 +1584,7 @@ async function selectTodayLocaStation() {
          poolHard.push(s);
       }
       
+      // 【安全装置】万が一、条件が厳しすぎてくじ引き箱が空になった場合は全駅を復活させます
       if (poolNormal.length === 0) {
          poolNormal = locaAllStaticStations;
          poolHard = locaAllStaticStations;
@@ -1598,7 +1599,7 @@ async function selectTodayLocaStation() {
       nextAvailableDay.set(candidateNormal._cKey, d + lookback + 1);
 
       // ハードモード抽選
-      poolHard = poolHard.filter(s => s._cKey !== candidateNormal._cKey);
+      poolHard = poolHard.filter(s => s._cKey !== candidateNormal._cKey);    //ノーマルモードで選ばれた駅を箱から除外
       if (poolHard.length === 0) poolHard = locaAllStaticStations;
 
       let seedH = d * 33333 + 99999;
@@ -1607,7 +1608,8 @@ async function selectTodayLocaStation() {
       hashH = (hashH ^ (hashH >>> 16)) >>> 0;
       let candidateHard = poolHard[hashH % poolHard.length];
       nextAvailableDay.set(candidateHard._cKey, d + lookback + 1);
-
+      
+      // シミュレーションが「今日」に到達したら最終結果として確定します
       if (d === currentDayIndex) {
         targetNormal = candidateNormal;
         targetHard = candidateHard;
